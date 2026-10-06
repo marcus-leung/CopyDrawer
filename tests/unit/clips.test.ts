@@ -119,3 +119,29 @@ describe('list, search, pin, use, delete', () => {
     expect((await db.clips.get(clip.id))?.text).toBe('undo me');
   });
 });
+
+describe('backup', () => {
+  it('exports and imports clips, images and collections without duplicates', async () => {
+    const { exportBackup, importBackup } = await import('@/lib/backup');
+    const { saveClip: save } = await import('@/lib/clips');
+    await save({ text: 'Photosynthesis', source: { url: 'https://en.wikipedia.org/wiki/P' } }, db);
+    await save({ text: 'just a note' }, db);
+    await db.images.put({ id: 'img1', blob: new Blob(['png-bytes'], { type: 'image/png' }) });
+    await db.clips.add({
+      id: 'c-img', createdAt: 1, lastUsedAt: 1, useCount: 0, kind: 'image', text: '', title: 'pic.png', pinned: 0, hash: 'img:1',
+      image: { imageId: 'img1', mime: 'image/png', width: 1, height: 1, bytes: 9, thumb: new Blob(['t'], { type: 'image/webp' }) },
+    });
+    const file = JSON.parse(JSON.stringify(await exportBackup(db)));
+    expect(file.clips).toHaveLength(3);
+
+    const other = new ClipDatabase(`test-${crypto.randomUUID()}`);
+    await other.open();
+    expect(await importBackup(file, other)).toBe(3);
+    expect(await importBackup(file, other)).toBe(0);
+    const research = (await other.clips.toArray()).find((c) => c.text === 'Photosynthesis')!;
+    expect((await other.collections.get(research.collectionId!))?.name).toBe('Research');
+    const img = (await other.clips.toArray()).find((c) => c.kind === 'image')!;
+    expect(await (await other.images.get(img.image!.imageId))!.blob.text()).toBe('png-bytes');
+    await expect(importBackup({ nope: 1 }, other)).rejects.toThrow("isn't a Clipboard export");
+  });
+});

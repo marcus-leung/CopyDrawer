@@ -89,7 +89,7 @@ export function CollectionView({
           ) : (
             <h1 className="font-display text-[26px] leading-tight font-extrabold">{collection.name}</h1>
           )}
-          <p className="mt-0.5 text-[13px] opacity-80">
+          <p className="mt-0.5 text-[13px]">
             {clips.length} {clips.length === 1 ? 'clip' : 'clips'}
           </p>
         </div>

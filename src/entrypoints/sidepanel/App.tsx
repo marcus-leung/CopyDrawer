@@ -21,18 +21,23 @@ import { ClipDetail } from './ClipDetail';
 import { SettingsView } from './SettingsView';
 import { CollectionView } from './CollectionView';
 import { FilterBar } from './FilterBar';
+import { Onboarding } from './Onboarding';
+import { HomeNotice } from './HomeNotice';
+import { ProWaitlist } from './ProWaitlist';
 
 type View =
   | { name: 'home' }
   | { name: 'detail'; id: string; from?: View }
   | { name: 'settings' }
-  | { name: 'collection'; id: string };
+  | { name: 'collection'; id: string }
+  | { name: 'pro'; from?: View };
 
 export function App() {
   useTheme();
   const settings = useSettings();
   const now = useNowUntil(settings?.pausedUntil ?? 0);
   const [view, setView] = useState<View>({ name: 'home' });
+  const [onboarding, setOnboarding] = useState(() => new URLSearchParams(location.search).has('onboarding'));
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(NO_FILTERS);
   const [results, setResults] = useState<SearchResult[] | null>(null);
@@ -198,6 +203,17 @@ export function App() {
     </div>
   );
 
+  if (onboarding) {
+    return (
+      <Onboarding
+        onDone={() => {
+          history.replaceState(null, '', location.pathname);
+          setOnboarding(false);
+        }}
+      />
+    );
+  }
+
   if (view.name === 'detail') {
     const back = view.from ?? { name: 'home' as const };
     return shell(<ClipDetail id={view.id} onBack={() => setView(back)} onCopy={copy} onDelete={remove} notify={notify} />);
@@ -217,7 +233,12 @@ export function App() {
   }
 
   if (view.name === 'settings') {
-    return shell(<SettingsView onBack={() => setView({ name: 'home' })} notify={notify} />);
+    return shell(<SettingsView onBack={() => setView({ name: 'home' })} notify={notify} onPro={() => setView({ name: 'pro', from: { name: 'settings' } })} />);
+  }
+
+  if (view.name === 'pro') {
+    const back = view.from ?? { name: 'home' as const };
+    return shell(<ProWaitlist onBack={() => setView(back)} />);
   }
 
   return shell(
@@ -250,15 +271,14 @@ export function App() {
         )}
       </div>
 
-      {paused && settings && (
-        <div className="px-[18px] pb-3">
-          <Notice
-            tone="warning"
-            title="Auto-save is paused"
-            body={`Nothing you copy is being saved. Resumes at ${new Date(settings.pausedUntil).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}.`}
-            action={{ label: 'Resume now', onClick: () => void updateSettings({ pausedUntil: 0 }) }}
-          />
-        </div>
+      {settings && clips && (
+        <HomeNotice
+          settings={settings}
+          now={now}
+          count={clips.length}
+          onCleanUp={() => setView({ name: 'settings' })}
+          onPro={() => setView({ name: 'pro' })}
+        />
       )}
 
       <main className="min-h-0 flex-1 overflow-y-auto px-[18px]">

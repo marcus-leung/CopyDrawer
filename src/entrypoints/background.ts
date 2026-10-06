@@ -8,7 +8,7 @@ import type { QuickClip } from '@/lib/quickpaste';
 import { getSettings, isPaused, updateSettings } from '@/lib/settings';
 import { isBlocked } from '@/lib/exclusions';
 import { syncAutosaveRegistration } from '@/lib/autosave';
-import { dataUrlToBlob, ImageError, saveImageClip } from '@/lib/images';
+import { blobToDataUrl, dataUrlToBlob, ImageError, saveImageClip } from '@/lib/images';
 import { fetchImageInPage, readSelection, selectArea, showSavedToast } from '@/lib/injected';
 import type { Clip, ClipSource } from '@/lib/db';
 
@@ -35,13 +35,6 @@ async function flashBadge(text: string, color: string) {
   await browser.action.setBadgeBackgroundColor({ color });
   await browser.action.setBadgeText({ text });
   setTimeout(() => void browser.action.setBadgeText({ text: '' }), 1500);
-}
-
-async function blobToDataUrl(blob: Blob): Promise<string> {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  let bin = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return `data:${blob.type};base64,${btoa(bin)}`;
 }
 
 /** Shows the in-page "saved" card. Needs scripting access to the tab (activeTab or all sites). */
