@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MAX_CLIPS } from '@/lib/clips';
-import { hostnameOf } from '@/lib/exclusions';
+import { hostOf } from '@/lib/format';
 import { nanoAvailability } from '@/lib/ai/nano';
 import { isPaused, updateSettings, type Settings } from '@/lib/settings';
 import { Notice } from '@/components/Notice';
@@ -12,7 +12,7 @@ function useActiveHost(): string | null {
     const read = () =>
       void browser.tabs
         .query({ active: true, currentWindow: true })
-        .then(([tab]) => setHost(tab?.url ? (hostnameOf(tab.url) ?? null) : null))
+        .then(([tab]) => setHost(tab?.url ? (hostOf(tab.url) ?? null) : null))
         .catch(() => setHost(null));
     read();
     const onActivated = () => read();
@@ -27,7 +27,7 @@ function useActiveHost(): string | null {
   return host;
 }
 
-/** One notice at a time under the search bar (screen 5.3): paused, site blocked, history full, basic AI. */
+/** One notice at a time under the search bar: paused, site blocked, history full, basic AI. */
 export function HomeNotice({
   settings,
   now,

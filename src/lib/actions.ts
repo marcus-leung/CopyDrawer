@@ -1,7 +1,6 @@
 /**
  * Smart actions: rules that spot what a clip is (a tracking number, a date, an
  * address, a color…) and offer the obvious next step. No AI, instant, offline.
- * docs/02-design.md §2 (feature 6), screens 3.3 and 6.2.
  */
 
 // ---------- Links ----------
@@ -130,7 +129,7 @@ const MONTH =
 const WEEKDAY = '(?:(?:mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(?:day|nesday|sday|urday)?\\.?,?\\s+)?';
 const TIME = '(?:,?\\s*(?:at\\s+|@\\s*)?(\\d{1,2})(?:[:.h](\\d{2}))?\\s*(am|pm|a\\.m\\.|p\\.m\\.)?)?';
 
-export interface FoundDate {
+interface FoundDate {
   start: Date;
   /** No time of day was given. */
   allDay: boolean;
@@ -328,7 +327,7 @@ export type SmartAction =
   | { kind: 'calendar'; label: string; date: FoundDate; location?: string }
   | { kind: 'color'; label: string; rgb: Rgb };
 
-export interface Detected {
+interface Detected {
   /** One line saying what we noticed, e.g. "Looks like a UPS tracking number". */
   note?: string;
   actions: SmartAction[];

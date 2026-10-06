@@ -1,5 +1,5 @@
 /**
- * Week 2 flows, end to end in Chromium with the real extension: smart
+ * Organizing, end to end in Chromium with the real extension: smart
  * collections from real-looking pages, trips, the collection view, moving
  * clips (and similar clips following), the AI model (load, failure, retry,
  * off) and AI titles.

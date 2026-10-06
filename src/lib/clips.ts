@@ -2,10 +2,10 @@ import { db as defaultDb, type Clip, type ClipDatabase, type ClipKind, type Clip
 import { autoAssign } from './collections';
 import { cleanUrl } from './actions';
 
-/** History limit, pins included (docs/02-design.md §10). */
+/** History limit, pins included. */
 export const MAX_CLIPS = 2000;
 
-export interface NewClip {
+interface NewClip {
   text: string;
   html?: string;
   source?: ClipSource;
@@ -53,10 +53,6 @@ function truncate(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s;
 }
 
-function newId(): string {
-  return crypto.randomUUID();
-}
-
 let lastSave = 0;
 /** Save timestamps, strictly increasing so clips saved in the same millisecond keep their order. */
 export function saveTime(): number {
@@ -91,7 +87,7 @@ export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Pr
     }
     const kind = detectKind(text);
     const clip: Clip = {
-      id: newId(),
+      id: crypto.randomUUID(),
       createdAt: now,
       lastUsedAt: 0,
       useCount: 0,
@@ -153,7 +149,7 @@ export function matchesQuery(clip: Clip, query: string): boolean {
   return q.split(/\s+/).every((word) => hay.includes(word));
 }
 
-export interface DeletedClip {
+interface DeletedClip {
   clip: Clip;
   image?: StoredImage;
 }
@@ -175,7 +171,7 @@ export async function restoreClip(deleted: DeletedClip, db: ClipDatabase = defau
   });
 }
 
-export interface ClipEdit {
+interface ClipEdit {
   text?: string;
   title?: string;
 }

@@ -2,7 +2,7 @@ import { db as defaultDb, type Clip, type ClipDatabase, type ClipSource } from '
 import { enforceLimit, saveTime } from './clips';
 import { autoAssign } from './collections';
 
-export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const THUMB_MAX = 320;
 
@@ -14,7 +14,7 @@ async function sha256Hex(blob: Blob): Promise<string> {
 }
 
 /** Makes a small preview. Works in pages and in the service worker. */
-export async function makeThumbnail(blob: Blob): Promise<{ thumb: Blob; width: number; height: number }> {
+async function makeThumbnail(blob: Blob): Promise<{ thumb: Blob; width: number; height: number }> {
   const bitmap = await createImageBitmap(blob);
   const { width, height } = bitmap;
   const scale = Math.min(1, THUMB_MAX / Math.max(width, height));
@@ -29,14 +29,14 @@ export async function makeThumbnail(blob: Blob): Promise<{ thumb: Blob; width: n
   return { thumb, width, height };
 }
 
-export function imageTitle(source?: ClipSource, fileName?: string, alt?: string): string {
+function imageTitle(source?: ClipSource, fileName?: string, alt?: string): string {
   if (alt?.trim()) return alt.trim().slice(0, 80);
   if (fileName) return fileName;
   if (source?.title) return `Image from ${source.title}`.slice(0, 80);
   return 'Image';
 }
 
-export interface NewImage {
+interface NewImage {
   blob: Blob;
   source?: ClipSource;
   srcUrl?: string;

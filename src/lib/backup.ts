@@ -11,7 +11,7 @@ interface ExportedClip extends Omit<Clip, 'embedding' | 'embeddingModel' | 'imag
   image?: Omit<NonNullable<Clip['image']>, 'thumb'> & { thumb: string; data?: string };
 }
 
-export interface BackupFile {
+interface BackupFile {
   app: 'clipboard-extension';
   version: 1;
   exportedAt: string;
