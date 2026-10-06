@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ClipboardPaste, ImagePlus, MoreHorizontal, Plus } from 'lucide-react';
 import { db, type Clip, type Collection } from '@/lib/db';
-import { deleteClip, listClips, markUsed, matchesQuery, restoreClip, saveClip } from '@/lib/clips';
+import { deleteClip, listClips, markUsed, restoreClip, saveClip } from '@/lib/clips';
+import { NO_FILTERS, searchClips, topSites, type SearchFilters, type SearchResult } from '@/lib/search';
 import { copyClipToClipboard, fromDataTransfer, readClipboard, type ClipboardContents } from '@/lib/clipboard';
 import { ImageError, saveImageClip } from '@/lib/images';
 import { isPaused, PAUSE_MS, updateSettings } from '@/lib/settings';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { useTheme } from '@/lib/useTheme';
-import { useIndexer } from '@/lib/useIndexer';
+import { activeEmbedder, useIndexer } from '@/lib/useIndexer';
 import { createCollection, listCollections } from '@/lib/collections';
 import { CollectionTile } from '@/components/CollectionTile';
 import { ClipRow } from '@/components/ClipRow';
@@ -18,6 +19,7 @@ import { Toast, type ToastState } from '@/components/Toast';
 import { ClipDetail } from './ClipDetail';
 import { SettingsView } from './SettingsView';
 import { CollectionView } from './CollectionView';
+import { FilterBar } from './FilterBar';
 
 type View =
   | { name: 'home' }
@@ -31,6 +33,8 @@ export function App() {
   const now = useNowUntil(settings?.pausedUntil ?? 0);
   const [view, setView] = useState<View>({ name: 'home' });
   const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState<SearchFilters>(NO_FILTERS);
+  const [results, setResults] = useState<SearchResult[] | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [dragging, setDragging] = useState(false);
   const clips = useLiveQuery(() => listClips(), [], undefined);
@@ -151,7 +155,27 @@ export function App() {
     };
   }, [saveContents]);
 
-  const visible = useMemo(() => (clips ?? []).filter((c) => matchesQuery(c, query)), [clips, query]);
+  const filtering = filters.kind !== 'any' || filters.site !== 'any' || filters.date !== 'any';
+  const searching = query.trim() !== '' || filtering;
+  useEffect(() => {
+    if (!searching || !clips) {
+      setResults(null);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(() => {
+      void searchClips(query, clips, filters, activeEmbedder())
+        .then((r) => !cancelled && setResults(r))
+        .catch(() => {});
+    }, 150);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [searching, query, filters, clips]);
+  const visible = useMemo(() => (searching ? (results ?? []).map((r) => r.clip) : (clips ?? [])), [searching, results, clips]);
+  const meaningCount = results?.filter((r) => r.match === 'meaning').length ?? 0;
+  const sites = useMemo(() => topSites(clips ?? []), [clips]);
   const paused = settings ? isPaused(settings, now) : false;
   const sortedToday = useMemo(() => {
     const midnight = new Date().setHours(0, 0, 0, 0);
@@ -175,7 +199,7 @@ export function App() {
 
   if (view.name === 'detail') {
     const back = view.from ?? { name: 'home' as const };
-    return shell(<ClipDetail id={view.id} onBack={() => setView(back)} onCopy={copy} onDelete={remove} />);
+    return shell(<ClipDetail id={view.id} onBack={() => setView(back)} onCopy={copy} onDelete={remove} notify={notify} />);
   }
 
   if (view.name === 'collection') {
@@ -218,6 +242,11 @@ export function App() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        {(searching || query) && clips && clips.length > 0 && (
+          <div className="pt-2.5">
+            <FilterBar filters={filters} sites={sites} onChange={setFilters} />
+          </div>
+        )}
       </div>
 
       {paused && settings && (
@@ -234,11 +263,13 @@ export function App() {
       <main className="min-h-0 flex-1 overflow-y-auto px-[18px]">
         {clips === undefined ? null : clips.length === 0 ? (
           <EmptyState onGrab={saveFromClipboard} />
-        ) : visible.length === 0 ? (
-          <p className="py-10 text-center text-sm text-text-3">No clips match “{query}”.</p>
+        ) : searching && results === null ? null : visible.length === 0 ? (
+          <p className="py-10 text-center text-sm text-text-3">
+            {query.trim() ? `No clips match “${query.trim()}”.` : 'No clips match these filters.'}
+          </p>
         ) : (
           <>
-            {!query && summaries && summaries.length > 0 && (
+            {!searching && summaries && summaries.length > 0 && (
               <section aria-labelledby="collections-title" className="pb-4">
                 <div className="flex items-center justify-between pb-2">
                   <h2 id="collections-title" className="font-display text-[17px] font-semibold">
@@ -264,8 +295,14 @@ export function App() {
                 </ul>
               </section>
             )}
-            {!query && summaries && summaries.length > 0 && (
+            {!searching && summaries && summaries.length > 0 && (
               <h2 className="font-display text-[17px] font-semibold">Recent</h2>
+            )}
+            {searching && (
+              <p className="pb-1 text-[13px] text-text-2" aria-live="polite">
+                {visible.length} {visible.length === 1 ? 'clip matches' : 'clips match'}
+                {meaningCount > 0 && `, ${meaningCount} by meaning`}
+              </p>
             )}
             <ul aria-label="Clips">
               {visible.map((clip) => (

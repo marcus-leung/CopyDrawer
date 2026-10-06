@@ -187,6 +187,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
         <Section id="s-keys" title="Shortcuts">
           <Row label="Save selection" value={<kbd>Alt+Shift+S</kbd>} />
           <Row label="Screenshot an area" value={<kbd>Alt+Shift+X</kbd>} />
+          <Row label="Quick paste on any page" value={<kbd>Alt+Shift+V</kbd>} />
           <button
             type="button"
             className="cursor-pointer text-[13px] font-semibold text-link hover:text-link-hover"

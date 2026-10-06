@@ -7,14 +7,17 @@ import { hostOf } from '@/lib/format';
 import { formatBytes } from '@/lib/images';
 import { useObjectUrl } from '@/lib/useObjectUrl';
 import { Button, IconButton } from '@/components/ui';
+import { PasteAs } from './PasteAs';
 
 export function ClipDetail({
   id,
   onBack,
   onCopy,
   onDelete,
+  notify,
 }: {
   id: string;
+  notify: (message: string) => void;
   onBack: () => void;
   onCopy: (clip: Clip) => void;
   onDelete: (id: string) => void;
@@ -79,6 +82,7 @@ export function ClipDetail({
             {clip.text}
           </pre>
         )}
+        {clip.kind !== 'image' && <PasteAs clip={clip} onCopyOriginal={() => onCopy(clip)} notify={notify} />}
         <p className="mt-3 text-xs text-text-3">
           {clip.useCount > 0 ? `Used ${clip.useCount} ${clip.useCount === 1 ? 'time' : 'times'}.` : 'Not used yet.'}
         </p>
