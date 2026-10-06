@@ -209,7 +209,7 @@ Chrome extension code is shipped as JavaScript that **anyone can download and re
 | 10 | Passwords/keys handling | ✅ **Out of scope for MVP** (no detection/masking). Only the seed site exclusions from §4 |
 | 11 | Analytics | ✅ Anonymous counts with an off switch; never content or URLs |
 | 12 | Cloud AI in free tier at launch | ✅ None; fake-door waitlist |
-| 13 | Browsers | ✅ Chrome + Edge at launch · **Safari fast-follow** after v1.0 (see §11) · Firefox later |
+| 13 | Browsers | ✅ Chrome + Edge at launch · **Safari fast-follow** after v1.0 (see §11) · Firefox removed from scope |
 | 14 | Language | ✅ English first, i18n-ready strings |
 | 15 | User interviews | ✅ No pre-build interviews; feedback comes from the private beta |
 
