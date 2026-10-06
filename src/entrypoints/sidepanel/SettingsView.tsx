@@ -9,10 +9,11 @@ import { BUILT_IN_BLOCKED, normalizeSite } from '@/lib/exclusions';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { Button, IconButton } from '@/components/ui';
 import { AiSection } from './AiSection';
+import { BackupError, exportBackup, importBackup } from '@/lib/backup';
 
 const selectClass = 'h-9 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink';
 
-export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (message: string) => void }) {
+export function SettingsView({ onBack, notify, onPro }: { onBack: () => void; notify: (message: string) => void; onPro: () => void }) {
   const settings = useSettings();
   const now = useNowUntil(settings?.pausedUntil ?? 0);
   const count = useLiveQuery(() => db.clips.count(), [], 0);
@@ -44,6 +45,27 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
     }
     if (!settings.blockedSites.includes(host)) await change({ blockedSites: [...settings.blockedSites, host] });
     setSite('');
+  }
+
+  async function exportAll() {
+    const file = await exportBackup();
+    const url = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `clipboard-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    notify(`Exported ${file.clips.length} ${file.clips.length === 1 ? 'clip' : 'clips'}`);
+  }
+
+  async function importFrom(file: File | undefined) {
+    if (!file) return;
+    try {
+      const added = await importBackup(JSON.parse(await file.text()));
+      notify(added ? `Imported ${added} ${added === 1 ? 'clip' : 'clips'}` : 'Nothing new to import');
+    } catch (e) {
+      notify(e instanceof BackupError ? e.message : "Couldn't read that file.");
+    }
   }
 
   async function deleteEverything() {
@@ -185,9 +207,9 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
         </Section>
 
         <Section id="s-keys" title="Shortcuts">
+          <Row label="Quick paste on any page" value={<kbd>Alt+Shift+V</kbd>} />
           <Row label="Save selection" value={<kbd>Alt+Shift+S</kbd>} />
           <Row label="Screenshot an area" value={<kbd>Alt+Shift+X</kbd>} />
-          <Row label="Quick paste on any page" value={<kbd>Alt+Shift+V</kbd>} />
           <button
             type="button"
             className="cursor-pointer text-[13px] font-semibold text-link hover:text-link-hover"
@@ -197,13 +219,44 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
           </button>
         </Section>
 
+        <Section id="s-pro" title="Pro">
+          <button
+            type="button"
+            onClick={onPro}
+            className="flex w-full cursor-pointer items-center justify-between rounded-2xl bg-ai-bg px-4 py-3.5 text-left text-ai-fg"
+          >
+            <span className="text-sm">
+              <b className="block">Pro is coming</b>
+              Sync, unlimited history, AI on any computer
+            </span>
+            <span aria-hidden>›</span>
+          </button>
+        </Section>
+
         <Section id="s-data" title="Your data">
           <p className="mb-3 text-[13px] leading-[19px] text-text-2">
             Clips are stored only on this computer. Nothing is uploaded.
           </p>
-          <Button variant="danger" onClick={() => void deleteEverything()}>
-            Delete all clips
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => void exportAll()}>
+              Export
+            </Button>
+            <label className="inline-flex h-9 cursor-pointer items-center rounded-full bg-surface px-3 text-[13px] font-semibold text-ink hover:opacity-90 focus-within:outline-2 focus-within:outline-link">
+              Import
+              <input
+                type="file"
+                accept="application/json,.json"
+                className="sr-only"
+                onChange={(e) => {
+                  void importFrom(e.target.files?.[0]);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+            <Button size="sm" variant="danger" onClick={() => void deleteEverything()}>
+              Delete all
+            </Button>
+          </div>
         </Section>
       </main>
     </>

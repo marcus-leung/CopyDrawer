@@ -18,6 +18,8 @@ export interface Settings {
   smartModel: boolean;
   /** One-time tips the user dismissed ("quick-paste", …). */
   dismissedTips: string[];
+  /** Finished (or skipped) the first-run setup. */
+  onboarded: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -29,6 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
   saveInIncognito: false,
   smartModel: true,
   dismissedTips: [],
+  onboarded: false,
 };
 
 export const PAUSE_MS = 60 * 60 * 1000;

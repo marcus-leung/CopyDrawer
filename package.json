@@ -2,7 +2,7 @@
   "name": "clipboard-extension",
   "description": "A private, AI-powered clipboard for Chrome",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "license": "GPL-3.0-only",
   "scripts": {
@@ -29,6 +29,7 @@
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/chrome": "^0.3.4",

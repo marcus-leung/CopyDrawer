@@ -19,6 +19,13 @@ export const test = base.extend<{ context: BrowserContext; extensionId: string }
   extensionId: async ({ context }, use) => {
     let [worker] = context.serviceWorkers();
     if (!worker) worker = await context.waitForEvent('serviceworker');
+    // First install opens the setup tab. Close it so it doesn't keep the
+    // test's own tab in the background (Chrome throttles background tabs).
+    const isSetup = (url: string) => url.includes('onboarding=1');
+    const setup =
+      context.pages().find((p) => isSetup(p.url())) ??
+      (await context.waitForEvent('page', { predicate: (p) => isSetup(p.url()), timeout: 5000 }).catch(() => null));
+    await setup?.close();
     await use(new URL(worker.url()).host);
   },
 });

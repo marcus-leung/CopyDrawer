@@ -28,7 +28,7 @@ export function CollectionTile({ summary, onOpen }: { summary: CollectionSummary
         <span className="block h-2.5 w-14 rounded-t-lg bg-[var(--c-accent)] dark:bg-[var(--c-accent-d)]" aria-hidden />
         <span className="block rounded-tr-xl rounded-b-xl border-t-[3px] border-[var(--c-accent)] bg-[var(--c-tint)] px-3 pt-2.5 pb-3 text-[var(--c-text)] group-hover:brightness-[0.98] dark:border-[var(--c-accent-d)] dark:bg-[var(--c-tint-d)] dark:text-ink">
           <span className="block truncate text-[15px] font-semibold">{collection.name}</span>
-          <span className="block truncate text-[13px] opacity-80">{countLine(count, newCount)}</span>
+          <span className="block truncate text-[13px]">{countLine(count, newCount)}</span>
         </span>
       </button>
     </li>
