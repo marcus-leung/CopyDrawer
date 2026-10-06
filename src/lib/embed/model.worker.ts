@@ -11,8 +11,8 @@ env.allowLocalModels = false;
 env.useBrowserCache = true;
 const wasm = env.backends.onnx.wasm!;
 wasm.wasmPaths = {
-  mjs: `${origin}/ort/ort-wasm-simd-threaded.jsep.mjs`,
-  wasm: `${origin}/ort/ort-wasm-simd-threaded.jsep.wasm`,
+  mjs: `${origin}/ort/ort-wasm-simd-threaded.asyncify.mjs`,
+  wasm: `${origin}/ort/ort-wasm-simd-threaded.asyncify.wasm`,
 };
 wasm.numThreads = 1; // extensions aren't cross-origin isolated, so no SharedArrayBuffer
 wasm.proxy = false;

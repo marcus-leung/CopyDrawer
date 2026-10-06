@@ -1,4 +1,10 @@
-import { deleteClip, deleteOlderThan, saveClip } from '@/lib/clips';
+import { deleteClip, deleteOlderThan, listClips, markUsed, saveClip } from '@/lib/clips';
+import { db } from '@/lib/db';
+import { colorOf } from '@/lib/collections';
+import { hostOf } from '@/lib/format';
+import { applyAi, applyPlain, isAiTransform, type Transform } from '@/lib/transforms';
+import { nanoAvailability } from '@/lib/ai/nano';
+import type { QuickClip } from '@/lib/quickpaste';
 import { getSettings, isPaused, updateSettings } from '@/lib/settings';
 import { isBlocked } from '@/lib/exclusions';
 import { syncAutosaveRegistration } from '@/lib/autosave';
@@ -159,6 +165,47 @@ function createMenus() {
   });
 }
 
+/** Opens the quick-paste box on the page (activeTab from the shortcut grants access). */
+async function openQuickPaste(tab: Browser.tabs.Tab | undefined) {
+  if (!tab?.id) return;
+  try {
+    await browser.scripting.executeScript({ target: { tabId: tab.id }, files: ['/content-scripts/quickpaste.js'] });
+  } catch {
+    // Chrome pages, the Web Store and PDFs don't allow scripts: use the side panel instead.
+    await flashBadge('×', '#5B6170');
+  }
+}
+
+async function quickPasteClips(): Promise<{ clips: QuickClip[]; aiReady: boolean }> {
+  const [clips, collections, ai] = await Promise.all([listClips(), db.collections.toArray(), nanoAvailability()]);
+  const byId = new Map(collections.map((c) => [c.id, c]));
+  return {
+    aiReady: ai === 'available',
+    clips: clips
+      .filter((c) => c.kind !== 'image')
+      .slice(0, 300)
+      .map((c) => {
+        const col = c.collectionId ? byId.get(c.collectionId) : undefined;
+        return {
+          id: c.id,
+          title: c.title,
+          text: c.text.slice(0, 20_000),
+          kind: c.kind,
+          host: hostOf(c.source?.url) || undefined,
+          collection: col?.name,
+          color: col ? colorOf(col).accent : undefined,
+        };
+      }),
+  };
+}
+
+async function quickPasteTransform(id: string, transform: Transform): Promise<string | null> {
+  const clip = await db.clips.get(id);
+  if (!clip) return null;
+  if (isAiTransform(transform)) return applyAi(transform, clip.text, { lang: navigator.language.slice(0, 2) });
+  return applyPlain(transform, clip.text, clip.html);
+}
+
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener((details) => {
     createMenus();
@@ -199,6 +246,7 @@ export default defineBackground(() => {
   browser.commands.onCommand.addListener((command, tab) => {
     if (command === 'save-selection') void saveSelectionFromTab(tab);
     if (command === 'screenshot-area') void screenshotArea(tab);
+    if (command === 'quick-paste') void openQuickPaste(tab);
   });
 
   browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -213,12 +261,22 @@ export default defineBackground(() => {
       case 'undo-save':
         void deleteClip(msg.clipId);
         return;
+      case 'qp-clips':
+        void quickPasteClips().then(sendResponse);
+        return true;
+      case 'qp-transform':
+        void quickPasteTransform(msg.id, msg.transform).then(sendResponse, () => sendResponse(null));
+        return true;
+      case 'qp-used':
+        void markUsed(msg.id);
+        return;
     }
     // Test-only hooks: Playwright can't click Chrome's context menu.
     if (__E2E__ && msg.type === 'e2e-menu') {
       void browser.tabs.get(msg.tabId).then(async (tab) => {
         if (msg.action === 'save-image') await saveImageFromUrl(msg.srcUrl, tab);
         if (msg.action === 'screenshot') await screenshotArea(tab);
+        if (msg.action === 'quick-paste') await openQuickPaste(tab);
         sendResponse(true);
       });
       return true;

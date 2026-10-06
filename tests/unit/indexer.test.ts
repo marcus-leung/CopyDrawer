@@ -81,3 +81,21 @@ describe('semanticSearch', () => {
     expect(await semanticSearch('cook', hashEmbedder, await db.clips.toArray())).toEqual([]);
   });
 });
+
+describe('searchClips', () => {
+  it('lists word matches first, then meaning matches, and applies filters', async () => {
+    const { searchClips, NO_FILTERS } = await import('@/lib/search');
+    await saveClip({ text: 'Lemon garlic pasta recipe' }, db);
+    await saveClip({ text: 'Lasagna for Sunday dinner' }, db);
+    await saveClip({ text: 'Hotel near the station', source: { url: 'https://www.booking.com/h/1' } }, db);
+    await indexPending(fakeModel, db);
+    const clips = await db.clips.orderBy('createdAt').reverse().toArray();
+    const r = await searchClips('recipe', clips, NO_FILTERS, fakeModel);
+    expect(r.map((x) => [x.clip.text, x.match])).toEqual([
+      ['Lemon garlic pasta recipe', 'words'],
+      ['Lasagna for Sunday dinner', 'meaning'],
+    ]);
+    const bySite = await searchClips('', clips, { ...NO_FILTERS, site: 'booking.com' }, null);
+    expect(bySite.map((x) => x.clip.text)).toEqual(['Hotel near the station']);
+  });
+});
