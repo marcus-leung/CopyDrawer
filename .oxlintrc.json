@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "react-hooks", "import"],
+  "env": {
+    "browser": true,
+    "webextensions": true,
+    "es2024": true
+  },
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_"
+      }
+    ],
+    "react/react-in-jsx-scope": "off"
+  },
+  "ignorePatterns": [".output/**", ".output-e2e/**", ".wxt/**", "docs/mockups/**", "test-results/**", "tests/fixtures/**"],
+  "overrides": [
+    {
+      "files": ["tests/e2e/**"],
+      "rules": {
+        "react-hooks/rules-of-hooks": "off",
+        "no-empty-pattern": "off"
+      }
+    }
+  ]
+}

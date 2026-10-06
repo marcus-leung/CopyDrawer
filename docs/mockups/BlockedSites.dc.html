@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Blocked sites</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button,input{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 400px; height: 860px; box-sizing: border-box; background: #FFFFFF; color: #1B1D2A; font-family: 'Instrument Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <header style="padding: 14px 14px 4px; display: flex; align-items: center; gap: 6px">
+    <button aria-label="Back to settings" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: transparent; color: #1B1D2A; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+    <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Blocked sites</h1>
+  </header>
+  <p style="margin: 0 18px 16px; font-size: 14px; line-height: 20px; color: #3E4357">Nothing you copy on these sites is saved.</p>
+
+  <div style="padding: 0 18px; display: flex; gap: 8px">
+    <label for="add-site" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Site to block</label>
+    <input id="add-site" type="text" placeholder="e.g. mybank.com" style="flex: 1; min-width: 0; height: 44px; border: 1px solid #DADCE5; border-radius: 22px; padding: 0 16px; font-size: 14px; color: #1B1D2A">
+    <button style="height: 44px; padding: 0 16px; border: 0; border-radius: 22px; background: #1B1D2A; color: #FFFFFF; font-size: 14px; font-weight: 600; cursor: pointer">Block</button>
+  </div>
+
+  <section aria-labelledby="bs-mine" style="padding: 20px 18px 0">
+    <h2 id="bs-mine" style="margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #555A6E">Blocked by you</h2>
+    <ul style="list-style: none; margin: 0; padding: 0">
+      <sc-for list="{{mine}}" as="s" hint-placeholder-count="3">
+        <li style="display: flex; align-items: center; justify-content: space-between; min-height: 52px; border-bottom: 1px solid #ECEDF2">
+          <span style="font-size: 14px; font-weight: 600">{{s.host}}</span>
+          <button style="height: 36px; padding: 0 12px; border: 0; border-radius: 18px; background: #F1F2F6; color: #1B1D2A; font-size: 13px; font-weight: 600; cursor: pointer">Unblock</button>
+        </li>
+      </sc-for>
+    </ul>
+  </section>
+
+  <section aria-labelledby="bs-built" style="padding: 20px 18px 0">
+    <h2 id="bs-built" style="margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #555A6E">Always blocked</h2>
+    <p style="margin: 0 0 6px; font-size: 13px; color: #555A6E">Password managers and common banking sites, kept up to date for you.</p>
+    <ul style="list-style: none; margin: 0; padding: 0">
+      <sc-for list="{{built}}" as="s" hint-placeholder-count="4">
+        <li style="display: flex; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid #ECEDF2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+          <span style="font-size: 14px; color: #3E4357">{{s.host}}</span>
+        </li>
+      </sc-for>
+    </ul>
+    <button style="margin-top: 10px; height: 36px; padding: 0 12px; border: 0; border-radius: 18px; background: transparent; color: #2457C5; font-size: 13px; font-weight: 600; cursor: pointer">Show all 120</button>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":400,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      mine: [{ host: 'mail.work-company.com' }, { host: 'hr.portal.example' }, { host: 'docs.private-notes.app' }],
+      built: [{ host: '1password.com' }, { host: 'bitwarden.com' }, { host: 'chase.com' }, { host: 'paypal.com' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

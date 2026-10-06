@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Paste as: AI rewrite preview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 400px; height: 860px; box-sizing: border-box; background: #FFFFFF; color: #1B1D2A; font-family: 'Instrument Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <header style="padding: 14px 14px 8px; display: flex; align-items: center; gap: 6px">
+    <button aria-label="Back" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: transparent; color: #1B1D2A; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+    <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Paste as</h1>
+  </header>
+
+  <div style="padding: 0 18px">
+    <h2 style="margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #555A6E">Original</h2>
+    <p style="margin: 0; padding: 12px 14px; border-radius: 14px; background: #F1F2F6; font-size: 14px; line-height: 20px; color: #3E4357">Need the report by Friday. Send the numbers ASAP, we're already late.</p>
+
+    <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 16px">
+      <button aria-pressed="true" style="height: 36px; padding: 0 14px; border: 0; border-radius: 18px; background: #2457C5; color: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer">Friendlier</button>
+      <button aria-pressed="false" style="height: 36px; padding: 0 14px; border: 0; border-radius: 18px; background: #E6EEFC; color: #173D8F; font-size: 13px; font-weight: 600; cursor: pointer">More formal</button>
+      <button aria-pressed="false" style="height: 36px; padding: 0 14px; border: 0; border-radius: 18px; background: #E6EEFC; color: #173D8F; font-size: 13px; font-weight: 600; cursor: pointer">Shorter</button>
+      <button aria-pressed="false" style="height: 36px; padding: 0 14px; border: 0; border-radius: 18px; background: #E6EEFC; color: #173D8F; font-size: 13px; font-weight: 600; cursor: pointer">Fix grammar</button>
+      <button aria-pressed="false" style="height: 36px; padding: 0 14px; border: 0; border-radius: 18px; background: #E6EEFC; color: #173D8F; font-size: 13px; font-weight: 600; cursor: pointer">Translate</button>
+    </div>
+
+    <h2 style="margin: 18px 0 6px; font-size: 13px; font-weight: 600; color: #555A6E">Friendlier version</h2>
+    <div style="padding: 14px; border-radius: 16px; border: 2px solid #2457C5">
+      <p style="margin: 0; font-size: 15px; line-height: 22px">Hi! Could you send over the numbers when you get a chance? I'd love to have the report wrapped up by Friday. Thanks so much!</p>
+    </div>
+    <p style="margin: 8px 0 0; font-size: 12px; color: #555A6E">Rewritten on this device. Your original clip is unchanged.</p>
+  </div>
+
+  <div style="margin-top: auto; padding: 0 18px 18px; display: flex; flex-direction: column; gap: 8px">
+    <button style="height: 52px; border: 0; border-radius: 26px; background: #1B1D2A; color: #FFFFFF; font-size: 15px; font-weight: 600; cursor: pointer">Paste this version</button>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <button style="height: 44px; border: 0; border-radius: 22px; background: #F1F2F6; color: #1B1D2A; font-size: 13px; font-weight: 600; cursor: pointer">Try again</button>
+      <button style="height: 44px; border: 0; border-radius: 22px; background: #F1F2F6; color: #1B1D2A; font-size: 13px; font-weight: 600; cursor: pointer">Edit</button>
+      <button style="height: 44px; border: 0; border-radius: 22px; background: #F1F2F6; color: #1B1D2A; font-size: 13px; font-weight: 600; cursor: pointer">Save as clip</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":400,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

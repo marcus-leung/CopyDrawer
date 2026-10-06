@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Emoji, kaomoji and symbols</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 400px; height: 860px; box-sizing: border-box; background: #FFFFFF; color: #1B1D2A; font-family: 'Instrument Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <header style="padding: 14px 14px 8px; display: flex; align-items: center; gap: 6px">
+    <button aria-label="Back" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: transparent; color: #1B1D2A; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+    <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Emoji and symbols</h1>
+  </header>
+
+  <div style="padding: 0 18px">
+    <div style="display: flex; gap: 4px; padding: 4px; border-radius: 22px; background: #F1F2F6">
+      <button aria-pressed="true" style="flex: 1; height: 36px; border: 0; border-radius: 18px; background: #FFFFFF; color: #1B1D2A; font-size: 13px; font-weight: 600; box-shadow: 0 1px 3px rgba(27,29,42,0.12); cursor: pointer">Emoji</button>
+      <button aria-pressed="false" style="flex: 1; height: 36px; border: 0; border-radius: 18px; background: transparent; color: #3E4357; font-size: 13px; font-weight: 600; cursor: pointer">Kaomoji</button>
+      <button aria-pressed="false" style="flex: 1; height: 36px; border: 0; border-radius: 18px; background: transparent; color: #3E4357; font-size: 13px; font-weight: 600; cursor: pointer">Symbols</button>
+    </div>
+    <label for="emoji-q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search emoji</label>
+    <input id="emoji-q" type="search" placeholder="Search, e.g. party or check" style="margin-top: 12px; width: 100%; box-sizing: border-box; height: 44px; border: 0; border-radius: 22px; background: #F1F2F6; padding: 0 16px; font: inherit; font-size: 14px; color: #1B1D2A; outline: none">
+  </div>
+
+  <section aria-labelledby="em-rec" style="padding: 16px 18px 0">
+    <h2 id="em-rec" style="margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #555A6E">Recently used</h2>
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+      <sc-for list="{{recent}}" as="e" hint-placeholder-count="7">
+        <button aria-label="{{e.name}}" style="height: 44px; border: 0; border-radius: 12px; background: #F1F2F6; font-size: 22px; cursor: pointer">{{e.ch}}</button>
+      </sc-for>
+    </div>
+  </section>
+
+  <section aria-labelledby="em-all" style="padding: 16px 18px 0; flex: 1; overflow: hidden">
+    <h2 id="em-all" style="margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #555A6E">Smileys and people</h2>
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px">
+      <sc-for list="{{all}}" as="e" hint-placeholder-count="35">
+        <button aria-label="{{e.name}}" style="height: 44px; border: 0; border-radius: 12px; background: transparent; font-size: 22px; cursor: pointer">{{e.ch}}</button>
+      </sc-for>
+    </div>
+  </section>
+
+  <footer style="padding: 10px 18px 16px; border-top: 1px solid #ECEDF2; font-size: 13px; color: #3E4357">Click to paste into the page. Shift-click to copy.</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":400,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (s, n) => s.split(' ').map((ch, i) => ({ ch, name: n + ' ' + (i + 1) }));
+    return {
+      recent: mk('👍 🎉 ✅ 😂 🙏 ❤️ 👀', 'Recent emoji'),
+      all: mk('😀 😃 😄 😁 😆 🥹 😅 🤣 😂 🙂 😉 😊 😇 🥰 😍 🤩 😘 😋 😜 🤪 🤓 😎 🥳 😏 😒 😔 😟 😢 😭 😤 😡 🤯 😳 🥶 😱', 'Emoji')
+    };
+  }
+}
+</script>
+</body>
+</html>
