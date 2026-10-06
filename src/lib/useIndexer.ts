@@ -35,6 +35,8 @@ export function useIndexer(smartModel: boolean | undefined): ModelState {
   const clipCount = useLiveQuery(() => db.clips.count(), [], 0);
   const running = useRef(false);
   const again = useRef(false);
+  const titling = useRef(false);
+  const titleAgain = useRef(false);
 
   useEffect(() => model.onState(setState), []);
 
@@ -51,7 +53,6 @@ export function useIndexer(smartModel: boolean | undefined): ModelState {
           again.current = false;
           active = smartModel && (await model.load()) ? model : hashEmbedder;
           await indexPending(active);
-          await titlePending();
         } while (again.current);
       } catch (e) {
         console.warn('Indexing stopped', e);
@@ -65,6 +66,28 @@ export function useIndexer(smartModel: boolean | undefined): ModelState {
     };
     void run();
   }, [smartModel, clipCount]);
+
+  // AI titles don't need the search model, so they don't wait for its download.
+  useEffect(() => {
+    const run = async () => {
+      if (titling.current) {
+        titleAgain.current = true;
+        return;
+      }
+      titling.current = true;
+      try {
+        do {
+          titleAgain.current = false;
+          await titlePending();
+        } while (titleAgain.current);
+      } catch (e) {
+        console.warn('Titles stopped', e);
+      } finally {
+        titling.current = false;
+      }
+    };
+    void run();
+  }, [clipCount]);
 
   return state;
 }

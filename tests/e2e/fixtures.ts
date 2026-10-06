@@ -13,6 +13,9 @@ export const test = base.extend<{ context: BrowserContext; extensionId: string }
       executablePath: fs.existsSync(localChromium) ? localChromium : undefined,
       args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
     });
+    // No real network for the AI model: tests stay fast and the same everywhere.
+    // Tests that need the model serve the stand-in with stubModel(), which takes precedence.
+    await context.route('https://huggingface.co/**', (route) => route.abort());
     await use(context);
     await context.close();
   },
