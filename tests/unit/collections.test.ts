@@ -30,6 +30,8 @@ describe('classifyByRules', () => {
     expect(classifyByRules(clip('2 cups flour, 1 tbsp sugar. Preheat the oven to 200C.'))).toBe('recipes');
     expect(classifyByRules(clip('Flight TP 1355 LHR to LIS, departure 07:40, check-in opens 2h before'))).toBe('travel');
     expect(classifyByRules(clip('alex.morgan@example.com'))).toBe('personal');
+    expect(classifyByRules(clip('Fado on Sat 18 Oct, 9 PM at Rua de São João 94, Lisbon. Tickets €35 each.'))).toBe('travel');
+    expect(classifyByRules(clip('221B Baker Street, London NW1 6XE'))).toBe('personal');
     expect(classifyByRules(clip('https://example.com/article', undefined, 'link'))).toBe('links');
     expect(classifyByRules(clip('const x = 1;\nexport default x;', undefined, 'code'))).toBe('code');
   });

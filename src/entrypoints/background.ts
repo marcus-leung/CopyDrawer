@@ -228,7 +228,8 @@ export default defineBackground(() => {
   // If the user removes the all-sites permission in Chrome, stop auto-save.
   browser.permissions.onRemoved.addListener(() => void syncAutosaveRegistration());
 
-  browser.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+  // The toolbar button opens the popup (recent clips); the popup opens the panel.
+  browser.sidePanel?.setPanelBehavior({ openPanelOnActionClick: false }).catch(() => {});
 
   browser.contextMenus.onClicked.addListener((info, tab) => {
     switch (info.menuItemId) {

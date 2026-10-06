@@ -12,6 +12,7 @@ import { useTheme } from '@/lib/useTheme';
 import { activeEmbedder, useIndexer } from '@/lib/useIndexer';
 import { createCollection, listCollections } from '@/lib/collections';
 import { CollectionTile } from '@/components/CollectionTile';
+import { ImageStrip } from '@/components/ImageStrip';
 import { ClipRow } from '@/components/ClipRow';
 import { Button, IconButton, SearchField } from '@/components/ui';
 import { Notice } from '@/components/Notice';
@@ -262,7 +263,7 @@ export function App() {
 
       <main className="min-h-0 flex-1 overflow-y-auto px-[18px]">
         {clips === undefined ? null : clips.length === 0 ? (
-          <EmptyState onGrab={saveFromClipboard} />
+          <EmptyState onGrab={saveFromClipboard} autoSave={!!settings?.autoSave} />
         ) : searching && results === null ? null : visible.length === 0 ? (
           <p className="py-10 text-center text-sm text-text-3">
             {query.trim() ? `No clips match “${query.trim()}”.` : 'No clips match these filters.'}
@@ -294,6 +295,26 @@ export function App() {
                   ))}
                 </ul>
               </section>
+            )}
+            {!searching && (
+              <ImageStrip
+                clips={clips}
+                onOpen={(c) => setView({ name: 'detail', id: c.id })}
+                onSeeAll={() => setFilters({ ...NO_FILTERS, kind: 'image' })}
+              />
+            )}
+            {!searching && settings && !settings.dismissedTips.includes('quick-paste') && clips.length <= 3 && (
+              <div className="pb-4">
+                <Notice
+                  tone="info"
+                  title="Try pasting it back"
+                  body="Click into any text box and press Alt+Shift+V to pick from your clips."
+                  action={{
+                    label: 'Got it',
+                    onClick: () => void updateSettings({ dismissedTips: [...settings.dismissedTips, 'quick-paste'] }),
+                  }}
+                />
+              </div>
             )}
             {!searching && summaries && summaries.length > 0 && (
               <h2 className="font-display text-[17px] font-semibold">Recent</h2>
@@ -350,26 +371,42 @@ function DropOverlay() {
   );
 }
 
-function EmptyState({ onGrab }: { onGrab: () => void }) {
+function EmptyState({ onGrab, autoSave }: { onGrab: () => void; autoSave: boolean }) {
   return (
-    <section className="mt-2 rounded-[18px] bg-surface p-5" aria-labelledby="empty-title">
-      <h2 id="empty-title" className="font-display text-[22px] font-extrabold">
-        Save something to start
-      </h2>
-      <ol className="mt-3.5 flex flex-col gap-3 text-sm leading-5">
-        <Step n={1}>
-          Select text on any page and press <kbd className="bg-bg">Alt+Shift+S</kbd>, or right-click and choose{' '}
-          <b>Save selection</b>
-        </Step>
-        <Step n={2}>
-          Right-click an image and choose <b>Save image</b>, or drop it here
-        </Step>
-        <Step n={3}>Click a clip's Copy button to use it again</Step>
-      </ol>
-      <Button className="mt-4 bg-bg" onClick={onGrab}>
-        Grab what's on my clipboard
-      </Button>
-    </section>
+    <>
+      <h2 className="font-display text-[17px] font-semibold">Smart collections</h2>
+      <p className="mt-2 mb-4 rounded-xl border-2 border-dashed border-line-strong px-4 py-5 text-center text-[13px] text-text-2">
+        Collections appear as you save. You don't need to make any.
+      </p>
+      <section className="rounded-[18px] bg-surface p-5" aria-labelledby="empty-title">
+        <h2 id="empty-title" className="font-display text-[22px] font-extrabold">
+          {autoSave ? 'Copy anything to start' : 'Save something to start'}
+        </h2>
+        <ol className="mt-3.5 flex flex-col gap-3 text-sm leading-5">
+          <Step n={1}>
+            {autoSave ? (
+              <>
+                Copy text or a link on any site with <kbd className="bg-bg">Ctrl+C</kbd>
+              </>
+            ) : (
+              <>
+                Select text on any page and press <kbd className="bg-bg">Alt+Shift+S</kbd>, or right-click and choose{' '}
+                <b>Save selection</b>
+              </>
+            )}
+          </Step>
+          <Step n={2}>
+            Right-click an image and choose <b>Save image</b>, or drop it here
+          </Step>
+          <Step n={3}>
+            Paste it back anywhere with <kbd className="bg-bg">Alt+Shift+V</kbd>
+          </Step>
+        </ol>
+        <Button className="mt-4 bg-bg" onClick={onGrab}>
+          Grab what's on my clipboard
+        </Button>
+      </section>
+    </>
   );
 }
 

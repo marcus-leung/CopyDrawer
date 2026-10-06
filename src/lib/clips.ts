@@ -1,5 +1,6 @@
 import { db as defaultDb, type Clip, type ClipDatabase, type ClipKind, type ClipSource, type StoredImage } from './db';
 import { autoAssign } from './collections';
+import { cleanUrl } from './actions';
 
 /** History limit, pins included (docs/02-design.md §10). */
 export const MAX_CLIPS = 2000;
@@ -28,6 +29,8 @@ export function detectKind(text: string): ClipKind {
   const t = text.trim();
   if (URL_RE.test(t)) return 'link';
   if (t.includes('\n') && CODE_HINTS.test(t)) return 'code';
+  // One-line SQL ("SELECT … FROM …"); uppercase only, so ordinary sentences don't match.
+  if (/^(SELECT|INSERT|UPDATE|DELETE)\b.*\b(FROM|INTO|SET|WHERE)\b/.test(t)) return 'code';
   return 'text';
 }
 
@@ -54,11 +57,6 @@ function newId(): string {
   return crypto.randomUUID();
 }
 
-/**
- * Saves a clip. An exact duplicate of an existing clip moves that clip to the
- * top instead of creating a new one. Returns the saved clip, or null when the
- * text is empty.
- */
 let lastSave = 0;
 /** Save timestamps, strictly increasing so clips saved in the same millisecond keep their order. */
 export function saveTime(): number {
@@ -66,9 +64,16 @@ export function saveTime(): number {
   return lastSave;
 }
 
+/**
+ * Saves a clip. An exact duplicate of an existing clip moves that clip to the
+ * top instead of creating a new one. Returns the saved clip, or null when the
+ * text is empty.
+ */
 export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Promise<Clip | null> {
-  const text = input.text.replace(/\r\n/g, '\n');
+  let text = input.text.replace(/\r\n/g, '\n');
   if (!text.trim()) return null;
+  // Links are saved without tracking parameters (utm_*, fbclid…).
+  if (detectKind(text) === 'link') text = cleanUrl(text.trim());
   const hash = hashText(text);
   const now = saveTime();
 
