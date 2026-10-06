@@ -263,20 +263,28 @@ test('quick paste: Esc, click outside, no matches, page shortcuts, opening twice
 
 test('quick paste with no text field (or inside a frame) copies instead and says so', async ({ context, extensionId }) => {
   const { panel, page, open } = await setupQuickPaste(context, extensionId, ['Alex Morgan']);
+  // Writing to the clipboard needs a focused page, as it is when a person presses the shortcut.
+  const pageFocused = () => page.waitForFunction(() => document.hasFocus());
   await page.mouse.click(700, 500); // empty page area: nothing focused
+  await pageFocused();
   await open();
   await page.keyboard.press('Enter');
   await expect(page.getByText('Copied. Click where you want it and press Ctrl+V.')).toBeVisible();
-  // (Read it from the extension: a web page would need permission.)
+  // (Read it from the extension: a web page would need permission. Retry until the panel has focus.)
   await panel.bringToFront();
-  expect(await panel.evaluate(() => navigator.clipboard.readText())).toBe('Alex Morgan');
+  await expect
+    .poll(() => panel.evaluate(() => navigator.clipboard.readText().catch(() => 'not focused yet')))
+    .toBe('Alex Morgan');
   await page.bringToFront();
 
   // Focus inside an iframe: the box can't reach it, so it copies.
   await page.frameLocator('#frame').locator('#inner').click();
+  await pageFocused();
   await open();
   await page.keyboard.press('Enter');
   await expect(page.getByText('Copied. Click where you want it and press Ctrl+V.')).toBeVisible();
+  // The new note replaced the first one instead of stacking on top of it.
+  await expect(page.locator('#clipboard-quick-paste-toast')).toHaveCount(1);
 });
 
 test('quick paste: Tab for Paste as, filter options, Esc back to clips; images are not listed', async ({
