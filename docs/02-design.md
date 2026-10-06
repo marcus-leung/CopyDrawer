@@ -220,3 +220,27 @@ Safari supports Web Extensions, but it's a different distribution path:
 - The extension is wrapped in a small native app (WXT can build the Safari target; Apple's `safari-web-extension-converter` packages it).
 - **Missing APIs vs Chrome:** no Side Panel API (use the popup + a full-page tab view instead), no Chrome built-in AI (Gemini Nano) → Tier 0 rules + Tier 1 embeddings only, no `offscreen` documents (use the extension page/popup for clipboard work), and stricter clipboard and permission behavior.
 - ✅ **Decision:** ship Safari as a **fast-follow after the Chrome/Edge v1.0** (roadmap Phase 5). Building on WXT from day one keeps it cheap, and code is written with browser-specific APIs behind small adapters.
+
+## 12. Visual direction
+
+✅ **Decision: Direction C, "Folders"** (chosen from three mockups: A Index Card, B Highlighter, C Folders). Canvas: https://claude.ai/artifact/416MBBuqTKwgNxzm4zJ7PW (private).
+
+- **Home screen leads with organization:** AI smart collections as colored folder tiles (tab + tinted body), then an images & colors strip, then recent clips with one-tap Paste.
+- **Look:** white ground, soft grey fills (#F1F2F6), ink #1B1D2A, secondary text #555A6E; one color per collection (blue #2457C5, orange #B35A00, violet #6A46C9, teal #0E7A62), each with a light tint for the tile body; pill-shaped search and buttons.
+- **Type:** Bricolage Grotesque (headings), Instrument Sans (UI/body), bundled locally via Fontsource.
+- **Privacy line in the footer:** "Private: stored and sorted on this device" + Pause.
+- Still to design in this style: search results, Paste as…, quick-paste palette, onboarding + auto-capture permission, research stack → Compose, settings.
+
+## 13. Travel and plans use case (kept simple)
+
+People research trips and hangouts by copying stays, flights, places and dates across many tabs. We keep it to three things. Mockups: screens 6.1–6.3 and Flow 5 on the canvas. Trips use their own collection color: mustard #7C6A0A (tint #F6F0D5).
+
+| Feature | What it does | Release |
+|---|---|---|
+| Trip collection | Clips about one destination group into a trip ("Lisbon trip, 14 – 18 Oct") as one simple list, each row with one action | MVP (smart collection) |
+| Calendar and Maps | A date in a clip → one tap adds it to the calendar (.ics); an address → opens in Google Maps (link, no embedded map). Prices stay in their original currency symbol; no conversion | MVP |
+| Share the plan | Writes a short message from the trip's clips to paste in any group chat; edit before copying; "Include prices" switch | v1.1 (on-device AI) |
+
+Cut to keep it simple: stay comparison table, day-by-day planner, budget totals, vote/hangout modes, live shared links. Revisit only if users ask.
+
+Positioning note: travel stays a strong **marketing hook** ("plan a trip from your clipboard") for both audiences.

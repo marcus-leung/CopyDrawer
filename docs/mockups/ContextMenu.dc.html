@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Right-click menu on an image</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 720px; height: 460px; box-sizing: border-box; position: relative; overflow: hidden; background: #FFFFFF; font-family: 'Instrument Sans', sans-serif; color: #1B1D2A">
+  <div aria-hidden="true" style="padding: 28px 40px">
+    <div style="font-size: 20px; font-weight: 600; color: #3E4357">[Any website: an article]</div>
+    <div style="margin-top: 12px; height: 10px; width: 520px; border-radius: 5px; background: #ECEDF2"></div>
+    <div style="margin-top: 8px; height: 10px; width: 460px; border-radius: 5px; background: #ECEDF2"></div>
+    <div style="margin-top: 20px; width: 360px; height: 230px; border-radius: 10px; background: repeating-linear-gradient(135deg, #F1F2F6 0 12px, #E5E7EE 12px 24px); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #555A6E; outline: 2px solid #2457C5; outline-offset: 2px">[Image: Calvin cycle diagram]</div>
+  </div>
+
+  <div style="position: absolute; left: 250px; top: 150px; width: 230px; background: #FFFFFF; border-radius: 10px; box-shadow: 0 10px 30px rgba(27,29,42,0.22), 0 0 0 1px rgba(27,29,42,0.08); padding: 6px 0; font-size: 13px">
+    <button style="display: block; width: 100%; text-align: left; height: 30px; padding: 0 14px; border: 0; background: transparent; color: #1B1D2A; font-size: 13px">Open image in new tab</button>
+    <button style="display: block; width: 100%; text-align: left; height: 30px; padding: 0 14px; border: 0; background: transparent; color: #1B1D2A; font-size: 13px">Save image as…</button>
+    <button style="display: block; width: 100%; text-align: left; height: 30px; padding: 0 14px; border: 0; background: transparent; color: #1B1D2A; font-size: 13px">Copy image</button>
+    <div style="height: 1px; background: #ECEDF2; margin: 6px 0"></div>
+    <button aria-haspopup="true" aria-expanded="true" style="width: 100%; text-align: left; height: 32px; padding: 0 10px 0 14px; border: 0; background: #E6EEFC; color: #1B1D2A; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: space-between">
+      <span style="display: flex; align-items: center; gap: 8px"><span style="width: 14px; height: 10px; border-radius: 3px 3px 0 0; background: #2457C5"></span>[Name]</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+    </button>
+    <button style="display: block; width: 100%; text-align: left; height: 30px; padding: 0 14px; border: 0; background: transparent; color: #1B1D2A; font-size: 13px">Inspect</button>
+  </div>
+
+  <div style="position: absolute; left: 484px; top: 252px; width: 210px; background: #FFFFFF; border-radius: 10px; box-shadow: 0 10px 30px rgba(27,29,42,0.22), 0 0 0 1px rgba(27,29,42,0.08); padding: 6px 0">
+    <button style="display: block; width: 100%; text-align: left; height: 32px; padding: 0 14px; border: 0; background: #1B1D2A; color: #FFFFFF; font-size: 13px; font-weight: 600">Save image</button>
+    <button style="display: block; width: 100%; text-align: left; height: 32px; padding: 0 14px; border: 0; background: transparent; color: #1B1D2A; font-size: 13px">Add to research stack</button>
+    <button style="display: block; width: 100%; text-align: left; height: 32px; padding: 0 14px; border: 0; background: transparent; color: #1B1D2A; font-size: 13px">Screenshot an area…</button>
+    <div style="height: 1px; background: #ECEDF2; margin: 6px 0"></div>
+    <button style="display: block; width: 100%; text-align: left; height: 32px; padding: 0 14px; border: 0; background: transparent; color: #1B1D2A; font-size: 13px">Don't save on this site</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":460}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Image clip detail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2457C5}a:hover{color:#173D8F}
+button,select{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 400px; height: 860px; box-sizing: border-box; background: #FFFFFF; color: #1B1D2A; font-family: 'Instrument Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+  <header style="padding: 14px 14px 8px; display: flex; align-items: center; justify-content: space-between">
+    <button aria-label="Back" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: transparent; color: #1B1D2A; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+    <div style="display: flex; gap: 6px">
+      <button aria-label="Pin" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: #F1F2F6; color: #1B1D2A; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5M9 3h6l-1 6 4 4H6l4-4z"></path></svg></button>
+      <button aria-label="Delete" style="width: 44px; height: 44px; border: 0; border-radius: 22px; background: #F1F2F6; color: #B42318; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg></button>
+    </div>
+  </header>
+
+  <div style="margin: 0 14px; height: 250px; border-radius: 16px; background: repeating-linear-gradient(135deg, #F1F2F6 0 12px, #E5E7EE 12px 24px); display: flex; align-items: center; justify-content: center; font-size: 13px; color: #555A6E">[Image preview, fit to width]</div>
+
+  <div style="padding: 14px 18px 0">
+    <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px">Calvin cycle diagram</h1>
+    <p style="margin: 4px 0 0; font-size: 13px; color: #555A6E">Saved from <a href="#">britannica.com</a> today at 10:24. PNG, 1280 × 720, 214 KB</p>
+    <div style="margin-top: 12px; display: flex; align-items: center; gap: 10px">
+      <label for="img-col" style="font-size: 13px; color: #3E4357">Collection</label>
+      <select id="img-col" style="height: 36px; border: 1px solid #DADCE5; border-radius: 18px; padding: 0 12px; font-size: 13px; font-weight: 600; color: #173D8F; background: #E6EEFC">
+        <option>Research</option><option>Design</option><option>Shopping</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="padding: 16px 18px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+    <button style="height: 48px; border: 0; border-radius: 24px; background: #1B1D2A; color: #FFFFFF; font-size: 14px; font-weight: 600; cursor: pointer">Paste image</button>
+    <button style="height: 48px; border: 0; border-radius: 24px; background: #F1F2F6; color: #1B1D2A; font-size: 14px; font-weight: 600; cursor: pointer">Copy image</button>
+    <button style="height: 48px; border: 0; border-radius: 24px; background: #F1F2F6; color: #1B1D2A; font-size: 14px; font-weight: 600; cursor: pointer">Download</button>
+    <button style="height: 48px; border: 0; border-radius: 24px; background: #F1F2F6; color: #1B1D2A; font-size: 14px; font-weight: 600; cursor: pointer">Add to research</button>
+  </div>
+
+  <section aria-labelledby="img-text" style="margin: 16px 14px 0; padding: 14px 16px; border-radius: 16px; border: 1px dashed #B7C6EA">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <h2 id="img-text" style="margin: 0; font-size: 14px; font-weight: 600">Text in this image</h2>
+      <span style="font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: #E6EEFC; color: #173D8F">Pro, coming soon</span>
+    </div>
+    <p style="margin: 6px 0 10px; font-size: 13px; line-height: 19px; color: #3E4357">Copy the words in screenshots and find images by what they say.</p>
+    <a href="#" style="font-size: 13px; font-weight: 600">Join the waitlist</a>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":400,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
