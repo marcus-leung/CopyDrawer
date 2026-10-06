@@ -13,7 +13,11 @@ beforeEach(async () => {
 });
 
 /** A tiny stand-in for a language model: one axis per topic word. */
-const AXES = [['cook', 'recipe', 'lasagna'], ['hotel', 'flight', 'trip'], ['code', 'command', 'sql']];
+const AXES = [
+  ['cook', 'recipe', 'lasagna'],
+  ['hotel', 'flight', 'trip'],
+  ['code', 'command', 'sql'],
+];
 const fakeModel: Embedder = {
   key: 'fake-semantic',
   semantic: true,
@@ -103,7 +107,11 @@ describe('searchClips', () => {
 describe('typo-tolerant word search', () => {
   it('allows small typos in longer words only', async () => {
     const { matchesWithTypos, withinEdits } = await import('@/lib/search');
-    const clip = { title: 'Photosynthesis', text: 'Photosynthesis is how plants turn sunlight into energy', source: undefined } as never;
+    const clip = {
+      title: 'Photosynthesis',
+      text: 'Photosynthesis is how plants turn sunlight into energy',
+      source: undefined,
+    } as never;
     expect(matchesWithTypos(clip, 'photosynthsis')).toBe(true);
     expect(matchesWithTypos(clip, 'photosinthesys plants')).toBe(true);
     expect(matchesWithTypos(clip, 'sunn')).toBe(false); // under 5 letters: no typos allowed

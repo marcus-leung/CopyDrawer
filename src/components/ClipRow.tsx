@@ -4,6 +4,9 @@ import { colorOf } from '@/lib/collections';
 import { hostOf, shortTime } from '@/lib/format';
 import { useObjectUrl } from '@/lib/useObjectUrl';
 
+/** Drag data type for moving a clip onto a collection (the panel's drop-to-save ignores it). */
+export const CLIP_DRAG_TYPE = 'application/x-clipboard-clip';
+
 const KIND_ICON = { text: Type, link: Link2, code: Code2, image: Type } as const;
 
 export function ClipRow({
@@ -24,6 +27,11 @@ export function ClipRow({
     <li className="flex min-h-14 items-center gap-3 border-b border-line">
       <button
         type="button"
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData(CLIP_DRAG_TYPE, clip.id);
+          e.dataTransfer.effectAllowed = 'move';
+        }}
         onClick={() => onOpen(clip)}
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-2.5 text-left"
       >
@@ -34,9 +42,7 @@ export function ClipRow({
             {clip.pinned === 1 && <Pin size={12} className="shrink-0 text-text-3" aria-label="Pinned" />}
             <span className="truncate">{clip.title}</span>
           </span>
-          <span className="block truncate text-xs text-text-3">
-            {meta.charAt(0).toUpperCase() + meta.slice(1)}
-          </span>
+          <span className="block truncate text-xs text-text-3">{meta.charAt(0).toUpperCase() + meta.slice(1)}</span>
         </span>
       </button>
       <button

@@ -6,7 +6,6 @@
 import { PLAIN_TRANSFORMS, AI_TRANSFORMS, type Transform } from '@/lib/transforms';
 import type { QuickClip } from '@/lib/quickpaste';
 
-
 declare global {
   interface Window {
     __clipboardQuickPaste?: { open: () => void };
@@ -183,7 +182,9 @@ function open() {
       mode.hidden = false;
       input.placeholder = 'Filter options';
       const q = input.value.toLowerCase();
-      const opts = options.filter((o) => o.label.toLowerCase().includes(q) && (aiReady || !AI_TRANSFORMS.some((a) => a.id === o.id)));
+      const opts = options.filter(
+        (o) => o.label.toLowerCase().includes(q) && (aiReady || !AI_TRANSFORMS.some((a) => a.id === o.id)),
+      );
       selected = Math.min(selected, Math.max(0, opts.length - 1));
       opts.forEach((o, i) => {
         const li = el('li');
@@ -220,7 +221,10 @@ function open() {
       if (c.color) dot.style.background = c.color;
       const txt = el('span', 'txt');
       const preview = c.text.replace(/\s+/g, ' ').slice(0, 120);
-      txt.append(el('span', 'title', c.title), el('span', 'sub', preview === c.title ? [c.collection, c.host].filter(Boolean).join(', ') : preview));
+      txt.append(
+        el('span', 'title', c.title),
+        el('span', 'sub', preview === c.title ? [c.collection, c.host].filter(Boolean).join(', ') : preview),
+      );
       li.append(dot, txt);
       if (i === selected) li.append(el('kbd', '', 'Enter'));
       li.onmousedown = (e) => {

@@ -4,10 +4,7 @@ export const MODEL_ID = 'Xenova/all-MiniLM-L6-v2';
 export const MODEL_KEY = 'minilm-l6-q8';
 
 export type ModelState =
-  | { status: 'idle' }
-  | { status: 'loading'; progress?: number }
-  | { status: 'ready' }
-  | { status: 'failed'; message: string };
+  { status: 'idle' } | { status: 'loading'; progress?: number } | { status: 'ready' } | { status: 'failed'; message: string };
 
 type Listener = (s: ModelState) => void;
 
@@ -38,7 +35,8 @@ class ModelClient implements Embedder {
     worker.onmessage = (e: MessageEvent) => {
       const msg = e.data;
       if (msg.type === 'progress') {
-        if (msg.status === 'progress' && typeof msg.progress === 'number') this.set({ status: 'loading', progress: msg.progress });
+        if (msg.status === 'progress' && typeof msg.progress === 'number')
+          this.set({ status: 'loading', progress: msg.progress });
         return;
       }
       const p = this.pending.get(msg.id);

@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronLeft, Pin, PinOff, Trash2 } from 'lucide-react';
+import { ChevronLeft, Pencil, Pin, PinOff, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
-import { togglePin } from '@/lib/clips';
+import { editClip, togglePin } from '@/lib/clips';
 import { createCollection, moveClip } from '@/lib/collections';
 import { hostOf } from '@/lib/format';
 import { formatBytes } from '@/lib/images';
@@ -25,7 +26,19 @@ export function ClipDetail({
   onDelete: (id: string) => void;
 }) {
   const clip = useLiveQuery(() => db.clips.get(id), [id]);
+  const [editing, setEditing] = useState(false);
   if (clip === undefined) return null;
+  if (editing) {
+    return (
+      <EditClip
+        clip={clip}
+        onDone={(saved) => {
+          setEditing(false);
+          if (saved) notify('Saved your changes');
+        }}
+      />
+    );
+  }
 
   const host = hostOf(clip.source?.url);
   const saved = new Date(clip.createdAt).toLocaleString(undefined, {
@@ -43,6 +56,9 @@ export function ClipDetail({
           <ChevronLeft size={20} aria-hidden />
         </IconButton>
         <div className="flex gap-1.5">
+          <IconButton label="Edit" className="bg-surface" onClick={() => setEditing(true)}>
+            <Pencil size={18} aria-hidden />
+          </IconButton>
           <IconButton label={clip.pinned ? 'Unpin' : 'Pin'} className="bg-surface" onClick={() => void togglePin(clip.id)}>
             {clip.pinned ? <PinOff size={18} aria-hidden /> : <Pin size={18} aria-hidden />}
           </IconButton>
@@ -115,7 +131,11 @@ function DownloadButton({ clip }: { clip: Clip }) {
   const stored = useLiveQuery(() => (clip.image ? db.images.get(clip.image.imageId) : undefined), [clip.image?.imageId]);
   const url = useObjectUrl(stored?.blob);
   const ext = clip.image?.mime.split('/')[1] ?? 'png';
-  const base = clip.title.replace(/\.(png|jpe?g|gif|webp)$/i, '').replace(/[^\w\- ]+/g, '').trim().slice(0, 60);
+  const base = clip.title
+    .replace(/\.(png|jpe?g|gif|webp)$/i, '')
+    .replace(/[^\w\- ]+/g, '')
+    .trim()
+    .slice(0, 60);
   const name = `${base || 'image'}.${ext}`;
   return (
     <a
@@ -160,5 +180,86 @@ function MoveTo({ clip }: { clip: Clip }) {
         <option value={NEW}>New collection…</option>
       </select>
     </label>
+  );
+}
+
+/** Edit the saved copy's title and text (screen 3.3: "Edits only change this saved copy"). */
+function EditClip({ clip, onDone }: { clip: Clip; onDone: (saved: boolean) => void }) {
+  const [title, setTitle] = useState(clip.title);
+  const [text, setText] = useState(clip.text);
+  const [error, setError] = useState<string | null>(null);
+  const isImage = clip.kind === 'image';
+
+  async function save() {
+    if (!isImage && !text.trim()) {
+      setError("The clip can't be empty. Delete it instead if you don't need it.");
+      return;
+    }
+    await editClip(clip.id, { title, ...(isImage ? {} : { text }) });
+    onDone(true);
+  }
+
+  return (
+    <form
+      className="flex min-h-0 flex-1 flex-col"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onDone(false);
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) void save();
+      }}
+    >
+      <header className="flex items-center gap-1.5 px-3.5 pt-3.5 pb-2">
+        <IconButton label="Cancel editing" onClick={() => onDone(false)}>
+          <ChevronLeft size={20} aria-hidden />
+        </IconButton>
+        <h1 className="font-display text-[22px] font-extrabold">Edit clip</h1>
+      </header>
+      <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-[18px] pb-3">
+        <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-text-2">
+          Title
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Made from the text when empty"
+            className="h-11 rounded-xl border border-line-strong bg-bg px-3 text-sm font-normal text-ink"
+          />
+        </label>
+        {!isImage && (
+          <label className="flex min-h-0 flex-1 flex-col gap-1.5 text-[13px] font-semibold text-text-2">
+            Text
+            <textarea
+              value={text}
+              autoFocus
+              onChange={(e) => {
+                setText(e.target.value);
+                setError(null);
+              }}
+              aria-invalid={!!error}
+              aria-describedby={error ? 'edit-error' : undefined}
+              className={`min-h-48 flex-1 resize-none rounded-xl border border-line-strong bg-bg p-3 text-sm leading-[21px] font-normal text-ink ${
+                clip.kind === 'code' ? 'font-mono text-[13px]' : ''
+              }`}
+            />
+          </label>
+        )}
+        {error && (
+          <p id="edit-error" role="alert" className="text-[13px] text-danger">
+            {error}
+          </p>
+        )}
+        <p className="text-xs text-text-3">Edits only change this saved copy, not the page it came from.</p>
+      </main>
+      <div className="flex gap-2 px-[18px] pt-3 pb-[18px]">
+        <Button type="submit" variant="primary" size="lg" className="flex-1">
+          Save
+        </Button>
+        <Button size="lg" onClick={() => onDone(false)}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }

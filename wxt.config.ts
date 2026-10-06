@@ -21,7 +21,10 @@ function noCdnOrt() {
     name: 'no-cdn-ort',
     transform(code: string, id: string) {
       if (!id.includes('@huggingface/transformers') || !code.includes('cdn.jsdelivr.net')) return null;
-      return { code: code.replace(/`https:\/\/cdn\.jsdelivr\.net\/npm\/onnxruntime-web@\$\{[^}]+\}\/dist\/`/g, '"/ort/"'), map: null };
+      return {
+        code: code.replace(/`https:\/\/cdn\.jsdelivr\.net\/npm\/onnxruntime-web@\$\{[^}]+\}\/dist\/`/g, '"/ort/"'),
+        map: null,
+      };
     },
   };
 }

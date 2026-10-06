@@ -12,7 +12,7 @@ function useActiveHost(): string | null {
     const read = () =>
       void browser.tabs
         .query({ active: true, currentWindow: true })
-        .then(([tab]) => setHost(tab?.url ? hostnameOf(tab.url) ?? null : null))
+        .then(([tab]) => setHost(tab?.url ? (hostnameOf(tab.url) ?? null) : null))
         .catch(() => setHost(null));
     read();
     const onActivated = () => read();
@@ -86,7 +86,10 @@ export function HomeNotice({
         tone="ai"
         title="Basic AI on this computer"
         body="Sorting and search work. Rewriting and summaries need Chrome's built-in AI, which this computer doesn't support."
-        action={{ label: 'Got it', onClick: () => void updateSettings({ dismissedTips: [...settings.dismissedTips, 'basic-ai'] }) }}
+        action={{
+          label: 'Got it',
+          onClick: () => void updateSettings({ dismissedTips: [...settings.dismissedTips, 'basic-ai'] }),
+        }}
       />
     );
   }

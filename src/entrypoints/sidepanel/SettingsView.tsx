@@ -13,7 +13,15 @@ import { BackupError, exportBackup, importBackup } from '@/lib/backup';
 
 const selectClass = 'h-9 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink';
 
-export function SettingsView({ onBack, notify, onPro }: { onBack: () => void; notify: (message: string) => void; onPro: () => void }) {
+export function SettingsView({
+  onBack,
+  notify,
+  onPro,
+}: {
+  onBack: () => void;
+  notify: (message: string) => void;
+  onPro: () => void;
+}) {
   const settings = useSettings();
   const now = useNowUntil(settings?.pausedUntil ?? 0);
   const count = useLiveQuery(() => db.clips.count(), [], 0);
@@ -100,10 +108,7 @@ export function SettingsView({ onBack, notify, onPro }: { onBack: () => void; no
             <>
               <div className="flex min-h-11 items-center justify-between gap-3">
                 <span className="text-sm">{paused ? 'Paused for now' : 'Pause for an hour'}</span>
-                <Button
-                  size="sm"
-                  onClick={() => void change({ pausedUntil: paused ? 0 : Date.now() + PAUSE_MS })}
-                >
+                <Button size="sm" onClick={() => void change({ pausedUntil: paused ? 0 : Date.now() + PAUSE_MS })}>
                   {paused ? 'Resume' : 'Pause'}
                 </Button>
               </div>
@@ -235,13 +240,14 @@ export function SettingsView({ onBack, notify, onPro }: { onBack: () => void; no
 
         <Section id="s-data" title="Your data">
           <p className="mb-3 text-[13px] leading-[19px] text-text-2">
-            Clips are stored only on this computer. Nothing is uploaded.
+            Clips are stored only on this computer. Nothing is uploaded. Your settings (theme, blocked sites, auto-delete, AI)
+            follow you to other computers through Chrome sync, if it's on.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => void exportAll()}>
               Export
             </Button>
-            <label className="inline-flex h-9 cursor-pointer items-center rounded-full bg-surface px-3 text-[13px] font-semibold text-ink hover:opacity-90 focus-within:outline-2 focus-within:outline-link">
+            <label className="inline-flex h-9 cursor-pointer items-center rounded-full bg-surface px-3 text-[13px] font-semibold text-ink focus-within:outline-2 focus-within:outline-link hover:opacity-90">
               Import
               <input
                 type="file"

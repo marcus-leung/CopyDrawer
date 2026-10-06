@@ -7,7 +7,12 @@ function downloadIcs(clip: Clip, action: Extract<SmartAction, { kind: 'calendar'
   const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${clip.title.replace(/[^\w\- ]+/g, '').trim().slice(0, 40) || 'event'}.ics`;
+  a.download = `${
+    clip.title
+      .replace(/[^\w\- ]+/g, '')
+      .trim()
+      .slice(0, 40) || 'event'
+  }.ics`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }

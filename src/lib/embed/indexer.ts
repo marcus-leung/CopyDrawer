@@ -71,7 +71,10 @@ export async function indexPending(
   let done = 0;
   for (;;) {
     if (opts.signal?.aborted) break;
-    const batch = await db.clips.filter((c) => c.embeddingModel !== embedder.key).limit(batchSize).toArray();
+    const batch = await db.clips
+      .filter((c) => c.embeddingModel !== embedder.key)
+      .limit(batchSize)
+      .toArray();
     if (!batch.length) break;
     const vectors = await embedder.embed(batch.map(textForEmbedding));
     await db.clips.bulkUpdate(

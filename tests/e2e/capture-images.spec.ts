@@ -32,7 +32,13 @@ test('right-click "Save image" and "Screenshot an area" save images with a page 
 
   // Save image (same code path as the context menu).
   await panel.evaluate(
-    (id) => chrome.runtime.sendMessage({ type: 'e2e-menu', action: 'save-image', tabId: id, srcUrl: 'https://photos.e2e.test/pic.png' }),
+    (id) =>
+      chrome.runtime.sendMessage({
+        type: 'e2e-menu',
+        action: 'save-image',
+        tabId: id,
+        srcUrl: 'https://photos.e2e.test/pic.png',
+      }),
     tabId,
   );
   const list = panel.getByRole('list', { name: 'Clips' });

@@ -124,7 +124,8 @@ export function CollectionView({
         )}
         {collection.kind !== 'manual' && (
           <p className="py-5 text-[13px] leading-5 text-text-3">
-            Sorted here automatically. Wrong folder? Open a clip and move it, and similar clips will follow.
+            Sorted here automatically. Wrong folder? Drag a clip onto another collection on the home screen, or open it and pick
+            one. Similar clips will follow.
           </p>
         )}
       </main>

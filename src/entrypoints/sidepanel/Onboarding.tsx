@@ -72,8 +72,8 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
               Everything you copy, kept and sorted
             </h1>
             <p className="mt-3 text-[15px] leading-[23px] text-text-2">
-              Text, links, images and colors you copy are saved here and filed into collections, so you can find and paste
-              them again in seconds.
+              Text, links, images and colors you copy are saved here and filed into collections, so you can find and paste them
+              again in seconds.
             </p>
             <div className="mt-6 flex gap-3 rounded-2xl bg-surface p-4">
               <Lock size={18} className="mt-0.5 shrink-0" aria-hidden />
@@ -139,7 +139,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <div className="mt-5 flex flex-col gap-2.5">
               <Capability state="ready" title="Ready now" body="Auto-sorting into collections and search by description." />
               {nano === 'available' ? (
-                <Capability state="ready" title="Ready now" body="Titles, rewriting, summaries and translation with Chrome's built-in AI." />
+                <Capability
+                  state="ready"
+                  title="Ready now"
+                  body="Titles, rewriting, summaries and translation with Chrome's built-in AI."
+                />
               ) : nano === 'downloadable' || nano === 'downloading' ? (
                 <Capability
                   state="download"
@@ -176,11 +180,23 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             </div>
             {nano === 'downloadable' || nano === 'downloading' ? (
               <>
-                <Button variant="primary" size="lg" className="mt-8 w-full" disabled={progress !== null} onClick={() => void finish(true)}>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="mt-8 w-full"
+                  disabled={progress !== null}
+                  onClick={() => void finish(true)}
+                >
                   <Download size={18} aria-hidden />
                   Download AI and finish
                 </Button>
-                <Button variant="secondary" size="lg" className="mt-2.5 w-full" disabled={progress !== null} onClick={() => void finish(false)}>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="mt-2.5 w-full"
+                  disabled={progress !== null}
+                  onClick={() => void finish(false)}
+                >
                   Finish without it
                 </Button>
                 <p className="mt-2 text-center text-[13px] text-text-3">You can download it later in Settings.</p>
@@ -199,7 +215,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
 function Capability({ state, title, body }: { state: 'ready' | 'download' | 'none'; title: string; body: string }) {
   const tone =
-    state === 'ready' ? 'bg-[#DDF3EC] text-[#0B5C4A] dark:bg-[#163A33] dark:text-[#5FD6B5]' : state === 'download' ? 'bg-ai-bg text-ai-fg' : 'bg-surface text-text-2';
+    state === 'ready'
+      ? 'bg-[#DDF3EC] text-[#0B5C4A] dark:bg-[#163A33] dark:text-[#5FD6B5]'
+      : state === 'download'
+        ? 'bg-ai-bg text-ai-fg'
+        : 'bg-surface text-text-2';
   const Icon = state === 'ready' ? Check : state === 'download' ? Download : Sparkles;
   return (
     <div className={`flex gap-3 rounded-2xl p-4 ${tone}`}>
@@ -224,7 +244,10 @@ function FolderArt() {
       {tiles.map(({ name, c }, i) => (
         <div key={name} className="flex-1" style={{ transform: `translateY(${i === 1 ? -8 : 0}px)` }}>
           <div className="h-2.5 w-10 rounded-t-lg" style={{ background: c.accent }} />
-          <div className="rounded-tr-xl rounded-b-xl border-t-[3px] px-2.5 pt-2 pb-6 text-[13px] font-semibold" style={{ background: c.tint, borderColor: c.accent, color: c.text }}>
+          <div
+            className="rounded-tr-xl rounded-b-xl border-t-[3px] px-2.5 pt-2 pb-6 text-[13px] font-semibold"
+            style={{ background: c.tint, borderColor: c.accent, color: c.text }}
+          >
             {name}
           </div>
         </div>

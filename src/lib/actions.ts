@@ -6,7 +6,8 @@
 
 // ---------- Links ----------
 
-const TRACKING_PARAMS = /^(utm_\w+|fbclid|gclid|gclsrc|dclid|gbraid|wbraid|msclkid|yclid|twclid|mc_cid|mc_eid|_hsenc|_hsmi|igshid|ref_src|ref_url|mkt_tok|oly_anon_id|oly_enc_id|vero_id|wickedid|__s|_ga|_gl)$/i;
+const TRACKING_PARAMS =
+  /^(utm_\w+|fbclid|gclid|gclsrc|dclid|gbraid|wbraid|msclkid|yclid|twclid|mc_cid|mc_eid|_hsenc|_hsmi|igshid|ref_src|ref_url|mkt_tok|oly_anon_id|oly_enc_id|vero_id|wickedid|__s|_ga|_gl)$/i;
 /** Parameters that are tracking only on some sites (elsewhere they can matter). */
 const SITE_PARAMS: Record<string, RegExp> = {
   'youtube.com': /^(si|feature|pp)$/,
@@ -30,7 +31,9 @@ export function cleanUrl(input: string): string {
   }
   if (!/^https?:$/.test(url.protocol)) return input;
   const host = url.hostname.replace(/^www\./, '');
-  const siteRule = Object.entries(SITE_PARAMS).find(([h]) => (h.endsWith('.') ? host.includes(h) : host === h || host.endsWith(`.${h}`)))?.[1];
+  const siteRule = Object.entries(SITE_PARAMS).find(([h]) =>
+    h.endsWith('.') ? host.includes(h) : host === h || host.endsWith(`.${h}`),
+  )?.[1];
   let changed = false;
   for (const key of [...url.searchParams.keys()]) {
     if (TRACKING_PARAMS.test(key) || siteRule?.test(key)) {
@@ -88,7 +91,13 @@ function hslToRgb(h: number, s: number, l: number) {
 }
 
 export function colorFormats({ r, g, b, a }: Rgb): { hex: string; rgb: string; hsl: string } {
-  const hex = `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}${a < 1 ? Math.round(a * 255).toString(16).padStart(2, '0') : ''}`.toUpperCase();
+  const hex = `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}${
+    a < 1
+      ? Math.round(a * 255)
+          .toString(16)
+          .padStart(2, '0')
+      : ''
+  }`.toUpperCase();
   const rn = r / 255;
   const gn = g / 255;
   const bn = b / 255;
@@ -116,7 +125,8 @@ export function colorFormats({ r, g, b, a }: Rgb): { hex: string; rgb: string; h
 // ---------- Dates ----------
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-const MONTH = '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\.?';
+const MONTH =
+  '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\\.?';
 const WEEKDAY = '(?:(?:mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)(?:day|nesday|sday|urday)?\\.?,?\\s+)?';
 const TIME = '(?:,?\\s*(?:at\\s+|@\\s*)?(\\d{1,2})(?:[:.h](\\d{2}))?\\s*(am|pm|a\\.m\\.|p\\.m\\.)?)?';
 
@@ -149,7 +159,13 @@ export function findDate(text: string, now = new Date()): FoundDate | null {
     if (m) candidates.push({ index: m.index, build: () => make(m) });
   };
 
-  const finish = (m: RegExpExecArray, y: number | null, mo: number, d: number, time: [number, number] | null): FoundDate | null => {
+  const finish = (
+    m: RegExpExecArray,
+    y: number | null,
+    mo: number,
+    d: number,
+    time: [number, number] | null,
+  ): FoundDate | null => {
     if (mo < 0 || mo > 11 || d < 1 || d > 31) return null;
     let year = y ?? now.getFullYear();
     let start = new Date(year, mo, d, time?.[0] ?? 0, time?.[1] ?? 0);
@@ -190,20 +206,31 @@ function icsDate(d: Date, allDay: boolean): string {
 }
 
 function icsText(s: string): string {
-  return s.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/[,;]/g, (c) => `\\${c}`);
+  return s
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/[,;]/g, (c) => `\\${c}`);
 }
 
 /** A calendar file for one event (local time, 1 hour; all-day when no time). */
-export function makeIcs(event: { title: string; date: FoundDate; details?: string; location?: string }, now = new Date()): string {
+export function makeIcs(
+  event: { title: string; date: FoundDate; details?: string; location?: string },
+  now = new Date(),
+): string {
   const { start, allDay } = event.date;
-  const end = allDay ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1) : new Date(start.getTime() + 3_600_000);
+  const end = allDay
+    ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1)
+    : new Date(start.getTime() + 3_600_000);
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//Clipboard extension//EN',
     'BEGIN:VEVENT',
     `UID:${crypto.randomUUID()}@clipboard`,
-    `DTSTAMP:${now.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`,
+    `DTSTAMP:${now
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d{3}/, '')}`,
     allDay ? `DTSTART;VALUE=DATE:${icsDate(start, true)}` : `DTSTART:${icsDate(start, false)}`,
     allDay ? `DTEND;VALUE=DATE:${icsDate(end, true)}` : `DTEND:${icsDate(end, false)}`,
     `SUMMARY:${icsText(event.title)}`,
@@ -217,8 +244,10 @@ export function makeIcs(event: { title: string; date: FoundDate; details?: strin
 
 // ---------- Addresses, tracking, flights, contacts ----------
 
-const STREET_TYPES = 'St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Ln|Lane|Dr|Drive|Way|Ct|Court|Pl|Place|Sq|Square|Ter|Terrace|Pkwy|Parkway|Hwy|Highway';
-const STREET_FIRST = 'Rua|Calle|Carrer|Via|Viale|Avenida|Av\\.|Avenue|Rue|Boulevard|Bd|Praça|Largo|Travessa|Plaza|Paseo|Piazza|Corso|Straße|Strasse|Str\\.|Weg|Platz|Gasse|Ulica|ul\\.';
+const STREET_TYPES =
+  'St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Ln|Lane|Dr|Drive|Way|Ct|Court|Pl|Place|Sq|Square|Ter|Terrace|Pkwy|Parkway|Hwy|Highway';
+const STREET_FIRST =
+  'Rua|Calle|Carrer|Via|Viale|Avenida|Av\\.|Avenue|Rue|Boulevard|Bd|Praça|Largo|Travessa|Plaza|Paseo|Piazza|Corso|Straße|Strasse|Str\\.|Weg|Platz|Gasse|Ulica|ul\\.';
 
 /** Finds a street address: "221B Baker Street, London NW1 6XE" or "Rua de São João 94, Lisbon". */
 export function findAddress(text: string): string | null {
@@ -228,7 +257,10 @@ export function findAddress(text: string): string | null {
   const res = [
     new RegExp(`\\b\\d{1,5}[A-Za-z]?\\s+(?:[\\p{Lu}\\d][\\p{L}'.-]*\\s+){1,4}(?:${STREET_TYPES})\\b\\.?${tail}`, 'u'),
     new RegExp(`(?<![\\p{L}])(?:${STREET_FIRST})\\s+(?:[\\p{L}'.-]+\\s+){0,5}\\d{1,4}[A-Za-z]?\\b${tail}`, 'u'),
-    new RegExp(`(?<![\\p{L}])[\\p{Lu}][\\p{L}-]*(?:straße|strasse|gasse|weg|platz|laan|gade|vej|gatan)\\s+\\d{1,4}[a-z]?\\b${tail}`, 'u'),
+    new RegExp(
+      `(?<![\\p{L}])[\\p{Lu}][\\p{L}-]*(?:straße|strasse|gasse|weg|platz|laan|gade|vej|gatan)\\s+\\d{1,4}[a-z]?\\b${tail}`,
+      'u',
+    ),
   ];
   for (const re of res) {
     const m = re.exec(text);
@@ -266,7 +298,11 @@ export function findTracking(text: string): Tracking | null {
     m = /\b\d{10}\b|\bJ[DV]D\d{11,18}\b/i.exec(text);
     if (m) {
       const n = compact(m[0]);
-      return { carrier: 'DHL', number: n, url: `https://www.dhl.com/global-en/home/tracking/tracking-express.html?tracking-id=${n}` };
+      return {
+        carrier: 'DHL',
+        number: n,
+        url: `https://www.dhl.com/global-en/home/tracking/tracking-express.html?tracking-id=${n}`,
+      };
     }
   }
   return null;

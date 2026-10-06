@@ -17,6 +17,8 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 | Command | What it does |
 |---|---|
 | `pnpm compile` | Type-check |
+| `pnpm lint` | Lint (oxlint: correctness and React hooks rules) |
+| `pnpm format` / `pnpm format:check` | Format with Prettier / check formatting |
 | `pnpm test` | Unit tests (Vitest) |
 | `pnpm test:e2e` | Builds a test copy and runs end-to-end tests with the real extension in Chromium (Playwright), incl. accessibility checks (axe) |
 | `pnpm zip` / `pnpm zip:edge` | Store-ready zip in `.output/` |

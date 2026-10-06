@@ -10,10 +10,10 @@ import { isPaused, PAUSE_MS, updateSettings } from '@/lib/settings';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { useTheme } from '@/lib/useTheme';
 import { activeEmbedder, useIndexer } from '@/lib/useIndexer';
-import { createCollection, listCollections } from '@/lib/collections';
+import { createCollection, listCollections, moveClip } from '@/lib/collections';
 import { CollectionTile } from '@/components/CollectionTile';
 import { ImageStrip } from '@/components/ImageStrip';
-import { ClipRow } from '@/components/ClipRow';
+import { CLIP_DRAG_TYPE, ClipRow } from '@/components/ClipRow';
 import { Button, IconButton, SearchField } from '@/components/ui';
 import { Notice } from '@/components/Notice';
 import { Toast, type ToastState } from '@/components/Toast';
@@ -22,6 +22,7 @@ import { SettingsView } from './SettingsView';
 import { CollectionView } from './CollectionView';
 import { FilterBar } from './FilterBar';
 import { Onboarding } from './Onboarding';
+import { OPEN_CLIP_KEY, OPEN_CLIP_TTL_MS, type OpenClipRequest } from '@/lib/openClip';
 import { HomeNotice } from './HomeNotice';
 import { ProWaitlist } from './ProWaitlist';
 
@@ -36,12 +37,35 @@ export function App() {
   useTheme();
   const settings = useSettings();
   const now = useNowUntil(settings?.pausedUntil ?? 0);
-  const [view, setView] = useState<View>({ name: 'home' });
+  const [view, setView] = useState<View>(() => {
+    // "Open" from the in-page card when no panel could open: a tab with ?clip=<id>.
+    const clip = new URLSearchParams(location.search).get('clip');
+    return clip ? { name: 'detail', id: clip } : { name: 'home' };
+  });
   const [onboarding, setOnboarding] = useState(() => new URLSearchParams(location.search).has('onboarding'));
+
+  // "Open" on the in-page card: a request in session storage, read now and
+  // whenever it changes while the panel is open.
+  useEffect(() => {
+    const take = (req: OpenClipRequest | undefined) => {
+      if (!req || Date.now() - req.at > OPEN_CLIP_TTL_MS) return;
+      setView({ name: 'detail', id: req.clipId });
+      void browser.storage.session.remove(OPEN_CLIP_KEY);
+    };
+    void browser.storage.session.get(OPEN_CLIP_KEY).then((r) => take(r[OPEN_CLIP_KEY] as OpenClipRequest | undefined));
+    const onChanged = (changes: Record<string, { newValue?: unknown }>, area: string) => {
+      if (area === 'session' && changes[OPEN_CLIP_KEY]) take(changes[OPEN_CLIP_KEY].newValue as OpenClipRequest | undefined);
+    };
+    browser.storage.onChanged.addListener(onChanged);
+    return () => browser.storage.onChanged.removeListener(onChanged);
+  }, []);
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(NO_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [results, setResults] = useState<SearchResult[] | null>(null);
+  /** Results and what they were computed for, so stale ones are never shown. */
+  const [results, setResults] = useState<{ items: SearchResult[]; query: string; filters: SearchFilters; clips: Clip[] } | null>(
+    null,
+  );
   const [toast, setToast] = useState<ToastState | null>(null);
   const [dragging, setDragging] = useState(false);
   const clips = useLiveQuery(() => listClips(), [], undefined);
@@ -130,7 +154,11 @@ export function App() {
   // Dropping images or text onto the panel saves them.
   useEffect(() => {
     let depth = 0;
-    const hasPayload = (e: DragEvent) => !!e.dataTransfer && Array.from(e.dataTransfer.types).some((t) => t === 'Files' || t.startsWith('text/'));
+    // Files or text dragged in from outside; not a clip row being moved to a collection.
+    const hasPayload = (e: DragEvent) => {
+      const types = Array.from(e.dataTransfer?.types ?? []);
+      return !types.includes(CLIP_DRAG_TYPE) && types.some((t) => t === 'Files' || t.startsWith('text/'));
+    };
     const onEnter = (e: DragEvent) => {
       if (!hasPayload(e)) return;
       depth++;
@@ -144,6 +172,7 @@ export function App() {
       if (hasPayload(e)) e.preventDefault();
     };
     const onDrop = (e: DragEvent) => {
+      if (!hasPayload(e)) return;
       e.preventDefault();
       depth = 0;
       setDragging(false);
@@ -167,14 +196,11 @@ export function App() {
   // Stays open while you change filters, even back to "Any".
   const showFilters = filtersOpen || filtering || query.trim() !== '';
   useEffect(() => {
-    if (!searching || !clips) {
-      setResults(null);
-      return;
-    }
+    if (!searching || !clips) return;
     let cancelled = false;
     const t = setTimeout(() => {
       void searchClips(query, clips, filters, activeEmbedder())
-        .then((r) => !cancelled && setResults(r))
+        .then((items) => !cancelled && setResults({ items, query, filters, clips }))
         .catch(() => {});
     }, 150);
     return () => {
@@ -182,14 +208,18 @@ export function App() {
       clearTimeout(t);
     };
   }, [searching, query, filters, clips]);
-  const visible = useMemo(() => (searching ? (results ?? []).map((r) => r.clip) : (clips ?? [])), [searching, results, clips]);
-  const meaningCount = results?.filter((r) => r.match === 'meaning').length ?? 0;
+  const current =
+    searching && results && results.query === query && results.filters === filters && results.clips === clips
+      ? results.items
+      : null;
+  const visible = useMemo(() => (searching ? (current ?? []).map((r) => r.clip) : (clips ?? [])), [searching, current, clips]);
+  const meaningCount = current?.filter((r) => r.match === 'meaning').length ?? 0;
   const sites = useMemo(() => topSites(clips ?? []), [clips]);
   const paused = settings ? isPaused(settings, now) : false;
   const sortedToday = useMemo(() => {
-    const midnight = new Date().setHours(0, 0, 0, 0);
+    const midnight = new Date(now).setHours(0, 0, 0, 0);
     return (clips ?? []).filter((c) => c.collectionId && c.createdAt >= midnight).length;
-  }, [clips]);
+  }, [clips, now]);
 
   async function newCollection() {
     const name = prompt('Name the new collection');
@@ -236,7 +266,13 @@ export function App() {
   }
 
   if (view.name === 'settings') {
-    return shell(<SettingsView onBack={() => setView({ name: 'home' })} notify={notify} onPro={() => setView({ name: 'pro', from: { name: 'settings' } })} />);
+    return shell(
+      <SettingsView
+        onBack={() => setView({ name: 'home' })}
+        notify={notify}
+        onPro={() => setView({ name: 'pro', from: { name: 'settings' } })}
+      />,
+    );
   }
 
   if (view.name === 'pro') {
@@ -303,7 +339,7 @@ export function App() {
       <main className="min-h-0 flex-1 overflow-y-auto px-[18px]">
         {clips === undefined ? null : clips.length === 0 ? (
           <EmptyState onGrab={saveFromClipboard} autoSave={!!settings?.autoSave} />
-        ) : searching && results === null ? null : visible.length === 0 ? (
+        ) : searching && current === null ? null : visible.length === 0 ? (
           <p className="py-10 text-center text-sm text-text-3">
             {query.trim() ? `No clips match “${query.trim()}”.` : 'No clips match these filters.'}
           </p>
@@ -330,6 +366,9 @@ export function App() {
                       key={s.collection.id}
                       summary={s}
                       onOpen={() => setView({ name: 'collection', id: s.collection.id })}
+                      onDropClip={(clipId) => {
+                        void moveClip(clipId, s.collection.id).then(() => notify(`Moved to ${s.collection.name}`));
+                      }}
                     />
                   ))}
                 </ul>

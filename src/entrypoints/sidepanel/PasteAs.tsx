@@ -3,7 +3,15 @@ import { Sparkles } from 'lucide-react';
 import type { Clip } from '@/lib/db';
 import { saveClip } from '@/lib/clips';
 import { nanoAvailability } from '@/lib/ai/nano';
-import { AI_TRANSFORMS, applyAi, applyPlain, languageName, PLAIN_TRANSFORMS, type AiTransform, type PlainTransform } from '@/lib/transforms';
+import {
+  AI_TRANSFORMS,
+  applyAi,
+  applyPlain,
+  languageName,
+  PLAIN_TRANSFORMS,
+  type AiTransform,
+  type PlainTransform,
+} from '@/lib/transforms';
 import { Button } from '@/components/ui';
 
 const LANGS = ['en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'zh', 'ko', 'hi', 'ar'];
@@ -59,22 +67,28 @@ export function PasteAs({
       </h2>
       <div className="flex flex-wrap gap-2">
         {PLAIN_TRANSFORMS.filter((t) => t.id !== 'markdown' || clip.html).map((t) => (
-          <button key={t.id} type="button" className={`${chip} border border-line-strong bg-bg text-ink`} onClick={() => void copyPlain(t.id)}>
-            {t.label}
-          </button>
-        ))}
-        {aiReady && AI_TRANSFORMS.map((t) => (
           <button
             key={t.id}
             type="button"
-            disabled={!aiReady}
-            aria-pressed={preview?.t === t.id}
-            className={`${chip} bg-ai-bg text-ai-fg aria-pressed:outline-2 aria-pressed:outline-ai-fg`}
-            onClick={() => void runAi(t.id)}
+            className={`${chip} border border-line-strong bg-bg text-ink`}
+            onClick={() => void copyPlain(t.id)}
           >
             {t.label}
           </button>
         ))}
+        {aiReady &&
+          AI_TRANSFORMS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              disabled={!aiReady}
+              aria-pressed={preview?.t === t.id}
+              className={`${chip} bg-ai-bg text-ai-fg aria-pressed:outline-2 aria-pressed:outline-ai-fg`}
+              onClick={() => void runAi(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
       </div>
       <p className="mt-2 flex items-center gap-1.5 text-xs text-text-3">
         <Sparkles size={12} aria-hidden />

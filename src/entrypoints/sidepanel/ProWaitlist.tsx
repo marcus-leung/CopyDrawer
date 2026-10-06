@@ -50,7 +50,9 @@ export function ProWaitlist({ onBack }: { onBack: () => void }) {
             <Button variant="primary" size="lg" className="mt-8 w-full" onClick={() => void join()}>
               Email me when it's ready
             </Button>
-            <p className="mt-2 text-center text-[13px] text-text-3">Opens a short form. We only use your email for this. No spam.</p>
+            <p className="mt-2 text-center text-[13px] text-text-3">
+              Opens a short form. We only use your email for this. No spam.
+            </p>
           </>
         ) : (
           <p className="mt-8 rounded-2xl bg-surface p-4 text-sm text-text-2">The waitlist opens soon.</p>

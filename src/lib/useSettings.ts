@@ -18,7 +18,7 @@ export function useSettings(): Settings | null {
 
 /** Re-renders once the given time passes (used to end "paused" states). */
 export function useNowUntil(until: number): number {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const ms = until - Date.now();
     if (ms <= 0) return;

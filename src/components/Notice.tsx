@@ -36,7 +36,11 @@ export function Notice({
             </button>
           )}
           {secondary && (
-            <button type="button" onClick={secondary.onClick} className="cursor-pointer text-[13px] font-semibold underline-offset-2 hover:underline">
+            <button
+              type="button"
+              onClick={secondary.onClick}
+              className="cursor-pointer text-[13px] font-semibold underline-offset-2 hover:underline"
+            >
               {secondary.label}
             </button>
           )}
