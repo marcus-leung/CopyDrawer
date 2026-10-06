@@ -6,6 +6,9 @@
 @import '@fontsource/bricolage-grotesque/latin-800.css';
 @import '@fontsource/jetbrains-mono/latin-400.css';
 
+/* Dark mode follows <html data-theme>, set from settings + system. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 /* Design tokens: docs/05-ui-design-system.md §2 */
 :root {
   --bg: #ffffff;

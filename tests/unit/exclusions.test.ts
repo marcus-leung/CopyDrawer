@@ -1,0 +1,28 @@
+import { describe, expect, it } from 'vitest';
+import { isBlocked, isBuiltInBlocked, normalizeSite } from '@/lib/exclusions';
+
+describe('blocked sites', () => {
+  it('never auto-saves on non-web pages', () => {
+    expect(isBlocked('chrome://settings', [])).toBe(true);
+    expect(isBlocked(undefined, [])).toBe(true);
+    expect(isBlocked('https://en.wikipedia.org/wiki/Lisbon', [])).toBe(false);
+  });
+
+  it('blocks built-in sites and their subdomains', () => {
+    expect(isBlocked('https://my.1password.com/vaults', [])).toBe(true);
+    expect(isBuiltInBlocked('https://www.paypal.com/myaccount')).toBe(true);
+    expect(isBuiltInBlocked('https://notpaypal.com')).toBe(false);
+  });
+
+  it('blocks user sites', () => {
+    expect(isBlocked('https://mail.work.com/inbox', ['work.com'])).toBe(true);
+    expect(isBlocked('https://work.com.evil.io', ['work.com'])).toBe(false);
+  });
+
+  it('normalizes what people type', () => {
+    expect(normalizeSite('  https://www.MyBank.com/login ')).toBe('mybank.com');
+    expect(normalizeSite('docs.example.org')).toBe('docs.example.org');
+    expect(normalizeSite('not a site')).toBeUndefined();
+    expect(normalizeSite('')).toBeUndefined();
+  });
+});

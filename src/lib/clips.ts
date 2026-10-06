@@ -1,4 +1,4 @@
-import { db as defaultDb, type Clip, type ClipDatabase, type ClipKind, type ClipSource } from './db';
+import { db as defaultDb, type Clip, type ClipDatabase, type ClipKind, type ClipSource, type StoredImage } from './db';
 
 /** History limit, pins included (docs/02-design.md §10). */
 export const MAX_CLIPS = 2000;
@@ -64,7 +64,7 @@ export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Pr
   const hash = hashText(text);
   const now = Date.now();
 
-  return db.transaction('rw', db.clips, async () => {
+  return db.transaction('rw', db.clips, db.images, async () => {
     const existing = await db.clips.where('hash').equals(hash).first();
     if (existing) {
       const updated: Clip = {
@@ -96,6 +96,13 @@ export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Pr
   });
 }
 
+/** Deletes clips and any image files they own. */
+async function removeClips(db: ClipDatabase, clips: Clip[]): Promise<void> {
+  await db.clips.bulkDelete(clips.map((c) => c.id));
+  const imageIds = clips.flatMap((c) => (c.image ? [c.image.imageId] : []));
+  if (imageIds.length) await db.images.bulkDelete(imageIds);
+}
+
 /** Drops the oldest unpinned clips until the history fits MAX_CLIPS. */
 export async function enforceLimit(db: ClipDatabase = defaultDb, max = MAX_CLIPS): Promise<number> {
   const total = await db.clips.count();
@@ -105,8 +112,8 @@ export async function enforceLimit(db: ClipDatabase = defaultDb, max = MAX_CLIPS
     .orderBy('createdAt')
     .filter((c) => c.pinned === 0)
     .limit(over)
-    .primaryKeys();
-  await db.clips.bulkDelete(victims);
+    .toArray();
+  await removeClips(db, victims);
   return victims.length;
 }
 
@@ -119,18 +126,32 @@ export async function listClips(db: ClipDatabase = defaultDb): Promise<Clip[]> {
 export function matchesQuery(clip: Clip, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  const hay = [clip.text, clip.title, clip.source?.title, clip.source?.url].join('\n').toLowerCase();
+  const hay = [clip.text, clip.title, clip.source?.title, clip.source?.url, clip.kind === 'image' ? 'image picture photo screenshot' : '']
+    .join('\n')
+    .toLowerCase();
   return q.split(/\s+/).every((word) => hay.includes(word));
 }
 
-export async function deleteClip(id: string, db: ClipDatabase = defaultDb): Promise<Clip | undefined> {
-  const clip = await db.clips.get(id);
-  if (clip) await db.clips.delete(id);
-  return clip;
+export interface DeletedClip {
+  clip: Clip;
+  image?: StoredImage;
 }
 
-export async function restoreClip(clip: Clip, db: ClipDatabase = defaultDb): Promise<void> {
-  await db.clips.put(clip);
+export async function deleteClip(id: string, db: ClipDatabase = defaultDb): Promise<DeletedClip | undefined> {
+  return db.transaction('rw', db.clips, db.images, async () => {
+    const clip = await db.clips.get(id);
+    if (!clip) return undefined;
+    const image = clip.image ? await db.images.get(clip.image.imageId) : undefined;
+    await removeClips(db, [clip]);
+    return { clip, image };
+  });
+}
+
+export async function restoreClip(deleted: DeletedClip, db: ClipDatabase = defaultDb): Promise<void> {
+  await db.transaction('rw', db.clips, db.images, async () => {
+    if (deleted.image) await db.images.put(deleted.image);
+    await db.clips.put(deleted.clip);
+  });
 }
 
 export async function togglePin(id: string, db: ClipDatabase = defaultDb): Promise<void> {
@@ -153,11 +174,14 @@ export async function deleteOlderThan(days: number, db: ClipDatabase = defaultDb
     .where('createdAt')
     .below(cutoff)
     .filter((c) => c.pinned === 0)
-    .primaryKeys();
-  await db.clips.bulkDelete(old);
+    .toArray();
+  await removeClips(db, old);
   return old.length;
 }
 
 export async function clearAll(db: ClipDatabase = defaultDb): Promise<void> {
-  await db.clips.clear();
+  await db.transaction('rw', db.clips, db.images, async () => {
+    await db.clips.clear();
+    await db.images.clear();
+  });
 }

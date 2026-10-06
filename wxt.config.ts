@@ -2,11 +2,16 @@ import { defineConfig } from 'wxt';
 import tailwindcss from '@tailwindcss/vite';
 
 // See https://wxt.dev/api/config.html
+// E2E=1 builds a test copy with all-sites access pre-granted, so auto-save can be tested.
+const e2e = process.env.E2E === '1';
+
 export default defineConfig({
   srcDir: 'src',
+  outDir: e2e ? '.output-e2e' : '.output',
   modules: ['@wxt-dev/module-react'],
   vite: () => ({
     plugins: [tailwindcss()],
+    define: { __E2E__: JSON.stringify(e2e) },
   }),
   manifest: {
     name: 'Clipboard',
@@ -22,11 +27,17 @@ export default defineConfig({
       'clipboardWrite',
       'alarms',
     ],
+    optional_host_permissions: ['<all_urls>'],
+    ...(e2e ? { host_permissions: ['<all_urls>'] } : {}),
     action: { default_title: 'Open Clipboard' },
     commands: {
       'save-selection': {
         suggested_key: { default: 'Alt+Shift+S' },
         description: 'Save the selected text',
+      },
+      'screenshot-area': {
+        suggested_key: { default: 'Alt+Shift+X' },
+        description: 'Screenshot an area of the page',
       },
     },
   },
