@@ -20,6 +20,7 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 | `pnpm test` | Unit tests (Vitest) |
 | `pnpm test:e2e` | Builds a test copy and runs end-to-end tests with the real extension in Chromium (Playwright), incl. accessibility checks (axe) |
 | `pnpm zip` / `pnpm zip:edge` | Store-ready zip in `.output/` |
+| `node scripts/make-test-model.mjs` | Regenerates the tiny stand-in AI model in `tests/fixtures/minilm-stub/` that e2e tests serve instead of Hugging Face |
 
 ## Features
 

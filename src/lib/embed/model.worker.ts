@@ -9,6 +9,8 @@ import { env, pipeline, type FeatureExtractionPipeline } from '@huggingface/tran
 const origin = self.location.origin;
 env.allowLocalModels = false;
 env.useBrowserCache = true;
+// The runtime files are already local; the Cache API can't store chrome-extension:// URLs anyway.
+env.useWasmCache = false;
 const wasm = env.backends.onnx.wasm!;
 wasm.wasmPaths = {
   mjs: `${origin}/ort/ort-wasm-simd-threaded.asyncify.mjs`,

@@ -73,16 +73,31 @@ export function targetFor(category: CategoryId, clip: Pick<Clip, 'text' | 'title
  */
 export async function autoAssign(clip: Clip, db: ClipDatabase = defaultDb): Promise<Clip> {
   if (clip.collectionLocked) return clip;
-  // An existing trip wins for travel clips that don't name a city ("check-in 15:00").
   const category = classifyByRules(clip);
   if (!category) return clip;
   const target = targetFor(category, clip);
-  const collection = await ensureCollection(db, target.key, target);
+  // A travel clip that names no city ("check-in 15:00") joins the trip being planned.
+  const trip = target.key === 'cat:travel' ? await currentTrip(db, clip.createdAt) : undefined;
+  const collection = trip ?? (await ensureCollection(db, target.key, target));
   if (clip.collectionId !== collection.id) {
     clip = { ...clip, collectionId: collection.id };
     await db.clips.update(clip.id, { collectionId: collection.id });
   }
   return clip;
+}
+
+const TRIP_ACTIVE_MS = 14 * 86_400_000;
+
+/** The trip with the latest clip in the last two weeks, if any. */
+async function currentTrip(db: ClipDatabase, now: number): Promise<Collection | undefined> {
+  const trips = await db.collections.filter((c) => c.kind === 'trip').toArray();
+  let best: { trip: Collection; at: number } | undefined;
+  for (const trip of trips) {
+    const latest = await db.clips.where('collectionId').equals(trip.id).reverse().sortBy('createdAt');
+    const at = latest[0]?.createdAt ?? trip.createdAt;
+    if (now - at <= TRIP_ACTIVE_MS && (!best || at > best.at)) best = { trip, at };
+  }
+  return best?.trip;
 }
 
 /** Assigns a clip to a category found by the AI model (when the rules had no answer). */
@@ -91,7 +106,8 @@ export async function assignCategory(clipId: string, category: CategoryId, db: C
     const clip = await db.clips.get(clipId);
     if (!clip || clip.collectionLocked || clip.collectionId) return;
     const target = targetFor(category, clip);
-    const collection = await ensureCollection(db, target.key, target);
+    const trip = target.key === 'cat:travel' ? await currentTrip(db, clip.createdAt) : undefined;
+    const collection = trip ?? (await ensureCollection(db, target.key, target));
     await db.clips.update(clipId, { collectionId: collection.id });
   });
 }

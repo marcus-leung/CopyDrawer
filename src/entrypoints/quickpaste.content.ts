@@ -39,7 +39,7 @@ kbd { font: 600 11px/1 "JetBrains Mono", ui-monospace, monospace; padding: 3px 6
 `;
 
 type Target =
-  | { kind: 'field'; el: HTMLInputElement | HTMLTextAreaElement; start: number; end: number }
+  | { kind: 'field'; el: HTMLInputElement | HTMLTextAreaElement; start: number | null; end: number | null }
   | { kind: 'editable'; el: HTMLElement; range: Range | null }
   | { kind: 'none' };
 
@@ -47,7 +47,8 @@ function captureTarget(): Target {
   let el = document.activeElement;
   while (el?.shadowRoot?.activeElement) el = el.shadowRoot.activeElement;
   if (el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && /^(text|search|email|url|tel|)$/.test(el.type))) {
-    return { kind: 'field', el, start: el.selectionStart ?? el.value.length, end: el.selectionEnd ?? el.value.length };
+    // selectionStart is null on input types without a selection API (email).
+    return { kind: 'field', el, start: el.selectionStart, end: el.selectionEnd };
   }
   if (el instanceof HTMLElement && el.isContentEditable) {
     const sel = getSelection();
@@ -61,10 +62,13 @@ function insertAt(target: Target, text: string): boolean {
   if (target.kind === 'field') {
     const { el } = target;
     el.focus();
-    el.setSelectionRange(target.start, target.end);
+    // Email fields have no selection API (it throws); there the cursor stays where focus puts it.
+    const hasSelection = target.start !== null;
+    if (hasSelection) el.setSelectionRange(target.start, target.end);
     // execCommand keeps the page's undo history and fires the events frameworks listen to.
     if (!document.execCommand('insertText', false, text)) {
-      el.setRangeText(text, target.start, target.end, 'end');
+      if (hasSelection) el.setRangeText(text, target.start!, target.end!, 'end');
+      else el.value += text;
       el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
     }
     return true;

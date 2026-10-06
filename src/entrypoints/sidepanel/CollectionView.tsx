@@ -4,6 +4,7 @@ import { ChevronLeft, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
 import { deleteCollection, renameCollection } from '@/lib/collections';
 import { ClipRow } from '@/components/ClipRow';
+import { hostOf } from '@/lib/format';
 import { collectionVars } from '@/components/CollectionTile';
 import { IconButton } from '@/components/ui';
 
@@ -12,7 +13,8 @@ type Sort = 'newest' | 'used' | 'source';
 const SORTS: Record<Sort, (a: Clip, b: Clip) => number> = {
   newest: (a, b) => b.createdAt - a.createdAt,
   used: (a, b) => b.useCount - a.useCount || b.lastUsedAt - a.lastUsedAt,
-  source: (a, b) => (a.source?.url ?? '~').localeCompare(b.source?.url ?? '~') || b.createdAt - a.createdAt,
+  // By site name ("airbnb.com" before "booking.com"); clips saved by hand last.
+  source: (a, b) => (hostOf(a.source?.url) ?? '~').localeCompare(hostOf(b.source?.url) ?? '~') || b.createdAt - a.createdAt,
 };
 
 export function CollectionView({

@@ -55,9 +55,17 @@ export function AiSection({
         onChange={(on) => onChange({ smartModel: on })}
       />
       {settings.smartModel && state.status === 'failed' && (
-        <Button size="sm" className="mt-2" onClick={() => void model.load(true)}>
-          Try again
-        </Button>
+        <div className="mt-2 flex flex-col items-start gap-2">
+          <details className="text-xs text-text-3">
+            <summary className="cursor-pointer">Details</summary>
+            <p className="mt-1 break-words" data-testid="model-error">
+              {state.message}
+            </p>
+          </details>
+          <Button size="sm" onClick={() => void model.load(true)}>
+            Try again
+          </Button>
+        </div>
       )}
       <div className="mt-3 flex min-h-11 items-center justify-between gap-3">
         <span className="min-w-0 text-sm">

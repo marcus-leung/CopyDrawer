@@ -48,6 +48,43 @@ export function topSites(clips: Clip[], limit = 12): string[] {
   return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([s]) => s);
 }
 
+/** Edit distance up to `max` (early exit beyond it). */
+export function withinEdits(a: string, b: string, max: number): boolean {
+  if (Math.abs(a.length - b.length) > max) return false;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j]! + 1, cur[j - 1]! + 1, prev[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
+      rowMin = Math.min(rowMin, cur[j]!);
+    }
+    if (rowMin > max) return false;
+    prev = cur;
+  }
+  return prev[b.length]! <= max;
+}
+
+const WORD = /[\p{L}\p{N}]+/gu;
+
+/**
+ * Every query word appears in the clip, allowing small typos in longer words
+ * ("photosynthsis" finds "Photosynthesis"): 1 edit from 5 letters, 2 from 9.
+ */
+export function matchesWithTypos(clip: Clip, query: string): boolean {
+  const words = query.toLowerCase().match(WORD) ?? [];
+  if (!words.length) return false;
+  const hay = `${clip.title}\n${clip.text.slice(0, 5000)}\n${clip.source?.title ?? ''}`.toLowerCase();
+  const hayWords = new Set(hay.match(WORD) ?? []);
+  return words.every((w) => {
+    if (hay.includes(w)) return true;
+    const max = w.length >= 9 ? 2 : w.length >= 5 ? 1 : 0;
+    if (!max) return false;
+    for (const h of hayWords) if (withinEdits(w, h, max)) return true;
+    return false;
+  });
+}
+
 /**
  * Word matches first (in the order given: pinned, then newest), then clips that
  * only match by meaning, closest first.
@@ -62,7 +99,7 @@ export async function searchClips(
   const pool = clips.filter((c) => passesFilters(c, filters, now));
   const q = query.trim();
   if (!q) return pool.map((clip) => ({ clip, match: 'words' }));
-  const words = pool.filter((c) => matchesQuery(c, q));
+  const words = pool.filter((c) => matchesQuery(c, q) || matchesWithTypos(c, q));
   const results: SearchResult[] = words.map((clip) => ({ clip, match: 'words' }));
   if (!embedder || q.length < 3) return results;
   const seen = new Set(words.map((c) => c.id));

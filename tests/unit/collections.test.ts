@@ -65,6 +65,17 @@ describe('collections', () => {
     expect(list[0]?.newCount).toBe(2);
   });
 
+  it('puts travel clips without a city in the trip being planned', async () => {
+    await saveClip({ text: 'Loft in Alfama, Lisbon. €96 a night', source: { url: 'https://www.airbnb.com/rooms/9' } }, db);
+    const c = (await saveClip({ text: 'Flight TP 1355, departure 07:40, check-in opens 05:40' }, db))!;
+    const col = await db.collections.get((await db.clips.get(c.id))!.collectionId!);
+    expect(col?.name).toBe('Lisbon trip');
+    // With no trip in the last two weeks, it goes to Travel.
+    const db2 = new ClipDatabase(`test-${crypto.randomUUID()}`);
+    const c2 = (await saveClip({ text: 'Flight TP 1355, departure 07:40, check-in opens 05:40' }, db2))!;
+    expect((await db2.collections.get((await db2.clips.get(c2.id))!.collectionId!))?.name).toBe('Travel');
+  });
+
   it('keeps clips where the user moved them', async () => {
     const c = (await saveClip({ text: 'Photosynthesis', source: { url: 'https://en.wikipedia.org/wiki/P' } }, db))!;
     const mine = await createCollection('Biology essay', db);
