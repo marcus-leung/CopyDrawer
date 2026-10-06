@@ -101,8 +101,13 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return e;
 }
 
+const TOAST_ID = 'clipboard-quick-paste-toast';
+
+/** A short note at the bottom of the page. A new note replaces the last one. */
 function toast(message: string) {
+  document.getElementById(TOAST_ID)?.remove();
   const host = el('div');
+  host.id = TOAST_ID;
   const root = host.attachShadow({ mode: 'open' });
   const box = el('div', '', message);
   box.style.cssText =
