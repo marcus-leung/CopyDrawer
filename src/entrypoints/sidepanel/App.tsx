@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ClipboardPaste, ImagePlus, MoreHorizontal, Plus } from 'lucide-react';
+import { ClipboardPaste, ImagePlus, MoreHorizontal, Plus, SlidersHorizontal } from 'lucide-react';
 import { db, type Clip, type Collection } from '@/lib/db';
 import { deleteClip, listClips, markUsed, restoreClip, saveClip } from '@/lib/clips';
 import { NO_FILTERS, searchClips, topSites, type SearchFilters, type SearchResult } from '@/lib/search';
@@ -40,6 +40,7 @@ export function App() {
   const [onboarding, setOnboarding] = useState(() => new URLSearchParams(location.search).has('onboarding'));
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(NO_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -163,6 +164,8 @@ export function App() {
 
   const filtering = filters.kind !== 'any' || filters.site !== 'any' || filters.date !== 'any';
   const searching = query.trim() !== '' || filtering;
+  // Stays open while you change filters, even back to "Any".
+  const showFilters = filtersOpen || filtering || query.trim() !== '';
   useEffect(() => {
     if (!searching || !clips) {
       setResults(null);
@@ -258,13 +261,29 @@ export function App() {
       </header>
 
       <div className="px-[18px] pb-3">
-        <SearchField
-          label="Search your clips"
-          placeholder="Search your clips"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        {(searching || query) && clips && clips.length > 0 && (
+        <div className="flex items-center gap-2">
+          <SearchField
+            className="min-w-0 flex-1"
+            label="Search your clips"
+            placeholder="Search your clips"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {clips && clips.length > 0 && (
+            <IconButton
+              label="Filters"
+              aria-expanded={showFilters}
+              className={showFilters ? 'bg-ink! text-on-ink!' : 'bg-surface'}
+              onClick={() => {
+                if (showFilters) setFilters(NO_FILTERS);
+                setFiltersOpen(!showFilters);
+              }}
+            >
+              <SlidersHorizontal size={18} aria-hidden />
+            </IconButton>
+          )}
+        </div>
+        {showFilters && clips && clips.length > 0 && (
           <div className="pt-2.5">
             <FilterBar filters={filters} sites={sites} onChange={setFilters} />
           </div>
@@ -320,7 +339,10 @@ export function App() {
               <ImageStrip
                 clips={clips}
                 onOpen={(c) => setView({ name: 'detail', id: c.id })}
-                onSeeAll={() => setFilters({ ...NO_FILTERS, kind: 'image' })}
+                onSeeAll={() => {
+                  setFilters({ ...NO_FILTERS, kind: 'image' });
+                  setFiltersOpen(true);
+                }}
               />
             )}
             {!searching && settings && !settings.dismissedTips.includes('quick-paste') && clips.length <= 3 && (

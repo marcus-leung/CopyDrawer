@@ -99,3 +99,16 @@ describe('searchClips', () => {
     expect(bySite.map((x) => x.clip.text)).toEqual(['Hotel near the station']);
   });
 });
+
+describe('typo-tolerant word search', () => {
+  it('allows small typos in longer words only', async () => {
+    const { matchesWithTypos, withinEdits } = await import('@/lib/search');
+    const clip = { title: 'Photosynthesis', text: 'Photosynthesis is how plants turn sunlight into energy', source: undefined } as never;
+    expect(matchesWithTypos(clip, 'photosynthsis')).toBe(true);
+    expect(matchesWithTypos(clip, 'photosinthesys plants')).toBe(true);
+    expect(matchesWithTypos(clip, 'sunn')).toBe(false); // under 5 letters: no typos allowed
+    expect(matchesWithTypos(clip, 'sunlight zzqx')).toBe(false);
+    expect(withinEdits('kitten', 'sitting', 2)).toBe(false);
+    expect(withinEdits('kitten', 'sitten', 1)).toBe(true);
+  });
+});
