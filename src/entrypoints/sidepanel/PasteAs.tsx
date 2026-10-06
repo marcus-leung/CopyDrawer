@@ -63,7 +63,7 @@ export function PasteAs({
             {t.label}
           </button>
         ))}
-        {AI_TRANSFORMS.map((t) => (
+        {aiReady && AI_TRANSFORMS.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -79,7 +79,7 @@ export function PasteAs({
       <p className="mt-2 flex items-center gap-1.5 text-xs text-text-3">
         <Sparkles size={12} aria-hidden />
         {aiReady === false
-          ? "Blue options need Chrome's built-in AI. Turn it on in Settings, On-device AI."
+          ? "Summarize, rewrite and translate with Chrome's built-in AI: turn it on in Settings."
           : 'Blue options use AI on this device. Nothing is uploaded.'}
       </p>
 

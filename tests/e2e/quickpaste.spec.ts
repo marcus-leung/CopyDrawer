@@ -81,6 +81,7 @@ test('search filters and Paste as in the panel', async ({ context, extensionId }
   await panel.getByRole('button', { name: 'Bullet list' }).click();
   await expect(panel.getByRole('status')).toContainText('Copied as bullet list');
   expect(await panel.evaluate(() => navigator.clipboard.readText())).toBe('- Book the hotel.\n- Buy train tickets.\n- Pack light.');
-  // AI options are off when Chrome's built-in AI isn't on this device.
-  await expect(panel.getByRole('button', { name: 'Summarize' })).toBeDisabled();
+  // AI options are hidden when Chrome's built-in AI isn't on this device.
+  await expect(panel.getByRole('button', { name: 'Summarize' })).toHaveCount(0);
+  await expect(panel.getByText("with Chrome's built-in AI: turn it on in Settings")).toBeVisible();
 });

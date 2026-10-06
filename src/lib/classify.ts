@@ -4,6 +4,7 @@
  */
 import type { Clip } from './db';
 import { hostnameOf } from './exclusions';
+import { findAddress, findTracking } from './actions';
 
 export type CategoryId = 'research' | 'links' | 'code' | 'shopping' | 'recipes' | 'travel' | 'personal';
 
@@ -78,7 +79,6 @@ const DOMAINS: Partial<Record<CategoryId, string[]>> = {
 const RE = {
   email: /\b[\w.+-]+@[\w-]+\.[\w.-]+\b/,
   phone: /(?:\+\d{1,3}[\s.-]?)?\(?\d{2,4}\)?[\s.-]\d{3,4}[\s.-]\d{3,4}\b/,
-  address: /\b\d{1,5}\s+(?:[A-Z][\w'.-]*\s){1,4}(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Ln|Lane|Dr|Drive|Way|Ct|Court|Pl|Place|Rua|Calle|Strasse|Straße)\b/i,
   flight: /\b(?:[A-Z]{2}|[A-Z]\d|\d[A-Z])\s?\d{2,4}\b.*\b(?:[A-Z]{3})\b|\bflight\b/i,
   travelWords: /\b(check-?in|check-?out|itinerary|boarding|hotel|hostel|airbnb|apartment rental|nights?|departure|arrival|layover|round trip|one way)\b/i,
   recipeWords: /\b(\d+\s?(?:tbsp|tsp|cups?|grams?|g|ml|oz|lb)s?\b|preheat|tablespoons?|teaspoons?|ingredients|simmer|whisk|bake for)\b/i,
@@ -119,11 +119,13 @@ export function classifyByRules(clip: Pick<Clip, 'kind' | 'text' | 'title' | 'so
   if (clip.kind === 'code') return 'code';
   if (fromDomain('travel') || (RE.travelWords.test(text) && (RE.flight.test(text) || RE.price.test(text)))) return 'travel';
   if (fromDomain('recipes') || (RE.recipeWords.test(text) && /\b(cup|tbsp|tsp|preheat|ingredients)\b/i.test(text))) return 'recipes';
-  if (fromDomain('shopping') || RE.shopWords.test(text)) return 'shopping';
+  if (fromDomain('shopping') || RE.shopWords.test(text) || (clip.kind === 'text' && findTracking(text))) return 'shopping';
   if (fromDomain('code')) return 'code';
   if (fromDomain('research')) return 'research';
   if (clip.kind === 'link') return 'links';
-  if (clip.kind !== 'image' && (RE.email.test(text) || RE.address.test(text)) && text.length < 300) return 'personal';
+  // Plans in a known destination ("Fado at … Lisbon. Tickets €35") belong with the trip.
+  if (clip.kind !== 'image' && (RE.price.test(text) || RE.travelWords.test(text)) && detectDestination(text)) return 'travel';
+  if (clip.kind !== 'image' && (RE.email.test(text) || findAddress(text) !== null) && text.length < 300) return 'personal';
   if (clip.kind !== 'image' && RE.phone.test(text) && text.length < 120) return 'personal';
   return undefined;
 }

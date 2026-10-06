@@ -16,6 +16,8 @@ export interface Settings {
   saveInIncognito: boolean;
   /** Use the on-device AI model for sorting and search by meaning (downloads ~25 MB once). */
   smartModel: boolean;
+  /** One-time tips the user dismissed ("quick-paste", …). */
+  dismissedTips: string[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -26,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
   blockedSites: [],
   saveInIncognito: false,
   smartModel: true,
+  dismissedTips: [],
 };
 
 export const PAUSE_MS = 60 * 60 * 1000;

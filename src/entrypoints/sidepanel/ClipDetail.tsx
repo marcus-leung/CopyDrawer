@@ -8,6 +8,8 @@ import { formatBytes } from '@/lib/images';
 import { useObjectUrl } from '@/lib/useObjectUrl';
 import { Button, IconButton } from '@/components/ui';
 import { PasteAs } from './PasteAs';
+import { SmartActions } from '@/components/SmartActions';
+import { CodeView } from '@/components/CodeView';
 
 export function ClipDetail({
   id,
@@ -79,9 +81,10 @@ export function ClipDetail({
               clip.kind === 'code' ? 'font-mono text-[13px]' : 'font-sans'
             }`}
           >
-            {clip.text}
+            {clip.kind === 'code' ? <CodeView code={clip.text} /> : clip.text}
           </pre>
         )}
+        <SmartActions clip={clip} notify={notify} />
         {clip.kind !== 'image' && <PasteAs clip={clip} onCopyOriginal={() => onCopy(clip)} notify={notify} />}
         <p className="mt-3 text-xs text-text-3">
           {clip.useCount > 0 ? `Used ${clip.useCount} ${clip.useCount === 1 ? 'time' : 'times'}.` : 'Not used yet.'}
