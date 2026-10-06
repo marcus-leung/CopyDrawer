@@ -143,7 +143,7 @@ Spending that's optional but worth it later: a privacy-friendly analytics upgrad
 | **4. Public launch v1.0** | 10 | Distribution | Listed on Chrome + Edge · launch campaign (§3.3) | Live; launch posts out |
 | **5. v1.1 AI release + growth + Safari** | 11–16 | Second launch moment, retention, new platform | Research Compose with citations · paste stack · cloud-AI fallback **behind a waitlist/fake door** · Product Hunt launch · SEO articles · **Safari build** (popup/tab UI, no Nano) via Mac App Store | KPIs tracked weekly; Safari approved |
 | **6. Pro** (if gate passes) | 17–22 | Revenue | Accounts · E2E encrypted sync · R2 image storage · cloud AI credits · payments (ExtensionPay) · lifetime early-bird | First paying users; refund rate < 5% |
-| **7. Expansion** | 23+ | Moat | Remote MCP server / "Send to AI" · shareable boards · phone handoff · Firefox · Teams · desktop companion | Driven by data |
+| **7. Expansion** | 23+ | Moat | Remote MCP server / "Send to AI" · shareable boards · phone handoff · Teams · desktop companion | Driven by data |
 
 ### 4.1 Phase 1: Design (weeks 1–2) in detail
 - **Week 1:** decide license (and name if ready) · wireframes (side panel, palette, clip card, onboarding + permission explainer, research mode, pause/blocklist, AI status).
