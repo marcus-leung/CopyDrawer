@@ -1,5 +1,6 @@
 import { Link2, Pin, Code2, Type } from 'lucide-react';
-import type { Clip } from '@/lib/db';
+import type { Clip, Collection } from '@/lib/db';
+import { colorOf } from '@/lib/collections';
 import { hostOf, shortTime } from '@/lib/format';
 import { useObjectUrl } from '@/lib/useObjectUrl';
 
@@ -9,12 +10,16 @@ export function ClipRow({
   clip,
   onOpen,
   onCopy,
+  collection,
 }: {
   clip: Clip;
+  collection?: Collection;
   onOpen: (clip: Clip) => void;
   onCopy: (clip: Clip) => void;
 }) {
   const host = hostOf(clip.source?.url);
+  const from = host ? `from ${host}` : 'saved by hand';
+  const meta = [collection?.name, from, shortTime(clip.createdAt)].filter(Boolean).join(', ');
   return (
     <li className="flex min-h-14 items-center gap-3 border-b border-line">
       <button
@@ -25,11 +30,12 @@ export function ClipRow({
         <ClipIcon clip={clip} />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5 truncate text-sm font-semibold">
+            {collection && <CollectionDot collection={collection} />}
             {clip.pinned === 1 && <Pin size={12} className="shrink-0 text-text-3" aria-label="Pinned" />}
             <span className="truncate">{clip.title}</span>
           </span>
           <span className="block truncate text-xs text-text-3">
-            {host ? `From ${host}` : 'Saved by hand'}, {shortTime(clip.createdAt)}
+            {meta.charAt(0).toUpperCase() + meta.slice(1)}
           </span>
         </span>
       </button>
@@ -57,4 +63,15 @@ function ClipIcon({ clip }: { clip: Clip }) {
   }
   const Icon = KIND_ICON[clip.kind];
   return <Icon size={16} className="shrink-0 text-text-3" aria-hidden />;
+}
+
+function CollectionDot({ collection }: { collection: Collection }) {
+  const c = colorOf(collection);
+  return (
+    <span
+      className="inline-block size-2 shrink-0 rounded-full bg-[var(--d)] dark:bg-[var(--dd)]"
+      style={{ '--d': c.accent, '--dd': c.accentDark } as React.CSSProperties}
+      aria-hidden
+    />
+  );
 }

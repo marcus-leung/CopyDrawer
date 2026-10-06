@@ -14,6 +14,8 @@ export interface Settings {
   blockedSites: string[];
   /** Save copies made in incognito windows. */
   saveInIncognito: boolean;
+  /** Use the on-device AI model for sorting and search by meaning (downloads ~25 MB once). */
+  smartModel: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -23,6 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pausedUntil: 0,
   blockedSites: [],
   saveInIncognito: false,
+  smartModel: true,
 };
 
 export const PAUSE_MS = 60 * 60 * 1000;

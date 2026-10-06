@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, Pin, PinOff, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
 import { togglePin } from '@/lib/clips';
+import { createCollection, moveClip } from '@/lib/collections';
 import { hostOf } from '@/lib/format';
 import { formatBytes } from '@/lib/images';
 import { useObjectUrl } from '@/lib/useObjectUrl';
@@ -68,6 +69,7 @@ export function ClipDetail({
             </>
           )}
         </p>
+        <MoveTo clip={clip} />
         {clip.kind !== 'image' && (
           <pre
             className={`mt-4 rounded-2xl border border-line-strong p-4 text-sm leading-[21px] break-words whitespace-pre-wrap ${
@@ -116,5 +118,40 @@ function DownloadButton({ clip }: { clip: Clip }) {
     >
       Download
     </a>
+  );
+}
+
+const NEW = '__new__';
+
+function MoveTo({ clip }: { clip: Clip }) {
+  const collections = useLiveQuery(() => db.collections.orderBy('order').toArray(), []);
+  if (!collections) return null;
+  async function change(value: string) {
+    if (value === NEW) {
+      const name = prompt('Name the new collection');
+      if (!name?.trim()) return;
+      const created = await createCollection(name);
+      await moveClip(clip.id, created.id);
+      return;
+    }
+    await moveClip(clip.id, value || undefined);
+  }
+  return (
+    <label className="mt-3 flex items-center gap-2 text-[13px] text-text-2">
+      Collection
+      <select
+        value={clip.collectionId ?? ''}
+        onChange={(e) => void change(e.target.value)}
+        className="h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink"
+      >
+        <option value="">None</option>
+        {collections.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+        <option value={NEW}>New collection…</option>
+      </select>
+    </label>
   );
 }

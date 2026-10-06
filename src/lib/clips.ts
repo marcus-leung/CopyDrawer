@@ -1,4 +1,5 @@
 import { db as defaultDb, type Clip, type ClipDatabase, type ClipKind, type ClipSource, type StoredImage } from './db';
+import { autoAssign } from './collections';
 
 /** History limit, pins included (docs/02-design.md §10). */
 export const MAX_CLIPS = 2000;
@@ -58,13 +59,20 @@ function newId(): string {
  * top instead of creating a new one. Returns the saved clip, or null when the
  * text is empty.
  */
+let lastSave = 0;
+/** Save timestamps, strictly increasing so clips saved in the same millisecond keep their order. */
+export function saveTime(): number {
+  lastSave = Math.max(Date.now(), lastSave + 1);
+  return lastSave;
+}
+
 export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Promise<Clip | null> {
   const text = input.text.replace(/\r\n/g, '\n');
   if (!text.trim()) return null;
   const hash = hashText(text);
-  const now = Date.now();
+  const now = saveTime();
 
-  return db.transaction('rw', db.clips, db.images, async () => {
+  return db.transaction('rw', [db.clips, db.images, db.collections], async () => {
     const existing = await db.clips.where('hash').equals(hash).first();
     if (existing) {
       const updated: Clip = {
@@ -89,10 +97,12 @@ export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Pr
       source: input.source,
       pinned: 0,
       hash,
+      titleSource: 'heuristic',
     };
     await db.clips.add(clip);
+    const sorted = await autoAssign(clip, db);
     await enforceLimit(db);
-    return clip;
+    return sorted;
   });
 }
 

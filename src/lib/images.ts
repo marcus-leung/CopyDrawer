@@ -1,5 +1,6 @@
 import { db as defaultDb, type Clip, type ClipDatabase, type ClipSource } from './db';
-import { enforceLimit } from './clips';
+import { enforceLimit, saveTime } from './clips';
+import { autoAssign } from './collections';
 
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -51,9 +52,9 @@ export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultD
 
   const hash = `img:${await sha256Hex(blob)}`;
   const { thumb, width, height } = await makeThumbnail(blob);
-  const now = Date.now();
+  const now = saveTime();
 
-  return db.transaction('rw', db.clips, db.images, async () => {
+  return db.transaction('rw', [db.clips, db.images, db.collections], async () => {
     const existing = await db.clips.where('hash').equals(hash).first();
     if (existing) {
       const updated = { ...existing, createdAt: now, source: input.source ?? existing.source };
@@ -76,8 +77,9 @@ export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultD
       image: { imageId, mime: blob.type, width, height, bytes: blob.size, thumb, srcUrl: input.srcUrl },
     };
     await db.clips.add(clip);
+    const sorted = await autoAssign(clip, db);
     await enforceLimit(db);
-    return clip;
+    return sorted;
   });
 }
 
