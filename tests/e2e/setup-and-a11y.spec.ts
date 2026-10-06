@@ -6,7 +6,12 @@ async function axe(page: Page, label: string) {
   // Check the settled UI, not a toast halfway through fading in.
   await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'));
   const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
-  expect(violations.map((v) => `${label}: ${v.id} ${v.help}: ${v.nodes.map((n) => `${n.target.join(" ")} ${n.failureSummary?.split("\n").pop()}`).join(" | ")}`)).toEqual([]);
+  expect(
+    violations.map(
+      (v) =>
+        `${label}: ${v.id} ${v.help}: ${v.nodes.map((n) => `${n.target.join(' ')} ${n.failureSummary?.split('\n').pop()}`).join(' | ')}`,
+    ),
+  ).toEqual([]);
 }
 
 test('onboarding: three steps, then the panel', async ({ context, extensionId }) => {

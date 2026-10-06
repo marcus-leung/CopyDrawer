@@ -19,7 +19,11 @@ export const CATEGORIES: Record<CategoryId, CategoryDef> = {
   research: {
     id: 'research',
     name: 'Research',
-    prototypes: ['a definition or quote from an encyclopedia article', 'notes from a lecture or academic paper', 'a scientific fact and its explanation'],
+    prototypes: [
+      'a definition or quote from an encyclopedia article',
+      'notes from a lecture or academic paper',
+      'a scientific fact and its explanation',
+    ],
   },
   links: { id: 'links', name: 'Links', prototypes: ['a web address to visit later'] },
   code: {
@@ -35,12 +39,20 @@ export const CATEGORIES: Record<CategoryId, CategoryDef> = {
   recipes: {
     id: 'recipes',
     name: 'Recipes',
-    prototypes: ['cooking ingredients and quantities', 'recipe instructions: preheat the oven and bake', 'a dish to cook for dinner'],
+    prototypes: [
+      'cooking ingredients and quantities',
+      'recipe instructions: preheat the oven and bake',
+      'a dish to cook for dinner',
+    ],
   },
   travel: {
     id: 'travel',
     name: 'Travel',
-    prototypes: ['a hotel or apartment to stay in on a trip', 'a flight booking with departure time', 'things to do and places to eat in a city'],
+    prototypes: [
+      'a hotel or apartment to stay in on a trip',
+      'a flight booking with departure time',
+      'things to do and places to eat in a city',
+    ],
   },
   personal: {
     id: 'personal',
@@ -49,6 +61,7 @@ export const CATEGORIES: Record<CategoryId, CategoryDef> = {
   },
 };
 
+// prettier-ignore
 const DOMAINS: Partial<Record<CategoryId, string[]>> = {
   research: [
     'wikipedia.org', 'britannica.com', 'khanacademy.org', 'arxiv.org', 'scholar.google.com', 'jstor.org', 'nature.com',
@@ -80,8 +93,10 @@ const RE = {
   email: /\b[\w.+-]+@[\w-]+\.[\w.-]+\b/,
   phone: /(?:\+\d{1,3}[\s.-]?)?\(?\d{2,4}\)?[\s.-]\d{3,4}[\s.-]\d{3,4}\b/,
   flight: /\b(?:[A-Z]{2}|[A-Z]\d|\d[A-Z])\s?\d{2,4}\b.*\b(?:[A-Z]{3})\b|\bflight\b/i,
-  travelWords: /\b(check-?in|check-?out|itinerary|boarding|hotel|hostel|airbnb|apartment rental|nights?|departure|arrival|layover|round trip|one way)\b/i,
-  recipeWords: /\b(\d+\s?(?:tbsp|tsp|cups?|grams?|g|ml|oz|lb)s?\b|preheat|tablespoons?|teaspoons?|ingredients|simmer|whisk|bake for)\b/i,
+  travelWords:
+    /\b(check-?in|check-?out|itinerary|boarding|hotel|hostel|airbnb|apartment rental|nights?|departure|arrival|layover|round trip|one way)\b/i,
+  recipeWords:
+    /\b(\d+\s?(?:tbsp|tsp|cups?|grams?|g|ml|oz|lb)s?\b|preheat|tablespoons?|teaspoons?|ingredients|simmer|whisk|bake for)\b/i,
   shopWords: /\b(add to (?:cart|bag|basket)|in stock|free shipping|out of stock|buy now)\b/i,
   price: /(?:[$€£¥₹]\s?\d[\d,.]*|\d[\d,.]*\s?(?:USD|EUR|GBP|CAD|AUD))/,
 };
@@ -118,7 +133,8 @@ export function classifyByRules(clip: Pick<Clip, 'kind' | 'text' | 'title' | 'so
 
   if (clip.kind === 'code') return 'code';
   if (fromDomain('travel') || (RE.travelWords.test(text) && (RE.flight.test(text) || RE.price.test(text)))) return 'travel';
-  if (fromDomain('recipes') || (RE.recipeWords.test(text) && /\b(cup|tbsp|tsp|preheat|ingredients)\b/i.test(text))) return 'recipes';
+  if (fromDomain('recipes') || (RE.recipeWords.test(text) && /\b(cup|tbsp|tsp|preheat|ingredients)\b/i.test(text)))
+    return 'recipes';
   if (fromDomain('shopping') || RE.shopWords.test(text) || (clip.kind === 'text' && findTracking(text))) return 'shopping';
   if (fromDomain('code')) return 'code';
   if (fromDomain('research')) return 'research';
@@ -131,6 +147,7 @@ export function classifyByRules(clip: Pick<Clip, 'kind' | 'text' | 'title' | 'so
 }
 
 /** A small gazetteer of popular destinations used to name trips ("Lisbon trip"). */
+// prettier-ignore
 const CITIES = [
   'Amsterdam', 'Athens', 'Auckland', 'Austin', 'Bali', 'Bangkok', 'Barcelona', 'Beijing', 'Berlin', 'Bogotá', 'Boston',
   'Brussels', 'Budapest', 'Buenos Aires', 'Cairo', 'Cancún', 'Cape Town', 'Chicago', 'Copenhagen', 'Dubai', 'Dublin',

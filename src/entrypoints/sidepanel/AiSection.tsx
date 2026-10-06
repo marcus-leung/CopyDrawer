@@ -76,7 +76,7 @@ export function AiSection({
               : nano === 'downloadable' || nano === 'downloading'
                 ? nanoProgress !== null
                   ? `Downloading Chrome's AI: ${Math.round(nanoProgress * 100)}%`
-                  : "Chrome can download its built-in AI (about 2 GB, once)."
+                  : 'Chrome can download its built-in AI (about 2 GB, once).'
                 : "Chrome's built-in AI isn't available on this device."}
           </span>
         </span>

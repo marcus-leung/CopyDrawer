@@ -1,14 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { cleanUrl, colorFormats, detectActions, findAddress, findDate, findFlight, findTracking, makeIcs, parseColor } from '@/lib/actions';
+import {
+  cleanUrl,
+  colorFormats,
+  detectActions,
+  findAddress,
+  findDate,
+  findFlight,
+  findTracking,
+  makeIcs,
+  parseColor,
+} from '@/lib/actions';
 import { detectKind } from '@/lib/clips';
 
 const NOW = new Date(2026, 9, 6, 12, 0); // Tue 6 Oct 2026, noon
 
 describe('cleanUrl', () => {
   it('drops tracking parameters and keeps the rest', () => {
-    expect(cleanUrl('https://shop.test/p/1?utm_source=x&utm_medium=y&color=red&fbclid=abc')).toBe('https://shop.test/p/1?color=red');
+    expect(cleanUrl('https://shop.test/p/1?utm_source=x&utm_medium=y&color=red&fbclid=abc')).toBe(
+      'https://shop.test/p/1?color=red',
+    );
     expect(cleanUrl('https://youtu.be/abc?si=XYZ')).toBe('https://youtu.be/abc');
-    expect(cleanUrl('https://www.amazon.com/dp/B00X/ref=sr_1_1?crid=1&keywords=lamp&qid=2&sr=8-1')).toBe('https://www.amazon.com/dp/B00X/ref=sr_1_1');
+    expect(cleanUrl('https://www.amazon.com/dp/B00X/ref=sr_1_1?crid=1&keywords=lamp&qid=2&sr=8-1')).toBe(
+      'https://www.amazon.com/dp/B00X/ref=sr_1_1',
+    );
     // ?ref= matters on GitHub; leave it.
     expect(cleanUrl('https://github.com/a/b?ref=main')).toBe('https://github.com/a/b?ref=main');
     expect(cleanUrl('not a link')).toBe('not a link');
@@ -69,8 +83,12 @@ describe('places, parcels and flights', () => {
     expect(ups.actions.map((a) => a.label)).toEqual(['Track package', 'Copy without spaces']);
     const fado = detectActions({ kind: 'text', text: 'Fado on Sat 18 Oct, 9 PM at Rua de São João da Praça 94, Lisbon.' }, NOW);
     expect(fado.actions.map((a) => a.label)).toEqual(['Add Sat 18 Oct, 9 PM to calendar', 'Open address in Maps']);
-    expect(detectActions({ kind: 'text', text: '{"a":1,"b":[2,3]}' }, NOW).actions[0]).toMatchObject({ text: '{\n  "a": 1,\n  "b": [\n    2,\n    3\n  ]\n}' });
-    expect(detectActions({ kind: 'text', text: 'alex@example.com' }, NOW).actions[0]).toMatchObject({ url: 'mailto:alex@example.com' });
+    expect(detectActions({ kind: 'text', text: '{"a":1,"b":[2,3]}' }, NOW).actions[0]).toMatchObject({
+      text: '{\n  "a": 1,\n  "b": [\n    2,\n    3\n  ]\n}',
+    });
+    expect(detectActions({ kind: 'text', text: 'alex@example.com' }, NOW).actions[0]).toMatchObject({
+      url: 'mailto:alex@example.com',
+    });
   });
 });
 

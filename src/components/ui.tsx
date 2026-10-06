@@ -52,13 +52,11 @@ export function IconButton({
   );
 }
 
-export function SearchField({
-  label,
-  className = '',
-  ...props
-}: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+export function SearchField({ label, className = '', ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
   return (
-    <label className={`flex h-11 items-center gap-2.5 rounded-full bg-surface px-4 focus-within:outline-2 focus-within:outline-link ${className}`}>
+    <label
+      className={`flex h-11 items-center gap-2.5 rounded-full bg-surface px-4 focus-within:outline-2 focus-within:outline-link ${className}`}
+    >
       <Search size={18} className="shrink-0 text-text-3" aria-hidden />
       <span className="sr-only">{label}</span>
       <input

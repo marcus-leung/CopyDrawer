@@ -19,7 +19,9 @@ const clip = (text: string, url?: string, kind: 'text' | 'link' | 'code' = 'text
 
 describe('classifyByRules', () => {
   it('sorts by the site a clip came from', () => {
-    expect(classifyByRules(clip('Photosynthesis is the process…', 'https://en.wikipedia.org/wiki/Photosynthesis'))).toBe('research');
+    expect(classifyByRules(clip('Photosynthesis is the process…', 'https://en.wikipedia.org/wiki/Photosynthesis'))).toBe(
+      'research',
+    );
     expect(classifyByRules(clip('Trail running shoes, size 10', 'https://www.rei.com/product/123'))).toBe('shopping');
     expect(classifyByRules(clip('Lemon garlic pasta', 'https://cooking.nytimes.com/recipes/1'))).toBe('recipes');
     expect(classifyByRules(clip('Chiado studio, €84 a night', 'https://www.airbnb.com/rooms/1'))).toBe('travel');

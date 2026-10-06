@@ -75,7 +75,10 @@ export async function nanoTitle(text: string): Promise<string | null> {
   if (!s) return null;
   try {
     const raw = await s.prompt(text.slice(0, 1500));
-    const title = raw.split('\n')[0]!.replace(/^["'“”]+|["'“”.]+$/g, '').trim();
+    const title = raw
+      .split('\n')[0]!
+      .replace(/^["'“”]+|["'“”.]+$/g, '')
+      .trim();
     return title && title.length <= 80 ? title : null;
   } catch {
     return null;

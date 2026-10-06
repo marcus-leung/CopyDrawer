@@ -4,19 +4,20 @@
  */
 
 /** Shows a small "saved" card at the bottom right of the page, in Shadow DOM. */
-export function showSavedToast(args: { title: string; detail: string; clipId: string; thumbUrl?: string }) {
+export function showSavedToast(args: { title: string; detail: string; clipId: string; thumbUrl?: string; openShadow?: boolean }) {
   const HOST_ID = '__clipboard_ext_toast__';
   document.getElementById(HOST_ID)?.remove();
   const host = document.createElement('div');
   host.id = HOST_ID;
   host.style.cssText = 'all: initial; position: fixed; right: 24px; bottom: 24px; z-index: 2147483647;';
-  const root = host.attachShadow({ mode: 'closed' });
+  // Closed so the page can't read it (open only in the test build, so tests can click it).
+  const root = host.attachShadow({ mode: args.openShadow ? 'open' : 'closed' });
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   root.innerHTML = `
     <style>
       .card { font: 14px/1.4 'Instrument Sans', system-ui, sans-serif; color: #1B1D2A; background: #fff;
         border-radius: 18px; box-shadow: 0 14px 36px rgba(27,29,42,.24), 0 0 0 1px rgba(27,29,42,.06);
-        padding: 12px; display: flex; gap: 12px; align-items: center; width: 300px;
+        padding: 12px; display: flex; gap: 8px; align-items: center; width: 340px;
         ${reduce ? '' : 'animation: in 180ms ease-out;'} }
       @keyframes in { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
       .thumb { width: 56px; height: 42px; border-radius: 10px; background: #F1F2F6 center/cover no-repeat; flex-shrink: 0; position: relative; }
@@ -26,21 +27,28 @@ export function showSavedToast(args: { title: string; detail: string; clipId: st
       .title { font-weight: 600; margin: 0; }
       .detail { margin: 2px 0 0; font-size: 13px; color: #3E4357; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       button { font: 600 12px/1 'Instrument Sans', system-ui, sans-serif; height: 30px; padding: 0 12px; border: 0; border-radius: 15px;
-        background: #F1F2F6; color: #1B1D2A; cursor: pointer; }
+        background: #F1F2F6; color: #1B1D2A; cursor: pointer; flex-shrink: 0; }
+      .open { background: #1B1D2A; color: #fff; }
       button:focus-visible { outline: 2px solid #2457C5; outline-offset: 2px; }
     </style>
     <div class="card" role="status">
       <div class="thumb"><span class="check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span></div>
       <div class="text"><p class="title"></p><p class="detail"></p></div>
-      <button type="button">Undo</button>
+      <button type="button" class="open">Open</button>
+      <button type="button" class="undo">Undo</button>
     </div>`;
   (root.querySelector('.title') as HTMLElement).textContent = args.title;
   (root.querySelector('.detail') as HTMLElement).textContent = args.detail;
   if (args.thumbUrl) (root.querySelector('.thumb') as HTMLElement).style.backgroundImage = `url("${args.thumbUrl}")`;
   const remove = () => host.remove();
-  root.querySelector('button')!.addEventListener('click', () => {
-    // `chrome` exists in the isolated world executeScript runs in.
-    void (globalThis as unknown as { chrome: typeof browser }).chrome.runtime.sendMessage({ type: 'undo-save', clipId: args.clipId });
+  // `chrome` exists in the isolated world executeScript runs in.
+  const send = (msg: object) => void (globalThis as unknown as { chrome: typeof browser }).chrome.runtime.sendMessage(msg);
+  root.querySelector('.undo')!.addEventListener('click', () => {
+    send({ type: 'undo-save', clipId: args.clipId });
+    remove();
+  });
+  root.querySelector('.open')!.addEventListener('click', () => {
+    send({ type: 'open-clip', clipId: args.clipId });
     remove();
   });
   document.documentElement.appendChild(host);
@@ -85,7 +93,9 @@ export function selectArea(): Promise<{ x: number; y: number; w: number; h: numb
       host.remove();
       // Wait two frames so the overlay is gone from the screenshot.
       requestAnimationFrame(() =>
-        requestAnimationFrame(() => resolve(result && result.w > 4 && result.h > 4 ? { ...result, dpr: devicePixelRatio } : null)),
+        requestAnimationFrame(() =>
+          resolve(result && result.w > 4 && result.h > 4 ? { ...result, dpr: devicePixelRatio } : null),
+        ),
       );
     };
     const onKey = (e: KeyboardEvent) => {

@@ -92,14 +92,25 @@ export function Popup() {
 function Lead({ clip, collection }: { clip: Clip; collection?: Collection }) {
   const thumb = useObjectUrl(clip.image?.thumb);
   if (clip.kind === 'image') {
-    return <span className="size-6 shrink-0 rounded-md bg-surface bg-cover bg-center" style={thumb ? { backgroundImage: `url("${thumb}")` } : undefined} aria-hidden />;
+    return (
+      <span
+        className="size-6 shrink-0 rounded-md bg-surface bg-cover bg-center"
+        style={thumb ? { backgroundImage: `url("${thumb}")` } : undefined}
+        aria-hidden
+      />
+    );
   }
   const c = collection ? colorOf(collection) : null;
   return (
     <span className="flex size-6 shrink-0 items-center justify-center" aria-hidden>
       <span
         className="size-2 rounded-full bg-[var(--d)] dark:bg-[var(--dd)]"
-        style={{ '--d': c?.accent ?? 'var(--color-line-strong)', '--dd': c?.accentDark ?? 'var(--color-line-strong)' } as React.CSSProperties}
+        style={
+          {
+            '--d': c?.accent ?? 'var(--color-line-strong)',
+            '--dd': c?.accentDark ?? 'var(--color-line-strong)',
+          } as React.CSSProperties
+        }
       />
     </span>
   );

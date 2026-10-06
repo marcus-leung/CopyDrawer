@@ -19,7 +19,8 @@ test('quick-paste box pastes into the focused field, with Paste as', async ({ co
   const page = await context.newPage();
   await page.goto('https://form.e2e.test/');
   const tabId = await panel.evaluate(async () => (await chrome.tabs.query({ url: 'https://form.e2e.test/*' }))[0]!.id!);
-  const open = () => panel.evaluate((id) => chrome.runtime.sendMessage({ type: 'e2e-menu', action: 'quick-paste', tabId: id }), tabId);
+  const open = () =>
+    panel.evaluate((id) => chrome.runtime.sendMessage({ type: 'e2e-menu', action: 'quick-paste', tabId: id }), tabId);
 
   // Type-to-filter, Enter pastes at the cursor.
   await page.bringToFront();
@@ -53,7 +54,10 @@ test('quick-paste box pastes into the focused field, with Paste as', async ({ co
 
   // Using a clip counts as a use.
   await panel.bringToFront();
-  await panel.getByRole('list', { name: 'Clips' }).getByRole('button', { name: /alex\.morgan/ }).click();
+  await panel
+    .getByRole('list', { name: 'Clips' })
+    .getByRole('button', { name: /alex\.morgan/ })
+    .click();
   await expect(panel.getByText('Used 1 time.')).toBeVisible();
 });
 
@@ -80,7 +84,9 @@ test('search filters and Paste as in the panel', async ({ context, extensionId }
   await list.getByRole('button', { name: /Book the hotel/ }).click();
   await panel.getByRole('button', { name: 'Bullet list' }).click();
   await expect(panel.getByRole('status')).toContainText('Copied as bullet list');
-  expect(await panel.evaluate(() => navigator.clipboard.readText())).toBe('- Book the hotel.\n- Buy train tickets.\n- Pack light.');
+  expect(await panel.evaluate(() => navigator.clipboard.readText())).toBe(
+    '- Book the hotel.\n- Buy train tickets.\n- Pack light.',
+  );
   // AI options are hidden when Chrome's built-in AI isn't on this device.
   await expect(panel.getByRole('button', { name: 'Summarize' })).toHaveCount(0);
   await expect(panel.getByText("with Chrome's built-in AI: turn it on in Settings")).toBeVisible();

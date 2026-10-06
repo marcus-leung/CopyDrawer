@@ -10,7 +10,11 @@ describe('listItems', () => {
       '½ cup parmesan',
       'salt',
     ]);
-    expect(listItems('Book the hotel. Buy train tickets! Pack light.')).toEqual(['Book the hotel.', 'Buy train tickets!', 'Pack light.']);
+    expect(listItems('Book the hotel. Buy train tickets! Pack light.')).toEqual([
+      'Book the hotel.',
+      'Buy train tickets!',
+      'Pack light.',
+    ]);
     expect(listItems('just one thing')).toEqual(['just one thing']);
   });
 });

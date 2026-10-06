@@ -69,8 +69,21 @@ const INT64 = 7;
 const FLOAT = 1;
 const table = new Float32Array(vocab.length * DIM);
 vectors.forEach((v, i) => table.set(v, i * DIM));
-const initializer = msg(5, [vint(1, vocab.length), vint(1, DIM), vint(2, FLOAT), str(8, 'embeddings'), bytes(9, [...new Uint8Array(table.buffer)])]);
-const node = msg(1, [str(1, 'embeddings'), str(1, 'input_ids'), str(2, 'last_hidden_state'), str(3, 'lookup'), str(4, 'Gather'), msg(5, [str(1, 'axis'), vint(3, 0), vint(20, 2)])]);
+const initializer = msg(5, [
+  vint(1, vocab.length),
+  vint(1, DIM),
+  vint(2, FLOAT),
+  str(8, 'embeddings'),
+  bytes(9, [...new Uint8Array(table.buffer)]),
+]);
+const node = msg(1, [
+  str(1, 'embeddings'),
+  str(1, 'input_ids'),
+  str(2, 'last_hidden_state'),
+  str(3, 'lookup'),
+  str(4, 'Gather'),
+  msg(5, [str(1, 'axis'), vint(3, 0), vint(20, 2)]),
+]);
 const graph = msg(7, [
   node,
   str(2, 'minilm-stub'),
@@ -82,7 +95,15 @@ const graph = msg(7, [
 const model = [...vint(1, 8), ...str(2, 'make-test-model'), ...graph, ...msg(8, [str(1, ''), vint(2, 13)])];
 
 // ---- tokenizer files ----
-const special = (id, content) => ({ id, content, single_word: false, lstrip: false, rstrip: false, normalized: false, special: true });
+const special = (id, content) => ({
+  id,
+  content,
+  single_word: false,
+  lstrip: false,
+  rstrip: false,
+  normalized: false,
+  special: true,
+});
 const tokenizer = {
   version: '1.0',
   truncation: null,
@@ -92,7 +113,11 @@ const tokenizer = {
   pre_tokenizer: { type: 'BertPreTokenizer' },
   post_processor: {
     type: 'TemplateProcessing',
-    single: [{ SpecialToken: { id: '[CLS]', type_id: 0 } }, { Sequence: { id: 'A', type_id: 0 } }, { SpecialToken: { id: '[SEP]', type_id: 0 } }],
+    single: [
+      { SpecialToken: { id: '[CLS]', type_id: 0 } },
+      { Sequence: { id: 'A', type_id: 0 } },
+      { SpecialToken: { id: '[SEP]', type_id: 0 } },
+    ],
     pair: [
       { SpecialToken: { id: '[CLS]', type_id: 0 } },
       { Sequence: { id: 'A', type_id: 0 } },
@@ -106,7 +131,13 @@ const tokenizer = {
     },
   },
   decoder: { type: 'WordPiece', prefix: '##', cleanup: true },
-  model: { type: 'WordPiece', unk_token: '[UNK]', continuing_subword_prefix: '##', max_input_chars_per_word: 100, vocab: Object.fromEntries(vocab.map((w, i) => [w, i])) },
+  model: {
+    type: 'WordPiece',
+    unk_token: '[UNK]',
+    continuing_subword_prefix: '##',
+    max_input_chars_per_word: 100,
+    vocab: Object.fromEntries(vocab.map((w, i) => [w, i])),
+  },
 };
 const tokenizerConfig = {
   tokenizer_class: 'BertTokenizer',
@@ -118,7 +149,15 @@ const tokenizerConfig = {
   unk_token: '[UNK]',
   mask_token: '[MASK]',
 };
-const config = { model_type: 'bert', architectures: ['BertModel'], hidden_size: DIM, num_attention_heads: 1, num_hidden_layers: 1, vocab_size: vocab.length, max_position_embeddings: 512 };
+const config = {
+  model_type: 'bert',
+  architectures: ['BertModel'],
+  hidden_size: DIM,
+  num_attention_heads: 1,
+  num_hidden_layers: 1,
+  vocab_size: vocab.length,
+  max_position_embeddings: 512,
+};
 
 fs.mkdirSync(path.join(OUT, 'onnx'), { recursive: true });
 fs.writeFileSync(path.join(OUT, 'onnx/model_quantized.onnx'), Buffer.from(model));

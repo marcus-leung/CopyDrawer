@@ -33,7 +33,9 @@ test('search: words, typos, meaning, filters, empty results', async ({ context, 
   await expect(list.getByRole('listitem')).toHaveCount(4);
   const search = panel.getByRole('searchbox', { name: 'Search your clips' });
   // Wait for the model so "meaning" uses it.
-  await expect.poll(async () => (await readClips(panel)).every((c) => c.embeddingModel === 'minilm-l6-q8'), { timeout: 30_000 }).toBe(true);
+  await expect
+    .poll(async () => (await readClips(panel)).every((c) => c.embeddingModel === 'minilm-l6-q8'), { timeout: 30_000 })
+    .toBe(true);
 
   // Words: collections hide while searching; the count is announced.
   await search.fill('garlic');
@@ -89,7 +91,9 @@ test('search without the AI model still forgives typos', async ({ context, exten
 });
 
 test('search: site filter and "See all" images', async ({ context, extensionId }) => {
-  await context.route('https://site-a.e2e.test/**', (r) => r.fulfill({ contentType: 'text/html', body: '<meta charset="utf-8"><p id="t">Notes from site A</p>' }));
+  await context.route('https://site-a.e2e.test/**', (r) =>
+    r.fulfill({ contentType: 'text/html', body: '<meta charset="utf-8"><p id="t">Notes from site A</p>' }),
+  );
   const panel = await openPanel(context, extensionId, { smartModel: false });
   await panel.evaluate(async () => {
     const { settings } = await chrome.storage.local.get('settings');
@@ -161,7 +165,10 @@ async function setupQuickPaste(context: BrowserContext, extensionId: string, cli
   return { panel, page, open };
 }
 
-test('quick paste into text, email, textarea (replacing a selection), contenteditable and framework inputs', async ({ context, extensionId }) => {
+test('quick paste into text, email, textarea (replacing a selection), contenteditable and framework inputs', async ({
+  context,
+  extensionId,
+}) => {
   const { page, open } = await setupQuickPaste(context, extensionId, ['Alex Morgan', 'alex.morgan@example.com', 'the Q3 report']);
   const box = page.getByRole('dialog', { name: 'Quick paste' });
 
@@ -216,7 +223,10 @@ test('quick paste into text, email, textarea (replacing a selection), contentedi
   await expect(page.locator('#state')).toHaveText('state=Alex Morgan');
 });
 
-test('quick paste: Esc, click outside, no matches, page shortcuts, opening twice, used count', async ({ context, extensionId }) => {
+test('quick paste: Esc, click outside, no matches, page shortcuts, opening twice, used count', async ({
+  context,
+  extensionId,
+}) => {
   const { panel, page, open } = await setupQuickPaste(context, extensionId, ['Alex Morgan', 'the Q3 report']);
   const box = page.getByRole('dialog', { name: 'Quick paste' });
   await page.locator('#name').click();
@@ -269,7 +279,10 @@ test('quick paste with no text field (or inside a frame) copies instead and says
   await expect(page.getByText('Copied. Click where you want it and press Ctrl+V.')).toBeVisible();
 });
 
-test('quick paste: Tab for Paste as, filter options, Esc back to clips; images are not listed', async ({ context, extensionId }) => {
+test('quick paste: Tab for Paste as, filter options, Esc back to clips; images are not listed', async ({
+  context,
+  extensionId,
+}) => {
   const { panel, page, open } = await setupQuickPaste(context, extensionId, ['eggs, milk, bread, butter']);
   // An image clip: not pasteable as text, so not listed.
   await panel.evaluate(async () => {
@@ -370,7 +383,10 @@ test('Paste as in the panel: every plain option, Markdown only for formatted cli
   await expect.poll(() => clipboardText(panel)).toBe('## Lemon pasta\n\nUse **fresh** lemons.');
 });
 
-test("Paste as with Chrome's built-in AI: preview, try again, copy, save as clip, translate, failure", async ({ context, extensionId }) => {
+test("Paste as with Chrome's built-in AI: preview, try again, copy, save as clip, translate, failure", async ({
+  context,
+  extensionId,
+}) => {
   await mockChromeAI(context);
   const panel = await openPanel(context, extensionId, { smartModel: false });
   await pasteIntoPanel(panel, 'Need the report by Friday. Send the numbers ASAP.');
@@ -427,5 +443,7 @@ test('Paste as without built-in AI shows only plain options and how to get more'
   await openDetail(panel, /Need the report/);
   await expect(panel.getByRole('button', { name: 'Bullet list' })).toBeVisible();
   for (const name of ['Summarize', 'Friendlier', 'Translate']) await expect(panel.getByRole('button', { name })).toHaveCount(0);
-  await expect(panel.getByText("Summarize, rewrite and translate with Chrome's built-in AI: turn it on in Settings.")).toBeVisible();
+  await expect(
+    panel.getByText("Summarize, rewrite and translate with Chrome's built-in AI: turn it on in Settings."),
+  ).toBeVisible();
 });

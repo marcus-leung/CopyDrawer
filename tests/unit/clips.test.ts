@@ -128,8 +128,23 @@ describe('backup', () => {
     await save({ text: 'just a note' }, db);
     await db.images.put({ id: 'img1', blob: new Blob(['png-bytes'], { type: 'image/png' }) });
     await db.clips.add({
-      id: 'c-img', createdAt: 1, lastUsedAt: 1, useCount: 0, kind: 'image', text: '', title: 'pic.png', pinned: 0, hash: 'img:1',
-      image: { imageId: 'img1', mime: 'image/png', width: 1, height: 1, bytes: 9, thumb: new Blob(['t'], { type: 'image/webp' }) },
+      id: 'c-img',
+      createdAt: 1,
+      lastUsedAt: 1,
+      useCount: 0,
+      kind: 'image',
+      text: '',
+      title: 'pic.png',
+      pinned: 0,
+      hash: 'img:1',
+      image: {
+        imageId: 'img1',
+        mime: 'image/png',
+        width: 1,
+        height: 1,
+        bytes: 9,
+        thumb: new Blob(['t'], { type: 'image/webp' }),
+      },
     });
     const file = JSON.parse(JSON.stringify(await exportBackup(db)));
     expect(file.clips).toHaveLength(3);
@@ -143,5 +158,69 @@ describe('backup', () => {
     const img = (await other.clips.toArray()).find((c) => c.kind === 'image')!;
     expect(await (await other.images.get(img.image!.imageId))!.blob.text()).toBe('png-bytes');
     await expect(importBackup({ nope: 1 }, other)).rejects.toThrow("isn't a Clipboard export");
+  });
+});
+
+describe('editClip', () => {
+  it('edits text and title, re-sorts, and keeps user choices', async () => {
+    const { editClip } = await import('@/lib/clips');
+    const c = (await saveClip({ text: 'just a note', html: '<b>just</b> a note' }, db))!;
+    await db.clips.update(c.id, { embedding: new Float32Array(2), embeddingModel: 'hash-v1' });
+
+    // New text: new title, type, hash; formatting and vector dropped; sorted by the rules.
+    expect(await editClip(c.id, { text: 'SELECT id FROM orders WHERE total > 10' }, db)).toBe(true);
+    let e = (await db.clips.get(c.id))!;
+    expect(e).toMatchObject({
+      kind: 'code',
+      title: 'SELECT id FROM orders WHERE total > 10',
+      html: undefined,
+      embeddingModel: undefined,
+    });
+    expect(e.hash).toBe(hashText('SELECT id FROM orders WHERE total > 10'));
+    expect((await db.collections.get(e.collectionId!))?.name).toBe('Code');
+
+    // A user title sticks when the text changes again.
+    await editClip(c.id, { title: 'Big orders query' }, db);
+    await editClip(c.id, { text: 'SELECT id FROM orders WHERE total > 100' }, db);
+    e = (await db.clips.get(c.id))!;
+    expect(e).toMatchObject({ title: 'Big orders query', titleSource: 'user' });
+
+    // Clearing the title makes one from the text again; empty text is refused.
+    await editClip(c.id, { title: '  ' }, db);
+    expect((await db.clips.get(c.id))!.title).toBe('SELECT id FROM orders WHERE total > 100');
+    expect(await editClip(c.id, { text: '   ' }, db)).toBe(false);
+  });
+
+  it('keeps a clip the user placed in its collection', async () => {
+    const { editClip } = await import('@/lib/clips');
+    const { createCollection, moveClip } = await import('@/lib/collections');
+    const c = (await saveClip({ text: 'note' }, db))!;
+    const mine = await createCollection('Mine', db);
+    await moveClip(c.id, mine.id, db);
+    await editClip(c.id, { text: 'SELECT id FROM orders WHERE total > 10' }, db);
+    expect((await db.clips.get(c.id))!.collectionId).toBe(mine.id);
+  });
+});
+
+describe('settings sync', () => {
+  it('only accepts well-formed values from other computers', async () => {
+    const { validSynced } = await import('@/lib/settings');
+    expect(
+      validSynced({
+        theme: 'dark',
+        retentionDays: 30,
+        blockedSites: ['a.com', 5],
+        smartModel: false,
+        saveInIncognito: 'yes',
+        autoSave: true,
+      }),
+    ).toEqual({
+      theme: 'dark',
+      retentionDays: 30,
+      blockedSites: ['a.com'],
+      smartModel: false,
+    });
+    expect(validSynced({ theme: 'neon', retentionDays: 7 })).toEqual({});
+    expect(validSynced(null)).toEqual({});
   });
 });

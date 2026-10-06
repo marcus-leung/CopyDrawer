@@ -38,7 +38,10 @@ const BULLET = /^\s*(?:[-*•–·]|\d+[.)]|\[[ xX]?\])\s+/;
 
 /** Splits text into list items: lines, else a comma list, else sentences. */
 export function listItems(text: string): string[] {
-  const lines = text.split(/\r?\n/).map((l) => l.replace(BULLET, '').trim()).filter(Boolean);
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.replace(BULLET, '').trim())
+    .filter(Boolean);
   if (lines.length > 1) return lines;
   const one = lines[0] ?? '';
   // Commas outside parentheses: "12 oz spaghetti, 1 lemon (zest, juice), salt".
@@ -54,9 +57,20 @@ export function listItems(text: string): string[] {
     } else cur += ch;
   }
   parts.push(cur);
-  const clean = parts.map((p) => p.trim().replace(/^and\s+/i, '').replace(/\.$/, '')).filter(Boolean);
+  const clean = parts
+    .map((p) =>
+      p
+        .trim()
+        .replace(/^and\s+/i, '')
+        .replace(/\.$/, ''),
+    )
+    .filter(Boolean);
   if (clean.length >= 3) return clean;
-  const sentences = one.match(/[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$/g)?.map((s) => s.trim()).filter(Boolean) ?? [];
+  const sentences =
+    one
+      .match(/[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$/g)
+      ?.map((s) => s.trim())
+      .filter(Boolean) ?? [];
   return sentences.length > 1 ? sentences : one ? [one] : [];
 }
 
@@ -73,7 +87,8 @@ export function titleCase(text: string): string {
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", apos: "'", nbsp: ' ' };
 function decode(s: string): string {
   return s.replace(/&(#\d+|#x[\da-f]+|\w+);/gi, (m, e: string) => {
-    if (e[0] === '#') return String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10));
+    if (e[0] === '#')
+      return String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10));
     return ENTITIES[e.toLowerCase()] ?? m;
   });
 }
@@ -89,7 +104,9 @@ export function htmlToMarkdown(html: string): string {
   s = s.replace(/<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>/gi, '**$2**');
   s = s.replace(/<(em|i)\b[^>]*>([\s\S]*?)<\/\1>/gi, '_$2_');
   s = s.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, '`$1`');
-  s = s.replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href: string, c: string) => (href.startsWith('javascript:') ? c : `[${c}](${href})`));
+  s = s.replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href: string, c: string) =>
+    href.startsWith('javascript:') ? c : `[${c}](${href})`,
+  );
   s = s.replace(/<li[^>]*>/gi, '\n- ').replace(/<\/li>/gi, '');
   s = s.replace(/<br\s*\/?>/gi, '\n');
   s = s.replace(/<\/?(p|div|ul|ol|blockquote|section|article|tr|table)[^>]*>/gi, '\n\n');
@@ -112,9 +129,13 @@ export function applyPlain(t: PlainTransform, text: string, html?: string): stri
     case 'markdown':
       return html ? htmlToMarkdown(html) : text;
     case 'bullets':
-      return listItems(text).map((i) => `- ${i}`).join('\n');
+      return listItems(text)
+        .map((i) => `- ${i}`)
+        .join('\n');
     case 'checklist':
-      return listItems(text).map((i) => `- [ ] ${i}`).join('\n');
+      return listItems(text)
+        .map((i) => `- [ ] ${i}`)
+        .join('\n');
     case 'oneline':
       return text.replace(/\s+/g, ' ').trim();
     case 'upper':
@@ -155,7 +176,11 @@ function aiInstruction(t: AiTransform, lang: string): string {
  * Runs an AI transform with Chrome's built-in model. Returns null when it's not
  * available on this device.
  */
-export async function applyAi(t: AiTransform, text: string, opts: { lang?: string; signal?: AbortSignal } = {}): Promise<string | null> {
+export async function applyAi(
+  t: AiTransform,
+  text: string,
+  opts: { lang?: string; signal?: AbortSignal } = {},
+): Promise<string | null> {
   const lang = opts.lang ?? 'en';
   const system = `You reshape text a person is about to paste. ${aiInstruction(t, lang)} Reply with only the result, no preamble, no quotes.`;
   const s = await session(system);

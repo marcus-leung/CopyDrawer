@@ -5,7 +5,8 @@ import { hostOf } from '@/lib/format';
 import { applyAi, applyPlain, isAiTransform, type Transform } from '@/lib/transforms';
 import { nanoAvailability } from '@/lib/ai/nano';
 import type { QuickClip } from '@/lib/quickpaste';
-import { getSettings, isPaused, updateSettings } from '@/lib/settings';
+import { OPEN_CLIP_KEY } from '@/lib/openClip';
+import { getSettings, isPaused, pullSyncedSettings, syncedSettingsItem, updateSettings } from '@/lib/settings';
 import { isBlocked } from '@/lib/exclusions';
 import { syncAutosaveRegistration } from '@/lib/autosave';
 import { blobToDataUrl, dataUrlToBlob, ImageError, saveImageClip } from '@/lib/images';
@@ -45,7 +46,7 @@ async function toastInTab(tabId: number | undefined, clip: Clip, title: string) 
     await browser.scripting.executeScript({
       target: { tabId },
       func: showSavedToast,
-      args: [{ title, detail: clip.title, clipId: clip.id, thumbUrl }],
+      args: [{ title, detail: clip.title, clipId: clip.id, thumbUrl, openShadow: __E2E__ }],
     });
   } catch {
     await flashBadge('✓', '#0E7A62');
@@ -122,7 +123,11 @@ async function screenshotArea(tab?: Browser.tabs.Tab) {
   canvas.getContext('2d')!.drawImage(full, sx, sy, sw, sh, 0, 0, sw, sh);
   full.close();
   const blob = await canvas.convertToBlob({ type: 'image/png' });
-  const clip = await saveImageClip({ blob, source: sourceOf(tab), fileName: `Screenshot of ${tab.title ?? 'page'}`.slice(0, 80) });
+  const clip = await saveImageClip({
+    blob,
+    source: sourceOf(tab),
+    fileName: `Screenshot of ${tab.title ?? 'page'}`.slice(0, 80),
+  });
   await toastInTab(tab.id, clip, 'Screenshot saved');
 }
 
@@ -153,9 +158,36 @@ function createMenus() {
   browser.contextMenus.removeAll(() => {
     browser.contextMenus.create({ id: MENU.saveSelection, title: 'Save selection', contexts: ['selection'] });
     browser.contextMenus.create({ id: MENU.saveImage, title: 'Save image', contexts: ['image'] });
-    browser.contextMenus.create({ id: MENU.screenshot, title: 'Screenshot an area…', contexts: ['page', 'image', 'selection', 'link'] });
+    browser.contextMenus.create({
+      id: MENU.screenshot,
+      title: 'Screenshot an area…',
+      contexts: ['page', 'image', 'selection', 'link'],
+    });
     browser.contextMenus.create({ id: MENU.blockSite, title: "Don't save on this site", contexts: ['page'] });
   });
+}
+
+/**
+ * "Open" on the in-page card: shows the clip in the side panel. An open panel
+ * picks it up from session storage; otherwise we open the panel, or a tab if
+ * Chrome won't (it only allows that right after a click).
+ */
+async function openClip(clipId: string, tab: Browser.tabs.Tab | undefined) {
+  await browser.storage.session.set({ [OPEN_CLIP_KEY]: { clipId, at: Date.now() } });
+  try {
+    if (tab?.id == null) throw new Error('no tab');
+    await browser.sidePanel.open({ tabId: tab.id });
+  } catch {
+    const panelOpen = (
+      await browser.runtime.getContexts?.({ contextTypes: ['SIDE_PANEL' as Browser.runtime.ContextType] }).catch(() => [])
+    )?.length;
+    if (!panelOpen) {
+      await browser.tabs.create({
+        url: browser.runtime.getURL(`/sidepanel.html?clip=${encodeURIComponent(clipId)}`),
+        index: tab ? tab.index + 1 : undefined,
+      });
+    }
+  }
 }
 
 /** Opens the quick-paste box on the page (activeTab from the shortcut grants access). */
@@ -214,6 +246,16 @@ export default defineBackground(() => {
     void syncAutosaveRegistration();
   });
 
+  // Settings changed on another computer (Chrome sync): apply them here.
+  const applySynced = () =>
+    void pullSyncedSettings()
+      .then(async (changed) => {
+        if (changed) await cleanup();
+      })
+      .catch((e) => console.warn('Settings sync failed', e));
+  applySynced();
+  syncedSettingsItem.watch(applySynced);
+
   browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === ALARM_CLEANUP) void cleanup();
   });
@@ -254,6 +296,9 @@ export default defineBackground(() => {
         return true;
       case 'undo-save':
         void deleteClip(msg.clipId);
+        return;
+      case 'open-clip':
+        void openClip(msg.clipId, sender.tab);
         return;
       case 'qp-clips':
         void quickPasteClips().then(sendResponse);

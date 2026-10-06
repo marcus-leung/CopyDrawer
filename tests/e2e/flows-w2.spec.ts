@@ -16,11 +16,23 @@ const SITES: Record<string, { title: string; text: string }> = {
     title: 'Photosynthesis - Wikipedia',
     text: 'Photosynthesis is the process by which green plants use sunlight to synthesize foods from carbon dioxide and water.',
   },
-  'https://www.airbnb.com/rooms/48213377': { title: 'Loft in Alfama', text: 'Sunny loft in Alfama, Lisbon. €96 a night, sleeps 2.' },
-  'https://www.booking.com/hotel/pt/chiado.html': { title: 'Chiado Studio', text: 'Chiado studio in Lisbon, €84 per night, free cancellation.' },
+  'https://www.airbnb.com/rooms/48213377': {
+    title: 'Loft in Alfama',
+    text: 'Sunny loft in Alfama, Lisbon. €96 a night, sleeps 2.',
+  },
+  'https://www.booking.com/hotel/pt/chiado.html': {
+    title: 'Chiado Studio',
+    text: 'Chiado studio in Lisbon, €84 per night, free cancellation.',
+  },
   'https://mail.example.com/inbox': { title: 'Inbox', text: 'Flight TP 1355, departure 07:40, check-in opens at 05:40.' },
-  'https://cooking.nytimes.com/recipes/1': { title: 'Lemon Garlic Pasta', text: 'Lemon garlic pasta: spaghetti, lemon zest, parmesan.' },
-  'https://github.com/acme/shop/blob/main/orders.sql': { title: 'orders.sql', text: 'Orders joined with users, grouped by month.' },
+  'https://cooking.nytimes.com/recipes/1': {
+    title: 'Lemon Garlic Pasta',
+    text: 'Lemon garlic pasta: spaghetti, lemon zest, parmesan.',
+  },
+  'https://github.com/acme/shop/blob/main/orders.sql': {
+    title: 'orders.sql',
+    text: 'Orders joined with users, grouped by month.',
+  },
   'https://www.rei.com/product/123': { title: 'Trail runners', text: 'Trail running shoes, size 10, in stock.' },
 };
 
@@ -65,8 +77,12 @@ test('copying on real sites fills smart collections and a named trip', async ({ 
 
   // Recent rows show the collection and the site.
   const list = panel.getByRole('list', { name: 'Clips' });
-  await expect(list.getByRole('listitem').filter({ hasText: 'Photosynthesis is the process' })).toContainText('Research, from en.wikipedia.org');
-  await expect(list.getByRole('listitem').filter({ hasText: 'Flight TP 1355' })).toContainText('Lisbon trip, from mail.example.com');
+  await expect(list.getByRole('listitem').filter({ hasText: 'Photosynthesis is the process' })).toContainText(
+    'Research, from en.wikipedia.org',
+  );
+  await expect(list.getByRole('listitem').filter({ hasText: 'Flight TP 1355' })).toContainText(
+    'Lisbon trip, from mail.example.com',
+  );
 });
 
 test('collection view: sort, rename, delete (cancel and confirm)', async ({ context, extensionId }) => {
@@ -74,11 +90,18 @@ test('collection view: sort, rename, delete (cancel and confirm)', async ({ cont
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
   await enableAutosave(panel);
-  for (const url of ['https://www.airbnb.com/rooms/48213377', 'https://www.booking.com/hotel/pt/chiado.html', 'https://mail.example.com/inbox']) {
+  for (const url of [
+    'https://www.airbnb.com/rooms/48213377',
+    'https://www.booking.com/hotel/pt/chiado.html',
+    'https://mail.example.com/inbox',
+  ]) {
     await copyFrom(context, url);
   }
   await panel.bringToFront();
-  await panel.getByRole('list', { name: 'Collections' }).getByRole('button', { name: /Lisbon trip/ }).click();
+  await panel
+    .getByRole('list', { name: 'Collections' })
+    .getByRole('button', { name: /Lisbon trip/ })
+    .click();
   const inTrip = panel.getByRole('list', { name: 'Clips in Lisbon trip' });
   await expect(inTrip.getByRole('listitem')).toHaveCount(3);
   await expect(panel.getByText('Sorted here automatically.')).toBeVisible();
@@ -178,7 +201,10 @@ test('AI model: downloads once, indexes clips, sorts by meaning, searches by mea
   await expect(panel.getByRole('list', { name: 'Clips' })).toContainText('Something nice to cook');
 });
 
-test('AI model: failure falls back to rules, Try again recovers, turning it off re-indexes offline', async ({ context, extensionId }) => {
+test('AI model: failure falls back to rules, Try again recovers, turning it off re-indexes offline', async ({
+  context,
+  extensionId,
+}) => {
   await stubModel(context, { fail: true });
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
@@ -208,7 +234,8 @@ test("AI titles with Chrome's built-in AI: long clips only, never when it isn't 
   await mockChromeAI(context);
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
-  const long = 'Grandma always said the secret to her tomato sauce was patience, a pinch of sugar and simmering it slowly all afternoon.';
+  const long =
+    'Grandma always said the secret to her tomato sauce was patience, a pinch of sugar and simmering it slowly all afternoon.';
   await pasteIntoPanel(panel, long, 'Short note');
   const list = panel.getByRole('list', { name: 'Clips' });
   await expect(list).toContainText('AI title: Grandma always said');
@@ -226,7 +253,10 @@ test('no AI titles when the built-in AI is missing', async ({ context, extension
   await mockChromeAI(context, 'unavailable');
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
-  await pasteIntoPanel(panel, 'Grandma always said the secret to her tomato sauce was patience, a pinch of sugar and simmering it slowly all afternoon.');
+  await pasteIntoPanel(
+    panel,
+    'Grandma always said the secret to her tomato sauce was patience, a pinch of sugar and simmering it slowly all afternoon.',
+  );
   await panel.waitForTimeout(800);
   await expect(panel.getByRole('list', { name: 'Clips' })).toContainText('Grandma always said the secret');
   expect((await readClips(panel))[0]?.titleSource).toBe('heuristic');

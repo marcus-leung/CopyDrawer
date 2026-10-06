@@ -1,0 +1,8 @@
+.output
+.output-e2e
+.wxt
+pnpm-lock.yaml
+docs/mockups
+tests/fixtures
+public
+*.md

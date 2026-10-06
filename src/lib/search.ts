@@ -45,7 +45,10 @@ export function topSites(clips: Clip[], limit = 12): string[] {
     const s = siteOf(c);
     if (s) counts.set(s, (counts.get(s) ?? 0) + 1);
   }
-  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([s]) => s);
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([s]) => s);
 }
 
 /** Edit distance up to `max` (early exit beyond it). */

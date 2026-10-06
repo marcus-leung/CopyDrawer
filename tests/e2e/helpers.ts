@@ -23,7 +23,10 @@ export async function stubModel(context: BrowserContext, opts: { fail?: boolean 
  * Replies are predictable so tests can check them. Set `window.__ai = 'fail'`
  * or `'unavailable'` in a page to change its behavior.
  */
-export async function mockChromeAI(context: BrowserContext, availability: 'available' | 'downloadable' | 'unavailable' = 'available') {
+export async function mockChromeAI(
+  context: BrowserContext,
+  availability: 'available' | 'downloadable' | 'unavailable' = 'available',
+) {
   await context.addInitScript((initial) => {
     if (!location.protocol.startsWith('chrome-extension')) return;
     const w = window as unknown as { __ai?: string; __aiCalls: { system: string; input: string }[]; LanguageModel: unknown };
@@ -81,15 +84,23 @@ export async function pasteIntoPanel(page: Page, ...texts: string[]) {
 export function readClips(page: Page) {
   return page.evaluate(
     () =>
-      new Promise<{ text: string; title: string; titleSource?: string; collectionId?: string; embeddingModel?: string; useCount: number }[]>(
-        (resolve, reject) => {
-          const req = indexedDB.open('clipboard');
-          req.onerror = () => reject(req.error);
-          req.onsuccess = () => {
-            const all = req.result.transaction('clips').objectStore('clips').getAll();
-            all.onsuccess = () => resolve(all.result);
-          };
-        },
-      ),
+      new Promise<
+        {
+          id: string;
+          text: string;
+          title: string;
+          titleSource?: string;
+          collectionId?: string;
+          embeddingModel?: string;
+          useCount: number;
+        }[]
+      >((resolve, reject) => {
+        const req = indexedDB.open('clipboard');
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          const all = req.result.transaction('clips').objectStore('clips').getAll();
+          all.onsuccess = () => resolve(all.result);
+        };
+      }),
   );
 }

@@ -141,7 +141,13 @@ export async function listClips(db: ClipDatabase = defaultDb): Promise<Clip[]> {
 export function matchesQuery(clip: Clip, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  const hay = [clip.text, clip.title, clip.source?.title, clip.source?.url, clip.kind === 'image' ? 'image picture photo screenshot' : '']
+  const hay = [
+    clip.text,
+    clip.title,
+    clip.source?.title,
+    clip.source?.url,
+    clip.kind === 'image' ? 'image picture photo screenshot' : '',
+  ]
     .join('\n')
     .toLowerCase();
   return q.split(/\s+/).every((word) => hay.includes(word));
@@ -166,6 +172,52 @@ export async function restoreClip(deleted: DeletedClip, db: ClipDatabase = defau
   await db.transaction('rw', db.clips, db.images, async () => {
     if (deleted.image) await db.images.put(deleted.image);
     await db.clips.put(deleted.clip);
+  });
+}
+
+export interface ClipEdit {
+  text?: string;
+  title?: string;
+}
+
+/**
+ * Changes a saved clip's text or title (only this saved copy; nothing on the
+ * page). New text gets a fresh type, title and search vector, and is sorted
+ * again unless the user placed the clip. Returns false for empty text.
+ */
+export async function editClip(id: string, edit: ClipEdit, db: ClipDatabase = defaultDb): Promise<boolean> {
+  return db.transaction('rw', [db.clips, db.images, db.collections], async () => {
+    const clip = await db.clips.get(id);
+    if (!clip) return false;
+    let next: Clip = { ...clip };
+    if (edit.text !== undefined && clip.kind !== 'image') {
+      const text = edit.text.replace(/\r\n/g, '\n');
+      if (!text.trim()) return false;
+      if (text !== clip.text) {
+        const kind = detectKind(text);
+        next = {
+          ...next,
+          text,
+          kind,
+          html: undefined, // the formatted copy no longer matches
+          hash: hashText(text),
+          embedding: undefined,
+          embeddingModel: undefined,
+        };
+        if (clip.titleSource !== 'user') next = { ...next, title: makeTitle(text, kind), titleSource: 'heuristic' };
+        if (!clip.collectionLocked) next.collectionId = undefined;
+      }
+    }
+    if (edit.title !== undefined) {
+      const title = edit.title.trim();
+      if (title && title !== clip.title) next = { ...next, title, titleSource: 'user' };
+      // Clearing the title goes back to one made from the text.
+      if (!title)
+        next = { ...next, title: clip.kind === 'image' ? clip.title : makeTitle(next.text, next.kind), titleSource: 'heuristic' };
+    }
+    await db.clips.put(next);
+    if (!next.collectionLocked && !next.collectionId) await autoAssign(next, db);
+    return true;
   });
 }
 
