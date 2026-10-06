@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Setup, step 2: auto-capture</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#2457C5}a:hover{color:#173D8F}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 400px; height: 860px; box-sizing: border-box; background: #FFFFFF; color: #1B1D2A; font-family: 'Instrument Sans', sans-serif; display: flex; flex-direction: column; padding: 24px 24px 28px">
+  <p style="margin: 0; font-size: 13px; font-weight: 600; color: #555A6E">Step 2 of 3</p>
+  <div style="display: flex; gap: 6px; margin-top: 8px" aria-hidden="true">
+    <span style="flex: 1; height: 4px; border-radius: 2px; background: #1B1D2A"></span>
+    <span style="flex: 1; height: 4px; border-radius: 2px; background: #1B1D2A"></span>
+    <span style="flex: 1; height: 4px; border-radius: 2px; background: #E3E5EC"></span>
+  </div>
+
+  <div style="margin-top: 36px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px" aria-hidden="true">
+    <span style="height: 64px; border-radius: 4px 12px 12px 12px; background: #E6EEFC; border-top: 3px solid #2457C5"></span>
+    <span style="height: 64px; border-radius: 4px 12px 12px 12px; background: #FCEBD9; border-top: 3px solid #B35A00"></span>
+    <span style="height: 64px; border-radius: 4px 12px 12px 12px; background: #EEE8FB; border-top: 3px solid #6A46C9"></span>
+    <span style="height: 64px; border-radius: 4px 12px 12px 12px; background: #DDF3EC; border-top: 3px solid #0E7A62"></span>
+  </div>
+
+  <h1 style="margin: 32px 0 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px; line-height: 34px">Save everything you copy, automatically</h1>
+  <p style="margin: 12px 0 0; font-size: 15px; line-height: 22px; color: #3E4357">Copy as usual. Each clip lands here, sorted into collections, ready to paste again.</p>
+
+  <ul style="list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px">
+    <li style="display: flex; gap: 12px; font-size: 14px; line-height: 20px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0E7A62" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M5 12l5 5L20 7"></path></svg><span>Clips stay on this device. Nothing is uploaded.</span></li>
+    <li style="display: flex; gap: 12px; font-size: 14px; line-height: 20px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0E7A62" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M5 12l5 5L20 7"></path></svg><span>Pause anytime, or turn it off for a single site.</span></li>
+    <li style="display: flex; gap: 12px; font-size: 14px; line-height: 20px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0E7A62" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><path d="M5 12l5 5L20 7"></path></svg><span>Banking and password manager sites are never saved.</span></li>
+  </ul>
+
+  <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px">
+    <p style="margin: 0 0 4px; font-size: 13px; line-height: 19px; color: #555A6E">Chrome will ask to let us read the sites you visit. We only use this to notice when you copy. <a href="#">Read the code</a></p>
+    <button style="height: 52px; border: 0; border-radius: 26px; background: #1B1D2A; color: #FFFFFF; font-size: 15px; font-weight: 600; cursor: pointer">Turn on auto-save</button>
+    <button style="height: 48px; border: 0; border-radius: 24px; background: transparent; color: #1B1D2A; font-size: 14px; font-weight: 600; cursor: pointer">Not now, I'll save clips by hand</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":400,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
