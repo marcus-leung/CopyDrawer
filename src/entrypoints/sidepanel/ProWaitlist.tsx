@@ -3,7 +3,7 @@ import { storage } from '#imports';
 import { Button, IconButton } from '@/components/ui';
 
 /** Where "Join the waitlist" goes: an external form, set at build time (WXT_WAITLIST_URL). */
-export const WAITLIST_URL: string = import.meta.env.WXT_WAITLIST_URL ?? '';
+const WAITLIST_URL: string = import.meta.env.WXT_WAITLIST_URL ?? '';
 
 /** Local count of waitlist clicks (the fake door's signal). Not sent anywhere. */
 const interest = storage.defineItem<number>('local:proInterest', { fallback: 0 });
@@ -15,7 +15,7 @@ const FEATURES = [
   { icon: Image, title: 'Text in images', body: 'Copy words from screenshots, search by them' },
 ];
 
-/** Pro waitlist fake door (screen 5.4). */
+/** Pro waitlist: measures interest before Pro exists. */
 export function ProWaitlist({ onBack }: { onBack: () => void }) {
   async function join() {
     await interest.setValue((await interest.getValue()) + 1);

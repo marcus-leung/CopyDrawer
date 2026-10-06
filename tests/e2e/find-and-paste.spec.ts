@@ -1,5 +1,5 @@
 /**
- * Week 3 flows, end to end in Chromium with the real extension: search
+ * Finding and pasting, end to end in Chromium with the real extension: search
  * (words, meaning, filters), the Alt+Shift+V quick-paste box on many kinds of
  * fields and edge cases, and Paste as (plain options and the AI preview).
  */

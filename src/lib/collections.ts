@@ -1,8 +1,7 @@
 import { db as defaultDb, type Clip, type ClipDatabase, type Collection } from './db';
 import { CATEGORIES, classifyByRules, detectDestination, type CategoryId } from './classify';
 
-/** Collection colors: docs/05-ui-design-system.md §2.2. */
-export interface CollectionColor {
+interface CollectionColor {
   accent: string;
   tint: string;
   text: string;
@@ -19,7 +18,7 @@ export const COLORS: Record<string, CollectionColor> = {
   mustard: { accent: '#7C6A0A', tint: '#F6F0D5', text: '#4D4200', accentDark: '#E3C860', tintDark: '#3A3214' },
   grey: { accent: '#5B6170', tint: '#F1F2F6', text: '#3E4357', accentDark: '#A3A8BC', tintDark: '#232636' },
 };
-export const COLOR_ORDER = ['blue', 'orange', 'violet', 'green', 'pink', 'mustard', 'grey'];
+const COLOR_ORDER = ['blue', 'orange', 'violet', 'green', 'pink', 'mustard', 'grey'];
 
 const CATEGORY_COLOR: Record<CategoryId, string> = {
   research: 'blue',
@@ -49,7 +48,7 @@ async function ensureCollection(
   return collection;
 }
 
-export function slug(s: string): string {
+function slug(s: string): string {
   return s
     .toLowerCase()
     .normalize('NFD')
@@ -59,7 +58,7 @@ export function slug(s: string): string {
 }
 
 /** The collection key and setup for a category, turning travel into a named trip when possible. */
-export function targetFor(category: CategoryId, clip: Pick<Clip, 'text' | 'title' | 'source'>) {
+function targetFor(category: CategoryId, clip: Pick<Clip, 'text' | 'title' | 'source'>) {
   if (category === 'travel') {
     const city = detectDestination(`${clip.title}\n${clip.text}\n${clip.source?.title ?? ''}`);
     if (city) return { key: `trip:${slug(city)}`, name: `${city} trip`, color: 'mustard', kind: 'trip' as const };
@@ -126,12 +125,14 @@ export async function createCollection(name: string, db: ClipDatabase = defaultD
   });
 }
 
-export async function renameCollection(id: string, name: string, db: ClipDatabase = defaultDb): Promise<void> {
-  if (name.trim()) await db.collections.update(id, { name: name.trim() });
+/** Asks for a name and creates the collection; null if the user cancels. */
+export async function promptNewCollection(): Promise<Collection | null> {
+  const name = prompt('Name the new collection');
+  return name?.trim() ? createCollection(name) : null;
 }
 
-export async function recolorCollection(id: string, color: string, db: ClipDatabase = defaultDb): Promise<void> {
-  if (COLORS[color]) await db.collections.update(id, { color });
+export async function renameCollection(id: string, name: string, db: ClipDatabase = defaultDb): Promise<void> {
+  if (name.trim()) await db.collections.update(id, { name: name.trim() });
 }
 
 /** Deletes a collection; its clips stay in history without a collection. */

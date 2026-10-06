@@ -3,12 +3,12 @@
  * The embedding model (when available) refines clips these rules don't catch.
  */
 import type { Clip } from './db';
-import { hostnameOf } from './exclusions';
+import { hostOf } from './format';
 import { findAddress, findTracking } from './actions';
 
 export type CategoryId = 'research' | 'links' | 'code' | 'shopping' | 'recipes' | 'travel' | 'personal';
 
-export interface CategoryDef {
+interface CategoryDef {
   id: CategoryId;
   name: string;
   /** Phrases describing the category, embedded to compare with clips. */
@@ -103,7 +103,7 @@ const RE = {
 
 function domainMatches(url: string | undefined, list: string[] = []): boolean {
   if (!url) return false;
-  const host = hostnameOf(url);
+  const host = hostOf(url);
   if (!host) return false;
   let path = '';
   try {

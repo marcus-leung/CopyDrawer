@@ -6,23 +6,19 @@ export interface Settings {
   /** Delete unpinned clips older than this many days. 0 = never. */
   retentionDays: 0 | 30 | 90;
   theme: ThemePref;
-  /** User wants copies saved automatically (also needs the all-sites permission). */
+  /** Also needs the all-sites permission. */
   autoSave: boolean;
-  /** Auto-save is paused until this time (ms). 0 = not paused. */
+  /** Time (ms) auto-save resumes. 0 = not paused. */
   pausedUntil: number;
-  /** Hostnames the user blocked, e.g. "mail.example.com". */
   blockedSites: string[];
-  /** Save copies made in incognito windows. */
   saveInIncognito: boolean;
-  /** Use the on-device AI model for sorting and search by meaning (downloads ~25 MB once). */
+  /** On-device model for sorting and search by meaning (downloads ~25 MB once). */
   smartModel: boolean;
-  /** One-time tips the user dismissed ("quick-paste", …). */
   dismissedTips: string[];
-  /** Finished (or skipped) the first-run setup. */
   onboarded: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = {
+const DEFAULT_SETTINGS: Settings = {
   retentionDays: 0,
   theme: 'system',
   autoSave: false,
@@ -51,25 +47,19 @@ export async function updateSettings(patch: Partial<Settings>): Promise<Settings
   return next;
 }
 
-// ---------- Sync between computers (chrome.storage.sync, through the Chrome profile) ----------
+// ---------- Sync between computers (chrome.storage.sync) ----------
 
-/** Settings that follow the user to their other computers. Auto-save, pause and tips stay per computer. */
-export const SYNCED_KEYS = ['retentionDays', 'theme', 'blockedSites', 'saveInIncognito', 'smartModel'] as const;
+/** Settings that follow the user to other computers. Auto-save, pause and tips stay per computer. */
+const SYNCED_KEYS = ['retentionDays', 'theme', 'blockedSites', 'saveInIncognito', 'smartModel'] as const;
 type SyncedKey = (typeof SYNCED_KEYS)[number];
-export type SyncedSettings = Pick<Settings, SyncedKey> & { updatedAt: number };
+type SyncedSettings = Pick<Settings, SyncedKey> & { updatedAt: number };
 
 export const syncedSettingsItem = storage.defineItem<SyncedSettings | null>('sync:settings', { fallback: null });
 /** The `updatedAt` of the synced copy this computer last applied or wrote. */
 const syncedAtItem = storage.defineItem<number>('local:settingsSyncedAt', { fallback: 0 });
 
 function pickSynced(s: Settings): Pick<Settings, SyncedKey> {
-  return {
-    retentionDays: s.retentionDays,
-    theme: s.theme,
-    blockedSites: s.blockedSites,
-    saveInIncognito: s.saveInIncognito,
-    smartModel: s.smartModel,
-  };
+  return Object.fromEntries(SYNCED_KEYS.map((k) => [k, s[k]])) as Pick<Settings, SyncedKey>;
 }
 
 /** Keeps only well-formed values from another computer's copy. */
@@ -85,7 +75,7 @@ export function validSynced(remote: unknown): Partial<Pick<Settings, SyncedKey>>
   return out;
 }
 
-export async function pushSyncedSettings(s: Settings): Promise<void> {
+async function pushSyncedSettings(s: Settings): Promise<void> {
   const updatedAt = Date.now();
   try {
     await syncedSettingsItem.setValue({ ...pickSynced(s), updatedAt });

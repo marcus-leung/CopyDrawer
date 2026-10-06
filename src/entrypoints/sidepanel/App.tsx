@@ -1,19 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ClipboardPaste, ImagePlus, MoreHorizontal, Plus, SlidersHorizontal } from 'lucide-react';
-import { db, type Clip, type Collection } from '@/lib/db';
+import type { Clip } from '@/lib/db';
 import { deleteClip, listClips, markUsed, restoreClip, saveClip } from '@/lib/clips';
-import { NO_FILTERS, searchClips, topSites, type SearchFilters, type SearchResult } from '@/lib/search';
-import { copyClipToClipboard, fromDataTransfer, readClipboard, type ClipboardContents } from '@/lib/clipboard';
+import { NO_FILTERS, topSites, type SearchFilters } from '@/lib/search';
+import { copyClipToClipboard, readClipboard, type ClipboardContents } from '@/lib/clipboard';
 import { ImageError, saveImageClip } from '@/lib/images';
 import { isPaused, PAUSE_MS, updateSettings } from '@/lib/settings';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { useTheme } from '@/lib/useTheme';
-import { activeEmbedder, useIndexer } from '@/lib/useIndexer';
-import { createCollection, listCollections, moveClip } from '@/lib/collections';
+import { useIndexer } from '@/lib/useIndexer';
+import { useSearch } from '@/lib/useSearch';
+import { useOpenClipRequests } from '@/lib/openClip';
+import { listCollections, moveClip, promptNewCollection } from '@/lib/collections';
 import { CollectionTile } from '@/components/CollectionTile';
 import { ImageStrip } from '@/components/ImageStrip';
-import { CLIP_DRAG_TYPE, ClipRow } from '@/components/ClipRow';
+import { ClipRow } from '@/components/ClipRow';
 import { Button, IconButton, SearchField } from '@/components/ui';
 import { Notice } from '@/components/Notice';
 import { Toast, type ToastState } from '@/components/Toast';
@@ -22,7 +24,8 @@ import { SettingsView } from './SettingsView';
 import { CollectionView } from './CollectionView';
 import { FilterBar } from './FilterBar';
 import { Onboarding } from './Onboarding';
-import { OPEN_CLIP_KEY, OPEN_CLIP_TTL_MS, type OpenClipRequest } from '@/lib/openClip';
+import { EmptyState } from './EmptyState';
+import { usePanelInput } from './usePanelInput';
 import { HomeNotice } from './HomeNotice';
 import { ProWaitlist } from './ProWaitlist';
 
@@ -44,42 +47,18 @@ export function App() {
   });
   const [onboarding, setOnboarding] = useState(() => new URLSearchParams(location.search).has('onboarding'));
 
-  // "Open" on the in-page card: a request in session storage, read now and
-  // whenever it changes while the panel is open.
-  useEffect(() => {
-    const take = (req: OpenClipRequest | undefined) => {
-      if (!req || Date.now() - req.at > OPEN_CLIP_TTL_MS) return;
-      setView({ name: 'detail', id: req.clipId });
-      void browser.storage.session.remove(OPEN_CLIP_KEY);
-    };
-    void browser.storage.session.get(OPEN_CLIP_KEY).then((r) => take(r[OPEN_CLIP_KEY] as OpenClipRequest | undefined));
-    const onChanged = (changes: Record<string, { newValue?: unknown }>, area: string) => {
-      if (area === 'session' && changes[OPEN_CLIP_KEY]) take(changes[OPEN_CLIP_KEY].newValue as OpenClipRequest | undefined);
-    };
-    browser.storage.onChanged.addListener(onChanged);
-    return () => browser.storage.onChanged.removeListener(onChanged);
-  }, []);
+  useOpenClipRequests(useCallback((id: string) => setView({ name: 'detail', id }), []));
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(NO_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  /** Results and what they were computed for, so stale ones are never shown. */
-  const [results, setResults] = useState<{ items: SearchResult[]; query: string; filters: SearchFilters; clips: Clip[] } | null>(
-    null,
-  );
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [dragging, setDragging] = useState(false);
   const clips = useLiveQuery(() => listClips(), [], undefined);
   const summaries = useLiveQuery(() => listCollections(), [], undefined);
-  const collectionsById = useLiveQuery(
-    async () => new Map((await db.collections.toArray()).map((c) => [c.id, c] as const)),
-    [],
-    new Map<string, Collection>(),
-  );
+  // Every collection a clip is in has clips, so the (non-empty) summaries cover them all.
+  const collectionsById = useMemo(() => new Map(summaries?.map((s) => [s.collection.id, s.collection])), [summaries]);
   const modelState = useIndexer(settings?.smartModel);
 
-  const notify = useCallback((message: string, onAction?: () => void, actionLabel?: string) => {
-    setToast({ id: Date.now(), message, onAction, actionLabel });
-  }, []);
+  const notify = useCallback((message: string, onUndo?: () => void) => setToast({ id: Date.now(), message, onUndo }), []);
 
   const copy = useCallback(
     async (clip: Clip) => {
@@ -137,81 +116,11 @@ export function App() {
     }
   }, [notify, saveContents]);
 
-  // Pasting anywhere in the panel (outside a text field) saves the clip.
-  useEffect(() => {
-    const onPaste = (e: ClipboardEvent) => {
-      const target = e.target;
-      if (target instanceof Element && target.closest('input, textarea, [contenteditable="true"]')) return;
-      const contents = fromDataTransfer(e.clipboardData);
-      if (!contents.text.trim() && contents.images.length === 0) return;
-      e.preventDefault();
-      void saveContents(contents);
-    };
-    window.addEventListener('paste', onPaste);
-    return () => window.removeEventListener('paste', onPaste);
-  }, [saveContents]);
+  const dragging = usePanelInput(useCallback((c) => void saveContents(c), [saveContents]));
 
-  // Dropping images or text onto the panel saves them.
-  useEffect(() => {
-    let depth = 0;
-    // Files or text dragged in from outside; not a clip row being moved to a collection.
-    const hasPayload = (e: DragEvent) => {
-      const types = Array.from(e.dataTransfer?.types ?? []);
-      return !types.includes(CLIP_DRAG_TYPE) && types.some((t) => t === 'Files' || t.startsWith('text/'));
-    };
-    const onEnter = (e: DragEvent) => {
-      if (!hasPayload(e)) return;
-      depth++;
-      setDragging(true);
-    };
-    const onLeave = () => {
-      depth = Math.max(0, depth - 1);
-      if (depth === 0) setDragging(false);
-    };
-    const onOver = (e: DragEvent) => {
-      if (hasPayload(e)) e.preventDefault();
-    };
-    const onDrop = (e: DragEvent) => {
-      if (!hasPayload(e)) return;
-      e.preventDefault();
-      depth = 0;
-      setDragging(false);
-      const contents = fromDataTransfer(e.dataTransfer);
-      if (contents.text.trim() || contents.images.length) void saveContents(contents);
-    };
-    window.addEventListener('dragenter', onEnter);
-    window.addEventListener('dragleave', onLeave);
-    window.addEventListener('dragover', onOver);
-    window.addEventListener('drop', onDrop);
-    return () => {
-      window.removeEventListener('dragenter', onEnter);
-      window.removeEventListener('dragleave', onLeave);
-      window.removeEventListener('dragover', onOver);
-      window.removeEventListener('drop', onDrop);
-    };
-  }, [saveContents]);
-
-  const filtering = filters.kind !== 'any' || filters.site !== 'any' || filters.date !== 'any';
-  const searching = query.trim() !== '' || filtering;
+  const { searching, filtering, results: current } = useSearch(query, filters, clips);
   // Stays open while you change filters, even back to "Any".
   const showFilters = filtersOpen || filtering || query.trim() !== '';
-  useEffect(() => {
-    if (!searching || !clips) return;
-    let cancelled = false;
-    const t = setTimeout(() => {
-      void searchClips(query, clips, filters, activeEmbedder())
-        .then((items) => !cancelled && setResults({ items, query, filters, clips }))
-        .catch(() => {});
-    }, 150);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
-  }, [searching, query, filters, clips]);
-  const current =
-    searching && results && results.query === query && results.filters === filters && results.clips === clips
-      ? results.items
-      : null;
   const visible = useMemo(() => (searching ? (current ?? []).map((r) => r.clip) : (clips ?? [])), [searching, current, clips]);
   const meaningCount = current?.filter((r) => r.match === 'meaning').length ?? 0;
   const sites = useMemo(() => topSites(clips ?? []), [clips]);
@@ -222,10 +131,8 @@ export function App() {
   }, [clips, now]);
 
   async function newCollection() {
-    const name = prompt('Name the new collection');
-    if (!name?.trim()) return;
-    const created = await createCollection(name);
-    setView({ name: 'collection', id: created.id });
+    const created = await promptNewCollection();
+    if (created) setView({ name: 'collection', id: created.id });
   }
 
   const shell = (children: React.ReactNode) => (
@@ -449,53 +356,5 @@ function DropOverlay() {
       <p className="font-display text-2xl font-extrabold">Drop to save</p>
       <p className="text-sm">Images (PNG, JPG, GIF, WebP up to 20 MB) or text</p>
     </div>
-  );
-}
-
-function EmptyState({ onGrab, autoSave }: { onGrab: () => void; autoSave: boolean }) {
-  return (
-    <>
-      <h2 className="font-display text-[17px] font-semibold">Smart collections</h2>
-      <p className="mt-2 mb-4 rounded-xl border-2 border-dashed border-line-strong px-4 py-5 text-center text-[13px] text-text-2">
-        Collections appear as you save. You don't need to make any.
-      </p>
-      <section className="rounded-[18px] bg-surface p-5" aria-labelledby="empty-title">
-        <h2 id="empty-title" className="font-display text-[22px] font-extrabold">
-          {autoSave ? 'Copy anything to start' : 'Save something to start'}
-        </h2>
-        <ol className="mt-3.5 flex flex-col gap-3 text-sm leading-5">
-          <Step n={1}>
-            {autoSave ? (
-              <>
-                Copy text or a link on any site with <kbd className="bg-bg">Ctrl+C</kbd>
-              </>
-            ) : (
-              <>
-                Select text on any page and press <kbd className="bg-bg">Alt+Shift+S</kbd>, or right-click and choose{' '}
-                <b>Save selection</b>
-              </>
-            )}
-          </Step>
-          <Step n={2}>
-            Right-click an image and choose <b>Save image</b>, or drop it here
-          </Step>
-          <Step n={3}>
-            Paste it back anywhere with <kbd className="bg-bg">Alt+Shift+V</kbd>
-          </Step>
-        </ol>
-        <Button className="mt-4 bg-bg" onClick={onGrab}>
-          Grab what's on my clipboard
-        </Button>
-      </section>
-    </>
-  );
-}
-
-function Step({ n, children }: { n: number; children: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-3">
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-bg text-[13px] font-bold">{n}</span>
-      <span>{children}</span>
-    </li>
   );
 }

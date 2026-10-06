@@ -11,7 +11,7 @@ import { useSettings } from '@/lib/useSettings';
 import { useTheme } from '@/lib/useTheme';
 import { useObjectUrl } from '@/lib/useObjectUrl';
 
-/** Toolbar popup: recent clips, click to copy (screen 3.6). */
+/** Toolbar popup: recent clips, click to copy. */
 export function Popup() {
   useTheme();
   const settings = useSettings();

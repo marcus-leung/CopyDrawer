@@ -6,7 +6,7 @@ import { updateSettings } from '@/lib/settings';
 import { COLORS } from '@/lib/collections';
 import { Button } from '@/components/ui';
 
-/** First-run setup, 3 steps (screens 1.1–1.3). Opens in a tab after install. */
+/** First-run setup in 3 steps. Opens in a tab after install. */
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(1);
   const [autoSave, setAutoSave] = useState<boolean | null>(null);
