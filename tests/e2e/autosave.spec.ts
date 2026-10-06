@@ -46,7 +46,7 @@ test('auto-save keeps what you copy, skips passwords, pauses and blocks', async 
   const list = panel.getByRole('list', { name: 'Clips' });
   await expect(list.getByRole('listitem')).toHaveCount(1);
   await expect(list).toContainText('Belém Tower opens at 10:00.');
-  await expect(list).toContainText('From guide.e2e.test');
+  await expect(list).toContainText(/from guide\.e2e\.test/i);
   await expect(panel.getByText('hunter2-secret')).toHaveCount(0);
 
   // Pause stops saving.

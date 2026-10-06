@@ -1,21 +1,29 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ClipboardPaste, ImagePlus, MoreHorizontal } from 'lucide-react';
-import type { Clip } from '@/lib/db';
+import { ClipboardPaste, ImagePlus, MoreHorizontal, Plus } from 'lucide-react';
+import { db, type Clip, type Collection } from '@/lib/db';
 import { deleteClip, listClips, markUsed, matchesQuery, restoreClip, saveClip } from '@/lib/clips';
 import { copyClipToClipboard, fromDataTransfer, readClipboard, type ClipboardContents } from '@/lib/clipboard';
 import { ImageError, saveImageClip } from '@/lib/images';
 import { isPaused, PAUSE_MS, updateSettings } from '@/lib/settings';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { useTheme } from '@/lib/useTheme';
+import { useIndexer } from '@/lib/useIndexer';
+import { createCollection, listCollections } from '@/lib/collections';
+import { CollectionTile } from '@/components/CollectionTile';
 import { ClipRow } from '@/components/ClipRow';
 import { Button, IconButton, SearchField } from '@/components/ui';
 import { Notice } from '@/components/Notice';
 import { Toast, type ToastState } from '@/components/Toast';
 import { ClipDetail } from './ClipDetail';
 import { SettingsView } from './SettingsView';
+import { CollectionView } from './CollectionView';
 
-type View = { name: 'home' } | { name: 'detail'; id: string } | { name: 'settings' };
+type View =
+  | { name: 'home' }
+  | { name: 'detail'; id: string; from?: View }
+  | { name: 'settings' }
+  | { name: 'collection'; id: string };
 
 export function App() {
   useTheme();
@@ -26,6 +34,13 @@ export function App() {
   const [toast, setToast] = useState<ToastState | null>(null);
   const [dragging, setDragging] = useState(false);
   const clips = useLiveQuery(() => listClips(), [], undefined);
+  const summaries = useLiveQuery(() => listCollections(), [], undefined);
+  const collectionsById = useLiveQuery(
+    async () => new Map((await db.collections.toArray()).map((c) => [c.id, c] as const)),
+    [],
+    new Map<string, Collection>(),
+  );
+  const modelState = useIndexer(settings?.smartModel);
 
   const notify = useCallback((message: string, onAction?: () => void, actionLabel?: string) => {
     setToast({ id: Date.now(), message, onAction, actionLabel });
@@ -47,7 +62,7 @@ export function App() {
   const remove = useCallback(
     async (id: string) => {
       const removed = await deleteClip(id);
-      setView({ name: 'home' });
+      setView((v) => (v.name === 'detail' && v.from ? v.from : { name: 'home' }));
       if (removed) notify('Clip deleted', () => void restoreClip(removed));
     },
     [notify],
@@ -138,6 +153,17 @@ export function App() {
 
   const visible = useMemo(() => (clips ?? []).filter((c) => matchesQuery(c, query)), [clips, query]);
   const paused = settings ? isPaused(settings, now) : false;
+  const sortedToday = useMemo(() => {
+    const midnight = new Date().setHours(0, 0, 0, 0);
+    return (clips ?? []).filter((c) => c.collectionId && c.createdAt >= midnight).length;
+  }, [clips]);
+
+  async function newCollection() {
+    const name = prompt('Name the new collection');
+    if (!name?.trim()) return;
+    const created = await createCollection(name);
+    setView({ name: 'collection', id: created.id });
+  }
 
   const shell = (children: React.ReactNode) => (
     <div className="relative flex h-screen flex-col overflow-hidden bg-bg text-ink">
@@ -148,7 +174,21 @@ export function App() {
   );
 
   if (view.name === 'detail') {
-    return shell(<ClipDetail id={view.id} onBack={() => setView({ name: 'home' })} onCopy={copy} onDelete={remove} />);
+    const back = view.from ?? { name: 'home' as const };
+    return shell(<ClipDetail id={view.id} onBack={() => setView(back)} onCopy={copy} onDelete={remove} />);
+  }
+
+  if (view.name === 'collection') {
+    const here = view;
+    return shell(
+      <CollectionView
+        id={view.id}
+        onBack={() => setView({ name: 'home' })}
+        onOpen={(c) => setView({ name: 'detail', id: c.id, from: here })}
+        onCopy={copy}
+        notify={notify}
+      />,
+    );
   }
 
   if (view.name === 'settings') {
@@ -157,8 +197,15 @@ export function App() {
 
   return shell(
     <>
-      <header className="flex items-center justify-between px-[18px] pt-5 pb-3">
-        <h1 className="font-display text-[26px] leading-tight font-extrabold">Your clips</h1>
+      <header className="flex items-start justify-between px-[18px] pt-5 pb-3">
+        <div className="min-w-0">
+          <h1 className="font-display text-[26px] leading-tight font-extrabold">Your clips</h1>
+          {sortedToday > 0 && (
+            <p className="mt-0.5 text-[13px] text-text-2">
+              Sorted {sortedToday} new {sortedToday === 1 ? 'clip' : 'clips'} today
+            </p>
+          )}
+        </div>
         <IconButton label="Settings" className="bg-surface" onClick={() => setView({ name: 'settings' })}>
           <MoreHorizontal size={20} aria-hidden />
         </IconButton>
@@ -190,16 +237,57 @@ export function App() {
         ) : visible.length === 0 ? (
           <p className="py-10 text-center text-sm text-text-3">No clips match “{query}”.</p>
         ) : (
-          <ul aria-label="Clips">
-            {visible.map((clip) => (
-              <ClipRow key={clip.id} clip={clip} onOpen={(c) => setView({ name: 'detail', id: c.id })} onCopy={copy} />
-            ))}
-          </ul>
+          <>
+            {!query && summaries && summaries.length > 0 && (
+              <section aria-labelledby="collections-title" className="pb-4">
+                <div className="flex items-center justify-between pb-2">
+                  <h2 id="collections-title" className="font-display text-[17px] font-semibold">
+                    Smart collections
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => void newCollection()}
+                    className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-full px-2 text-[13px] font-semibold text-text-2 hover:bg-surface"
+                  >
+                    <Plus size={14} aria-hidden />
+                    New
+                  </button>
+                </div>
+                <ul className="grid grid-cols-2 gap-2.5" aria-label="Collections">
+                  {summaries.map((s) => (
+                    <CollectionTile
+                      key={s.collection.id}
+                      summary={s}
+                      onOpen={() => setView({ name: 'collection', id: s.collection.id })}
+                    />
+                  ))}
+                </ul>
+              </section>
+            )}
+            {!query && summaries && summaries.length > 0 && (
+              <h2 className="font-display text-[17px] font-semibold">Recent</h2>
+            )}
+            <ul aria-label="Clips">
+              {visible.map((clip) => (
+                <ClipRow
+                  key={clip.id}
+                  clip={clip}
+                  collection={clip.collectionId ? collectionsById.get(clip.collectionId) : undefined}
+                  onOpen={(c) => setView({ name: 'detail', id: c.id })}
+                  onCopy={copy}
+                />
+              ))}
+            </ul>
+          </>
         )}
       </main>
 
       <footer className="flex items-center justify-between gap-3 border-t border-line px-[18px] pt-2.5 pb-4">
-        <span className="text-[13px] text-text-2">Private: stored on this device</span>
+        <span className="text-[13px] text-text-2">
+          {modelState.status === 'loading'
+            ? `Getting the AI ready${modelState.progress ? ` (${Math.round(modelState.progress)}%)` : ''}…`
+            : 'Private: stored and sorted on this device'}
+        </span>
         {settings?.autoSave && !paused ? (
           <Button variant="outline" size="sm" onClick={() => void updateSettings({ pausedUntil: Date.now() + PAUSE_MS })}>
             Pause

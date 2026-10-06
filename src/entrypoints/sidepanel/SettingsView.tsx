@@ -8,6 +8,7 @@ import { disableAutosave, enableAutosave } from '@/lib/autosave';
 import { BUILT_IN_BLOCKED, normalizeSite } from '@/lib/exclusions';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { Button, IconButton } from '@/components/ui';
+import { AiSection } from './AiSection';
 
 const selectClass = 'h-9 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink';
 
@@ -162,6 +163,8 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
             </select>
           </div>
         </Section>
+
+        <AiSection settings={settings} onChange={(patch) => void change(patch)} notify={notify} />
 
         <Section id="s-look" title="Appearance">
           <div className="flex min-h-11 items-center justify-between gap-3">

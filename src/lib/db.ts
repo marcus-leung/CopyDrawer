@@ -38,7 +38,25 @@ export interface Clip {
   /** Hash of the normalized text (or image bytes), used to merge duplicates. */
   hash: string;
   collectionId?: string;
+  /** 1 when the user put the clip in its collection; auto-sorting won't move it. */
+  collectionLocked?: 0 | 1;
   image?: ClipImage;
+  /** Where the title came from: rules from the text, on-device AI, or the user. */
+  titleSource?: 'heuristic' | 'ai' | 'user';
+  /** Search vector (normalized) and the model that made it. */
+  embedding?: Float32Array;
+  embeddingModel?: string;
+}
+
+export interface Collection {
+  id: string;
+  /** Stable key for auto collections: "cat:research", "trip:lisbon". Manual ones: "manual:<id>". */
+  key: string;
+  name: string;
+  color: string;
+  kind: 'smart' | 'trip' | 'manual';
+  createdAt: number;
+  order: number;
 }
 
 export interface StoredImage {
@@ -49,6 +67,7 @@ export interface StoredImage {
 export class ClipDatabase extends Dexie {
   clips!: EntityTable<Clip, 'id'>;
   images!: EntityTable<StoredImage, 'id'>;
+  collections!: EntityTable<Collection, 'id'>;
 
   constructor(name = 'clipboard') {
     super(name);
@@ -57,6 +76,10 @@ export class ClipDatabase extends Dexie {
     });
     this.version(2).stores({
       images: 'id',
+    });
+    this.version(3).stores({
+      clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId, embeddingModel',
+      collections: 'id, &key, order',
     });
   }
 }
