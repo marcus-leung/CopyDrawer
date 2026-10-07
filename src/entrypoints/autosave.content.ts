@@ -1,7 +1,7 @@
 /**
  * Auto-save: notices copy/cut on web pages and sends the copied text to the
  * background. Registered at runtime only after the user grants all-sites
- * access (docs/02-design.md §4), so it's not in the manifest.
+ * access, so it's not in the manifest.
  */
 export default defineContentScript({
   registration: 'runtime',

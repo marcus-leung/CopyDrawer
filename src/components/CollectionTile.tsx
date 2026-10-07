@@ -15,12 +15,12 @@ export function collectionVars(color: string): CSSProperties {
   } as CSSProperties;
 }
 
-export function countLine(count: number, newCount: number): string {
+function countLine(count: number, newCount: number): string {
   const base = `${count} ${count === 1 ? 'clip' : 'clips'}`;
   return newCount ? `${base}, ${newCount} new` : base;
 }
 
-/** Folder tile: an accent tab over a tinted body (docs/05-ui-design-system.md §4). */
+/** Folder tile: an accent tab over a tinted body. */
 export function CollectionTile({
   summary,
   onOpen,

@@ -1,7 +1,6 @@
-/**
- * Sites where nothing is ever saved: password managers and common banks.
- * A small safety net (docs/02-design.md §4); users add their own in Settings.
- */
+import { hostOf } from './format';
+
+/** Sites where nothing is ever saved: password managers and common banks. Users add their own in Settings. */
 export const BUILT_IN_BLOCKED = [
   '1password.com',
   'bitwarden.com',
@@ -31,22 +30,11 @@ export const BUILT_IN_BLOCKED = [
   'commbank.com.au',
 ];
 
-export function hostnameOf(url?: string): string | undefined {
-  if (!url) return undefined;
-  try {
-    const u = new URL(url);
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return undefined;
-    return u.hostname.toLowerCase().replace(/^www\./, '');
-  } catch {
-    return undefined;
-  }
-}
-
 /** Normalizes what a user types ("https://www.Example.com/x") to "example.com". */
 export function normalizeSite(input: string): string | undefined {
   const t = input.trim().toLowerCase();
   if (!t) return undefined;
-  const host = hostnameOf(t.includes('://') ? t : `https://${t}`);
+  const host = hostOf(t.includes('://') ? t : `https://${t}`);
   return host && host.includes('.') ? host : undefined;
 }
 
@@ -56,12 +44,12 @@ function matches(host: string, site: string): boolean {
 }
 
 export function isBlocked(url: string | undefined, userBlocked: string[]): boolean {
-  const host = hostnameOf(url);
+  const host = hostOf(url);
   if (!host) return true; // chrome://, file://, extension pages: never auto-save
   return [...BUILT_IN_BLOCKED, ...userBlocked].some((site) => matches(host, site));
 }
 
 export function isBuiltInBlocked(url: string | undefined): boolean {
-  const host = hostnameOf(url);
+  const host = hostOf(url);
   return !!host && BUILT_IN_BLOCKED.some((site) => matches(host, site));
 }

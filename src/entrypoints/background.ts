@@ -18,7 +18,6 @@ const MENU = {
   saveImage: 'save-image',
   screenshot: 'screenshot-area',
   blockSite: 'block-site',
-  parent: 'clipboard-parent',
 } as const;
 const ALARM_CLEANUP = 'daily-cleanup';
 
@@ -32,11 +31,14 @@ function sourceOf(tab?: Browser.tabs.Tab): ClipSource | undefined {
   return { url: tab.url, title: tab.title, favicon: tab.favIconUrl };
 }
 
+/** A short mark on the toolbar icon, for pages where the in-page card can't show. */
 async function flashBadge(text: string, color: string) {
   await browser.action.setBadgeBackgroundColor({ color });
   await browser.action.setBadgeText({ text });
   setTimeout(() => void browser.action.setBadgeText({ text: '' }), 1500);
 }
+const badgeOk = () => flashBadge('✓', '#0E7A62');
+const badgeError = () => flashBadge('!', '#B42318');
 
 /** Shows the in-page "saved" card. Needs scripting access to the tab (activeTab or all sites). */
 async function toastInTab(tabId: number | undefined, clip: Clip, title: string) {
@@ -49,7 +51,7 @@ async function toastInTab(tabId: number | undefined, clip: Clip, title: string) 
       args: [{ title, detail: clip.title, clipId: clip.id, thumbUrl, openShadow: __E2E__ }],
     });
   } catch {
-    await flashBadge('✓', '#0E7A62');
+    await badgeOk();
   }
 }
 
@@ -64,7 +66,7 @@ async function saveSelectionFromTab(tab: Browser.tabs.Tab | undefined, fallbackT
   }
   const text = payload?.text?.trim() ? payload.text : (fallbackText ?? '');
   const clip = await saveClip({ text, html: payload?.html, source: sourceOf(tab) });
-  if (clip) await flashBadge('✓', '#0E7A62');
+  if (clip) await badgeOk();
 }
 
 async function fetchImage(srcUrl: string, tabId?: number): Promise<Blob | null> {
@@ -88,7 +90,7 @@ async function fetchImage(srcUrl: string, tabId?: number): Promise<Blob | null> 
 async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
   const blob = await fetchImage(srcUrl, tab?.id);
   if (!blob) {
-    await flashBadge('!', '#B42318');
+    await badgeError();
     return;
   }
   try {
@@ -97,7 +99,7 @@ async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
     await toastInTab(tab?.id, clip, 'Image saved');
   } catch (e) {
     console.warn('Image not saved', e instanceof ImageError ? e.message : e);
-    await flashBadge('!', '#B42318');
+    await badgeError();
   }
 }
 
@@ -109,7 +111,7 @@ async function screenshotArea(tab?: Browser.tabs.Tab) {
     const [result] = await browser.scripting.executeScript({ target: { tabId: tab.id }, func: selectArea });
     area = (result?.result as Area | null | undefined) ?? null;
   } catch {
-    await flashBadge('!', '#B42318');
+    await badgeError();
     return;
   }
   if (!area) return;
@@ -132,7 +134,7 @@ async function screenshotArea(tab?: Browser.tabs.Tab) {
 }
 
 async function blockSiteOf(tab?: Browser.tabs.Tab) {
-  const host = tab?.url ? new URL(tab.url).hostname.replace(/^www\./, '') : undefined;
+  const host = hostOf(tab?.url);
   if (!host) return;
   const s = await getSettings();
   if (!s.blockedSites.includes(host)) await updateSettings({ blockedSites: [...s.blockedSites, host] });
@@ -151,7 +153,7 @@ async function handleAutosave(msg: { text: string; html?: string; title?: string
     html: msg.html,
     source: { url: tab?.url ?? url, title: tab?.title ?? msg.title, favicon: tab?.favIconUrl },
   });
-  if (clip) await flashBadge('✓', '#0E7A62');
+  if (clip) await badgeOk();
 }
 
 function createMenus() {
@@ -216,7 +218,7 @@ async function quickPasteClips(): Promise<{ clips: QuickClip[]; aiReady: boolean
           title: c.title,
           text: c.text.slice(0, 20_000),
           kind: c.kind,
-          host: hostOf(c.source?.url) || undefined,
+          host: hostOf(c.source?.url),
           collection: col?.name,
           color: col ? colorOf(col).accent : undefined,
         };
