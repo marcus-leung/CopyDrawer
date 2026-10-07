@@ -11,3 +11,4 @@ We follow **Research → Design → Plan → Build**.
 | 05 | [UI design system](05-ui-design-system.md) | Principles, color tokens (light/dark, collection colors), type, spacing, components, icons, motion, theme, copy, accessibility, screen inventory; mockup snapshot in [mockups/](mockups/) | Done for MVP |
 | 06 | [Build plan](06-build-plan.md) | Barebones v0.1 and MVP v1.0 scope, stack, architecture, tasks, week-by-week plan, exit criteria | Built (MVP on `feat/extension`) |
 | 07 | [Store listing](07-store-listing.md) | Store copy, privacy answers, permission justifications, publish steps, open items | Draft |
+| 08 | [Branding](08-branding.md) | Name (CopyDrawer), competitor names, shortlist, availability checks, domain prices | Name and domains chosen |
