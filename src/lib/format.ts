@@ -14,10 +14,13 @@ export function shortTime(ts: number, now = Date.now()): string {
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 }
 
+/** "en.wikipedia.org" for a web address; undefined for anything that isn't http(s). */
 export function hostOf(url?: string): string | undefined {
   if (!url) return undefined;
   try {
-    return new URL(url).hostname.replace(/^www\./, '');
+    const u = new URL(url);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return undefined;
+    return u.hostname.toLowerCase().replace(/^www\./, '');
   } catch {
     return undefined;
   }

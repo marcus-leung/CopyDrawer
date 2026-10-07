@@ -9,7 +9,7 @@
 /* Dark mode follows <html data-theme>, set from settings + system. */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
-/* Design tokens: docs/05-ui-design-system.md §2 */
+/* Design tokens */
 :root {
   --bg: #ffffff;
   --surface: #f1f2f6;

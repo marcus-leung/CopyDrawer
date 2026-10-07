@@ -1,7 +1,7 @@
 import type { Embedder } from './vector';
 
-export const MODEL_ID = 'Xenova/all-MiniLM-L6-v2';
-export const MODEL_KEY = 'minilm-l6-q8';
+const MODEL_ID = 'Xenova/all-MiniLM-L6-v2';
+const MODEL_KEY = 'minilm-l6-q8';
 
 export type ModelState =
   { status: 'idle' } | { status: 'loading'; progress?: number } | { status: 'ready' } | { status: 'failed'; message: string };

@@ -8,7 +8,7 @@ export interface ClipSource {
   favicon?: string;
 }
 
-export interface ClipImage {
+interface ClipImage {
   /** Key into the `images` table holding the full-size file. */
   imageId: string;
   mime: string;

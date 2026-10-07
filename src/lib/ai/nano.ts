@@ -5,7 +5,7 @@
  */
 export type Availability = 'unavailable' | 'downloadable' | 'downloading' | 'available';
 
-export interface LMSession {
+interface LMSession {
   prompt(input: string, opts?: { signal?: AbortSignal }): Promise<string>;
   clone(): Promise<LMSession>;
   destroy(): void;

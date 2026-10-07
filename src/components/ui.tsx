@@ -67,7 +67,3 @@ export function SearchField({ label, className = '', ...props }: InputHTMLAttrib
     </label>
   );
 }
-
-export function Dot({ color }: { color: string }) {
-  return <span className="inline-block size-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden />;
-}

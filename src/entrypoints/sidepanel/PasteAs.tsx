@@ -18,7 +18,7 @@ const LANGS = ['en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'zh', 'ko', 'hi', 'ar']
 
 const chip = 'h-8 cursor-pointer rounded-full px-3 text-[13px] font-semibold disabled:cursor-default disabled:opacity-50';
 
-/** Paste as: plain options copy right away; AI options show a preview first (screens 3.3–3.4). */
+/** Paste as: plain options copy right away; AI options show a preview first. */
 export function PasteAs({
   clip,
   onCopyOriginal,

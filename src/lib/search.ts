@@ -1,6 +1,6 @@
 import type { Clip, ClipKind } from './db';
 import { matchesQuery } from './clips';
-import { hostnameOf } from './exclusions';
+import { hostOf } from './format';
 import { semanticSearch } from './embed/indexer';
 import type { Embedder } from './embed/vector';
 
@@ -20,10 +20,6 @@ export interface SearchResult {
   match: 'words' | 'meaning';
 }
 
-export function siteOf(clip: Clip): string | undefined {
-  return clip.source?.url ? hostnameOf(clip.source.url)?.replace(/^www\./, '') : undefined;
-}
-
 function since(date: DateFilter, now: number): number {
   const d = new Date(now);
   if (date === 'today') return d.setHours(0, 0, 0, 0);
@@ -32,9 +28,9 @@ function since(date: DateFilter, now: number): number {
   return 0;
 }
 
-export function passesFilters(clip: Clip, f: SearchFilters, now = Date.now()): boolean {
+function passesFilters(clip: Clip, f: SearchFilters, now: number): boolean {
   if (f.kind !== 'any' && clip.kind !== f.kind) return false;
-  if (f.site !== 'any' && siteOf(clip) !== f.site) return false;
+  if (f.site !== 'any' && hostOf(clip.source?.url) !== f.site) return false;
   return clip.createdAt >= since(f.date, now);
 }
 
@@ -42,7 +38,7 @@ export function passesFilters(clip: Clip, f: SearchFilters, now = Date.now()): b
 export function topSites(clips: Clip[], limit = 12): string[] {
   const counts = new Map<string, number>();
   for (const c of clips) {
-    const s = siteOf(c);
+    const s = hostOf(c.source?.url);
     if (s) counts.set(s, (counts.get(s) ?? 0) + 1);
   }
   return [...counts.entries()]

@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, Pencil, Pin, PinOff, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
 import { editClip, togglePin } from '@/lib/clips';
-import { createCollection, moveClip } from '@/lib/collections';
+import { moveClip, promptNewCollection } from '@/lib/collections';
 import { hostOf } from '@/lib/format';
 import { formatBytes } from '@/lib/images';
 import { useObjectUrl } from '@/lib/useObjectUrl';
@@ -155,10 +155,8 @@ function MoveTo({ clip }: { clip: Clip }) {
   if (!collections) return null;
   async function change(value: string) {
     if (value === NEW) {
-      const name = prompt('Name the new collection');
-      if (!name?.trim()) return;
-      const created = await createCollection(name);
-      await moveClip(clip.id, created.id);
+      const created = await promptNewCollection();
+      if (created) await moveClip(clip.id, created.id);
       return;
     }
     await moveClip(clip.id, value || undefined);
@@ -183,7 +181,7 @@ function MoveTo({ clip }: { clip: Clip }) {
   );
 }
 
-/** Edit the saved copy's title and text (screen 3.3: "Edits only change this saved copy"). */
+/** Edit the saved copy's title and text. */
 function EditClip({ clip, onDone }: { clip: Clip; onDone: (saved: boolean) => void }) {
   const [title, setTitle] = useState(clip.title);
   const [text, setText] = useState(clip.text);

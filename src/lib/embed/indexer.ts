@@ -4,7 +4,7 @@ import { assignCategory } from '../collections';
 import { cosine, type Embedder } from './vector';
 
 /** What the model reads for a clip: title, the start of the text, and the page title. */
-export function textForEmbedding(clip: Pick<Clip, 'title' | 'text' | 'source' | 'kind'>): string {
+function textForEmbedding(clip: Pick<Clip, 'title' | 'text' | 'source' | 'kind'>): string {
   const parts = [clip.title, clip.kind === 'image' ? '' : clip.text.slice(0, 1000), clip.source?.title ?? ''];
   return parts.filter(Boolean).join('\n');
 }
@@ -32,7 +32,7 @@ const EXAMPLE_MIN = 0.72;
  * 1. a collection where the user put a very similar clip ("future clips like it follow"),
  * 2. otherwise the closest category, if clearly closest (semantic models only).
  */
-export async function suggestCollection(
+async function suggestCollection(
   clip: Clip,
   embedder: Embedder,
   examples: Clip[],

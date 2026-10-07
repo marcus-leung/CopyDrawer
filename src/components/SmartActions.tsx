@@ -1,6 +1,6 @@
 import { CalendarPlus, Copy, ExternalLink } from 'lucide-react';
 import type { Clip } from '@/lib/db';
-import { colorFormats, detectActions, makeIcs, type SmartAction } from '@/lib/actions';
+import { colorFormats, detectActions, makeIcs, type Rgb, type SmartAction } from '@/lib/actions';
 
 function downloadIcs(clip: Clip, action: Extract<SmartAction, { kind: 'calendar' }>) {
   const ics = makeIcs({ title: clip.title, date: action.date, details: clip.text, location: action.location });
@@ -17,7 +17,7 @@ function downloadIcs(clip: Clip, action: Extract<SmartAction, { kind: 'calendar'
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** "Looks like a UPS tracking number" + one-click next steps (screens 3.3, 6.2). */
+/** "Looks like a UPS tracking number" plus one-click next steps. */
 export function SmartActions({ clip, notify }: { clip: Clip; notify: (message: string) => void }) {
   const found = detectActions(clip);
   if (!found.actions.length && !found.color) return null;
@@ -37,7 +37,7 @@ export function SmartActions({ clip, notify }: { clip: Clip; notify: (message: s
 
   return (
     <section aria-label="Smart actions" className="mt-3 rounded-2xl bg-surface p-3.5">
-      {found.color && <Swatch clip={clip} />}
+      {found.color && <Swatch color={found.color} />}
       {found.note && <p className="mb-2.5 text-[13px] font-semibold text-text-2">{found.note}</p>}
       <div className="flex flex-wrap gap-2">
         {found.actions.map((a, i) => {
@@ -61,10 +61,8 @@ export function SmartActions({ clip, notify }: { clip: Clip; notify: (message: s
   );
 }
 
-function Swatch({ clip }: { clip: Clip }) {
-  const found = detectActions(clip);
-  if (!found.color) return null;
-  const f = colorFormats(found.color);
+function Swatch({ color }: { color: Rgb }) {
+  const f = colorFormats(color);
   return (
     <div className="mb-3 flex items-center gap-3">
       <span className="size-12 shrink-0 rounded-xl border border-line-strong" style={{ background: f.rgb }} aria-hidden />

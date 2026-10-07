@@ -1,9 +1,9 @@
 import { getSettings, updateSettings } from './settings';
 
-export const AUTOSAVE_SCRIPT_ID = 'autosave';
+const AUTOSAVE_SCRIPT_ID = 'autosave';
 const ALL_SITES = { origins: ['<all_urls>'] };
 
-export async function hasAllSitesAccess(): Promise<boolean> {
+async function hasAllSitesAccess(): Promise<boolean> {
   try {
     return await browser.permissions.contains(ALL_SITES);
   } catch {

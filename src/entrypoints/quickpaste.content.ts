@@ -1,7 +1,7 @@
 /**
  * Quick-paste box (Alt+Shift+V): an overlay on the current page to find a clip
  * and paste it into the field you were typing in. Injected on demand with
- * activeTab, so it needs no site access. Screen 3.2.
+ * activeTab, so it needs no site access.
  */
 import { PLAIN_TRANSFORMS, AI_TRANSFORMS, type Transform } from '@/lib/transforms';
 import type { QuickClip } from '@/lib/quickpaste';
