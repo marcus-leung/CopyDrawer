@@ -4,7 +4,7 @@ Copy for the Chrome Web Store and Microsoft Edge Add-ons, the permission justifi
 
 ## 1. Listing
 
-**Name:** Clipboard (working name; check trademark and store search before submitting).
+**Name:** CopyDrawer – Smart Clipboard Manager (see [08-branding.md](08-branding.md); the extension still uses the working name "Clipboard").
 
 **Short description (≤132 chars):**
 > Everything you copy, kept and sorted by on-device AI. Find it by meaning, paste it anywhere with Alt+Shift+V. Private.
