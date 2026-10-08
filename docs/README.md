@@ -4,8 +4,8 @@ We follow **Research → Design → Plan → Build**.
 
 | # | Doc | Contents | Status |
 |---|---|---|---|
-| 01 | [Research](01-research.md) | Market demand, competitors, technical constraints, AI options, launch requirements, pricing data, sources | Done |
-| 02 | [Design](02-design.md) | Product definition, personas, AI selling points, AI architecture, permission strategy, UX, MVP spec, system architecture | Decisions locked; name chosen (CopyDrawer); built |
+| 01 | [Research](01-research.md) | Market demand, competitors, technical constraints, AI options, launch requirements, pricing data, sources | Done; kept as the record (AI and Pro are out of scope for now) |
+| 02 | [Design](02-design.md) | Product definition, personas, selling points, permission strategy, UX, MVP spec, system architecture | Decisions locked; name chosen (CopyDrawer); built |
 | 03 | [Plan](03-plan.md) | Cost estimate, launch difficulty + checklist, go-to-market plan, development roadmap, risks | Active roadmap: MVP built, private beta next |
 | 04 | [Design resources](04-design-resources.md) | Vetted animation/UI/icon libraries (free, GPL-compatible, MV3-safe), Claude design skills, reusable design prompts | Done |
 | 05 | [UI design system](05-ui-design-system.md) | Principles, color tokens (light/dark, collection colors), type, spacing, components, icons, motion, theme, copy, accessibility, screen inventory; mockup snapshot in [mockups/](mockups/) | Done for MVP |

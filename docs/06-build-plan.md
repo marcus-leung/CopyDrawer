@@ -12,7 +12,6 @@ Assumptions: solo developer, ~20 h/week, AI coding help. Chrome + Edge only. Eng
 |---|---|---|
 | Goal | Prove the core loop works end to end: **copy → saved → find → paste** | A product people install, understand in 60 seconds, and keep using |
 | Who uses it | You + a few friends (unlisted store listing) | Public: Chrome Web Store + Edge Add-ons |
-| AI | None | On-device only (embeddings everywhere, Gemini Nano where available) |
 | Length | ~1.5 weeks | +5 weeks after barebones (≈ 6.5 weeks total) |
 | Screens | Home list, clip detail (minimal), settings (minimal) | All MVP screens in the design system inventory |
 
@@ -28,8 +27,7 @@ Assumptions: solo developer, ~20 h/week, AI coding help. Chrome + Edge only. Eng
 | Components | **shadcn/ui (Radix)** copied into the repo | Accessible, MIT, ours to edit |
 | Animation | CSS + **Motion** (`LazyMotion`) in the panel; CSS only in the page overlay | Approved in doc 04 |
 | Icons / fonts | **Lucide** (+ lucide-animated later) · **Fontsource** Bricolage Grotesque, Instrument Sans, JetBrains Mono | Bundled locally |
-| Storage | **IndexedDB via Dexie** (clips, collections, vectors) · **OPFS** for image files · `chrome.storage.local` for settings · `chrome.storage.sync` for settings sync | Local-first |
-| AI (MVP) | **transformers.js** + a small embedding model (MiniLM-class, ~25 MB, downloaded once) · **Chrome built-in AI** (Prompt / Rewriter / Summarizer / Translator) feature-detected | $0, private |
+| Storage | **IndexedDB via Dexie** (clips, images, collections) · **OPFS** for image files · `chrome.storage.local` for settings · `chrome.storage.sync` for settings sync | Local-first |
 | Tests | **Vitest** (logic) · **Playwright** with the unpacked extension (e2e) | Chromium is available in CI |
 | Tooling | pnpm, ESLint, Prettier, GitHub Actions | Standard |
 
@@ -43,22 +41,21 @@ Service worker (background)
   - writes clips to IndexedDB (single writer)
 Side panel (React)           - main UI: home, search, collections, detail, settings
 Toolbar popup (React)        - recent clips + auto-save switch
-Offscreen document           - read/write the system clipboard, embedding worker (MVP)
 Content script, auto-capture - listens to copy/cut; only after the user grants optional all-sites access (MVP)
 Injected overlay             - quick-paste box (Alt+Shift+V), injected on demand via activeTab, Shadow DOM (MVP)
 ```
 
-**Data model** (from 02-design §7.1, trimmed for v0.1):
+**Data model** (from 02-design §6.1, trimmed for v0.1):
 
 ```ts
 Clip { id, createdAt, lastUsedAt, useCount, kind: 'text'|'link'|'image'|'html',
        text?, html?, imageRef?, title?, source?: { url, title, favicon },
-       collectionId?, pinned, embedding? /* MVP */, detected?: Detected[] /* MVP */ }
+       collectionId?, pinned }
 Collection { id, name, color, kind: 'smart'|'manual', order }
 Settings { autoSave, blockedSites[], retentionDays, theme, analytics, shortcutsSeen }
 ```
 
-**Permissions:** install-time `storage`, `unlimitedStorage`, `sidePanel`, `contextMenus`, `activeTab`, `scripting`, `clipboardRead`, `clipboardWrite`, `offscreen`; **optional** `<all_urls>` requested in onboarding for auto-save (MVP).
+**Permissions:** install-time `storage`, `unlimitedStorage`, `sidePanel`, `contextMenus`, `activeTab`, `scripting`, `clipboardRead`, `clipboardWrite`, `alarms`; **optional** `<all_urls>` requested in onboarding for auto-save (MVP).
 
 ---
 
@@ -76,7 +73,7 @@ Settings { autoSave, blockedSites[], retentionDays, theme, analytics, shortcutsS
 9. Unit tests for storage and limits; one Playwright e2e test: save selection → appears in panel → copy works.
 10. Build zip + **unlisted** Chrome Web Store submission (starts the review relationship early).
 
-**Out of scope for v0.1:** images, auto-capture, AI, collections, quick-paste box, onboarding, dark mode.
+**Out of scope for v0.1:** images, auto-capture, collections, quick-paste box, onboarding, dark mode.
 
 **Exit criteria:**
 - Save → find → copy works on 20 popular sites (Google Docs, Gmail, Notion, GitHub, Wikipedia, YouTube, Reddit, ChatGPT…), with any failures written down.
@@ -91,7 +88,7 @@ Settings { autoSave, blockedSites[], retentionDays, theme, analytics, shortcutsS
 | B2 | Design tokens + fonts + base components (button, icon button, search field, clip row, toast) | Matches doc 05 light theme |
 | B3 | Dexie schema + clip repository (add, list, search, pin, delete, limit enforcement) | Vitest covers add/limit/delete |
 | B4 | Service worker: context menu "Save selection", command Alt+Shift+S, message router | Selected text appears in DB with source |
-| B5 | Side panel home list + paste-into-panel + Grab clipboard (offscreen doc) | Clips show live as they're saved |
+| B5 | Side panel home list + paste-into-panel + Grab clipboard | Clips show live as they're saved |
 | B6 | Copy back to clipboard, pin, delete + Undo | Works from the panel |
 | B7 | Keyword search | Filters as you type |
 | B8 | Minimal settings | Limit, delete all, shortcuts link |
@@ -108,16 +105,15 @@ Built on top of v0.1, in this order. Each week ends with a usable build.
 - **Images:** right-click "Save image", screenshot an area (`captureVisibleTab` + crop), drop/paste images into the panel; files in OPFS, thumbnails in IndexedDB; size limit 20 MB; formats PNG/JPG/GIF/WebP. _Screens 2.1–2.5._
 - In-page "Saved" toast with Open/Undo. _Screen 2.3._
 
-### Week 2: organize (AI, part 1) ✅
-- **Embeddings pipeline** in the offscreen worker: model downloaded once and cached; index new clips in the background; re-index on model change.
-- **Smart collections:** assign clips to collections by similarity to collection examples; create new ones when clusters appear; colors from doc 05; users can rename, recolor, move clips ("future clips like it follow"). _Home, screen 4.1._
-- **Trip collections:** destination + date detection groups travel clips (mustard color). _Screen 6.1._
-- **Titles:** heuristic everywhere; Gemini Nano titles when available.
+### Week 2: organize ✅
+- **Collections:** rules sort clips into Research, Links, Code, Shopping, Recipes, Personal; colors from doc 05; users can make their own, rename, recolor, move clips. _Home, screen 4.1._
+- **Trip collections:** destination detection groups travel clips (mustard color). _Screen 6.1._
+- **Titles:** made from the text; users can edit them.
 
 ### Week 3: find and paste ✅
-- **Search by description** (semantic + keyword blend), filters: type, site, date. _Screen 3.1._
+- **Search:** words, with small typos forgiven; filters: type, site, date. _Screen 3.1._
 - **Quick-paste box** (Alt+Shift+V): overlay in Shadow DOM via activeTab, type to filter, Enter paste into the focused field, Tab for Paste as, Esc close. _Screen 3.2._
-- **Paste as:** plain text, Markdown, bullet list, case, strip formatting (all devices); summarize, rewrite tone, fix grammar, translate (Nano devices) with preview. _Screens 3.3–3.4._
+- **Paste as:** plain text, Markdown, bullet list, checklist, one line, case. _Screen 3.3._
 
 ### Week 4: smart actions + home polish ✅
 - **Smart types and actions:** link tracking-param removal, color swatch + formats, JSON tidy, code highlight, **date → Add to calendar (.ics)**, **address → Open in Google Maps**, flight number / tracking number → status link, email/phone. Prices keep their currency symbol (no conversion). _Screens 3.3, 6.2._
@@ -126,19 +122,21 @@ Built on top of v0.1, in this order. Each week ends with a usable build.
 - **Dark theme** (system + override). _C1._
 
 ### Week 5: onboarding, settings, launch prep ✅
-- **Onboarding** 3 steps incl. AI capability check and Nano download consent. _Screens 1.1–1.3._
-- **Settings** complete: auto-save, blocked sites, shortcuts, history and auto-delete, AI status, theme, anonymous usage counts toggle, export/import/delete all. _Screen 5.1._
-- **Notices:** paused, site blocked, history full, basic AI. _Screen 5.3._
-- **Pro waitlist fake door** (sync, unlimited, cloud AI, text in images) linking to an external form; counts clicks anonymously. _Screen 5.4._
+- **Onboarding** 3 steps: privacy promise, auto-save, the two shortcuts. _Screens 1.1–1.2._
+- **Settings** complete: auto-save, blocked sites, shortcuts, history and auto-delete, theme, export/import/delete all. _Screen 5.1._
+- **Notices:** paused, site blocked, history full. _Screen 5.3._
 - Privacy policy, store listing assets, permission justifications, Edge package, performance + accessibility pass.
 
-### Moved out of MVP (to v1.1 or later)
-- Research stack + cited summary (screens 4.2, Flow 4) → **v1.1**
-- Share the trip plan as a group-chat message (screen 6.3) → **v1.1**
-- Emoji and symbols board (screen 3.5) → **v1.1**
-- Copy several, paste in order → v1.1
+### Added after trying the MVP ✅
+- **No browser dialogs:** naming a collection and confirming deletes happen inline in the panel.
+- **Collection colors:** 7 presets plus a rainbow bar for any hue, readable in light and dark.
+- **Image drag and drop:** reorder the images & colors strip, drop an image on a collection, drag an image out to a page or the desktop.
+- **AI and Pro removed:** no on-device model, no Chrome built-in AI, no waitlist. The extension makes no network requests and is under 1 MB.
+
+### Moved out of MVP (later)
+- Emoji and symbols board (screen 3.5)
+- Copy several, paste in order
 - Safari → after v1.0
-- Everything Pro (sync, cloud AI, text in images, unlimited) → only if the week-12 gate passes ([03-plan.md](03-plan.md) §3.6)
 
 **MVP exit criteria (= launch):**
 - All MVP screens built to the design system, light and dark.
@@ -154,8 +152,8 @@ Built on top of v0.1, in this order. Each week ends with a usable build.
 |---|---|---|
 | 1–1.5 | Barebones | v0.1 unlisted |
 | 2.5 | MVP week 1 | Auto-save + images |
-| 3.5 | MVP week 2 | Smart collections + trips |
-| 4.5 | MVP week 3 | Search by description, quick-paste, Paste as |
+| 3.5 | MVP week 2 | Collections + trips |
+| 4.5 | MVP week 3 | Search, quick-paste, Paste as |
 | 5.5 | MVP week 4 | Smart actions, home, popup, dark mode |
 | 6.5 | MVP week 5 | Onboarding, settings, launch prep |
 | 7.5–8.5 | Private beta | Fixes from 30–50 testers |
@@ -168,7 +166,7 @@ Built on top of v0.1, in this order. Each week ends with a usable build.
 - **Branches:** `main` is releasable; feature branches + PRs; tag releases `v0.1.0`, `v1.0.0`.
 - **CI (GitHub Actions):** lint, typecheck, Vitest, build, Playwright (headless Chromium with the unpacked extension), upload zip artifact.
 - **Security:** no remote code; no `eval`; all assets bundled; pinned dependencies; dependency review on upgrades; 2FA on store accounts; clip content never logged or sent anywhere.
-- **Performance budgets:** side panel JS < 250 KB gzipped at first load (AI loads lazily); overlay < 30 KB.
+- **Performance budgets:** side panel JS < 250 KB gzipped at first load; overlay < 30 KB.
 - **Accessibility:** keyboard path for every flow; contrast per doc 05; reduced motion.
 - **Definition of done** (every task): matches the mockup, works in light and dark (from MVP week 4), has tests where logic exists, no console errors, keyboard reachable.
 
@@ -179,10 +177,8 @@ Built on top of v0.1, in this order. Each week ends with a usable build.
 | Risk | Mitigation |
 |---|---|
 | Copy events don't fire on custom editors (Google Docs, Figma) | Measured in v0.1 site test; "Grab clipboard" button as fallback |
-| Embedding model too slow on low-end laptops | Lazy indexing, throttle, batch; keyword search always works |
-| Gemini Nano missing on most devices | Every AI feature has a non-AI fallback; "Basic AI" notice |
 | Store review delays | Unlisted v0.1 submission; optional all-sites permission; precise justifications |
-| Scope creep | This doc is the scope; new ideas go to the v1.1 list |
+| Scope creep | This doc is the scope; new ideas go to the later list |
 
 ---
 

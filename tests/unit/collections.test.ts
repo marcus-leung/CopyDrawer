@@ -2,7 +2,15 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ClipDatabase } from '@/lib/db';
 import { saveClip } from '@/lib/clips';
 import { classifyByRules, detectDestination } from '@/lib/classify';
-import { createCollection, deleteCollection, listCollections, moveClip, renameCollection } from '@/lib/collections';
+import {
+  COLORS,
+  colorOf,
+  createCollection,
+  deleteCollection,
+  listCollections,
+  moveClip,
+  renameCollection,
+} from '@/lib/collections';
 
 let db: ClipDatabase;
 beforeEach(async () => {
@@ -80,7 +88,7 @@ describe('collections', () => {
 
   it('keeps clips where the user moved them', async () => {
     const c = (await saveClip({ text: 'Photosynthesis', source: { url: 'https://en.wikipedia.org/wiki/P' } }, db))!;
-    const mine = await createCollection('Biology essay', db);
+    const mine = await createCollection('Biology essay', undefined, db);
     await moveClip(c.id, mine.id, db);
     // Saving the same text again must not move it back.
     await saveClip({ text: 'Photosynthesis', source: { url: 'https://en.wikipedia.org/wiki/P' } }, db);
@@ -95,5 +103,36 @@ describe('collections', () => {
     await deleteCollection(collectionId!, db);
     expect((await db.clips.get(c.id))?.collectionId).toBeUndefined();
     expect(await db.clips.count()).toBe(1);
+  });
+});
+
+describe('collection colors', () => {
+  const lum = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+  };
+  const contrast = (a: string, b: string) => {
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+    return (hi! + 0.05) / (lo! + 0.05);
+  };
+
+  it('makes readable shades for any custom hue, in light and dark', () => {
+    for (let h = 0; h < 360; h++) {
+      const c = colorOf({ color: `hue:${h}` });
+      expect(contrast(c.text, c.tint), `text on tint, hue ${h}`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.accent, '#ffffff'), `tab on white, hue ${h}`).toBeGreaterThanOrEqual(3);
+      expect(contrast('#eef0f6', c.tintDark), `dark text on dark tint, hue ${h}`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.accentDark, '#14161f'), `dark tab, hue ${h}`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('keeps preset colors and falls back to grey for anything unknown', () => {
+    expect(colorOf({ color: 'blue' })).toBe(COLORS.blue);
+    expect(colorOf({ color: 'hue:999' })).toBe(COLORS.grey);
+    expect(colorOf({ color: 'nope' })).toBe(COLORS.grey);
+    expect(colorOf({ color: 'hue:200' }).accent).toMatch(/^#[0-9a-f]{6}$/);
   });
 });

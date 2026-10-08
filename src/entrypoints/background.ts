@@ -2,8 +2,7 @@ import { deleteClip, deleteOlderThan, listClips, markUsed, saveClip } from '@/li
 import { db } from '@/lib/db';
 import { colorOf } from '@/lib/collections';
 import { hostOf } from '@/lib/format';
-import { applyAi, applyPlain, isAiTransform, type Transform } from '@/lib/transforms';
-import { nanoAvailability } from '@/lib/ai/nano';
+import { applyTransform, type Transform } from '@/lib/transforms';
 import type { QuickClip } from '@/lib/quickpaste';
 import { OPEN_CLIP_KEY } from '@/lib/openClip';
 import { getSettings, isPaused, pullSyncedSettings, syncedSettingsItem, updateSettings } from '@/lib/settings';
@@ -145,7 +144,8 @@ async function handleAutosave(msg: { text: string; html?: string; title?: string
   const s = await getSettings();
   if (!s.autoSave || isPaused(s)) return;
   const tab = sender.tab;
-  const url = sender.url ?? tab?.url;
+  // A blank or srcdoc frame (an editor inside the page) belongs to the page around it.
+  const url = hostOf(sender.url) ? sender.url : tab?.url;
   if (isBlocked(url, s.blockedSites) || isBlocked(tab?.url, s.blockedSites)) return;
   if (tab?.incognito && !s.saveInIncognito) return;
   const clip = await saveClip({
@@ -203,11 +203,10 @@ async function openQuickPaste(tab: Browser.tabs.Tab | undefined) {
   }
 }
 
-async function quickPasteClips(): Promise<{ clips: QuickClip[]; aiReady: boolean }> {
-  const [clips, collections, ai] = await Promise.all([listClips(), db.collections.toArray(), nanoAvailability()]);
+async function quickPasteClips(): Promise<{ clips: QuickClip[] }> {
+  const [clips, collections] = await Promise.all([listClips(), db.collections.toArray()]);
   const byId = new Map(collections.map((c) => [c.id, c]));
   return {
-    aiReady: ai === 'available',
     clips: clips
       .filter((c) => c.kind !== 'image')
       .slice(0, 300)
@@ -229,8 +228,7 @@ async function quickPasteClips(): Promise<{ clips: QuickClip[]; aiReady: boolean
 async function quickPasteTransform(id: string, transform: Transform): Promise<string | null> {
   const clip = await db.clips.get(id);
   if (!clip) return null;
-  if (isAiTransform(transform)) return applyAi(transform, clip.text, { lang: navigator.language.slice(0, 2) });
-  return applyPlain(transform, clip.text, clip.html);
+  return applyTransform(transform, clip.text, clip.html);
 }
 
 export default defineBackground(() => {

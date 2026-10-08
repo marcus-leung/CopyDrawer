@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures';
 
-test('clips sort into smart collections and trips; moving a clip keeps it there', async ({ context, extensionId }) => {
+test('clips sort into collections and trips; moving a clip keeps it there', async ({ context, extensionId }) => {
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
   const paste = async (text: string) =>
@@ -28,12 +28,19 @@ test('clips sort into smart collections and trips; moving a clip keeps it there'
   const inTrip = page.getByRole('list', { name: 'Clips in Lisbon trip' });
   await expect(inTrip.getByRole('listitem')).toHaveCount(2);
 
-  // Move the hotel into a new collection from its detail page.
+  // Move the hotel into a new collection from its detail page, named right there.
   await inTrip.getByRole('button', { name: /Hotel in Chiado/ }).click();
-  page.once('dialog', (d) => void d.accept('Places to stay'));
-  await page.getByLabel('Collection').selectOption('__new__');
-  await expect(page.getByLabel('Collection')).toHaveValue(/.+/);
-  await expect(page.getByLabel('Collection').locator('option:checked')).toHaveText('Places to stay');
+  const select = page.getByRole('combobox', { name: /Collection/ });
+  await select.selectOption('__new__');
+  const form = page.getByRole('form', { name: 'New collection' });
+  await expect(form.getByLabel('Collection name')).toBeFocused();
+  await form.getByRole('button', { name: 'Create' }).click();
+  await expect(form.getByRole('alert')).toHaveText('Give the collection a name.');
+  await form.getByLabel('Collection name').fill('Places to stay');
+  await form.getByRole('radio', { name: 'Green' }).click();
+  await form.getByLabel('Collection name').press('Enter');
+  await expect(form).toHaveCount(0);
+  await expect(select.locator('option:checked')).toHaveText('Places to stay');
 
   // Back goes to the trip, which now has one clip.
   await page.getByRole('button', { name: 'Back' }).click();

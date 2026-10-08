@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
-import { deleteCollection, renameCollection } from '@/lib/collections';
+import { deleteCollection, recolorCollection, renameCollection } from '@/lib/collections';
 import { ClipRow } from '@/components/ClipRow';
 import { hostOf } from '@/lib/format';
 import { collectionVars } from '@/components/CollectionTile';
 import { IconButton } from '@/components/ui';
+import { ColorPicker } from '@/components/ColorPicker';
+import { InlineConfirm } from '@/components/InlineConfirm';
 
 type Sort = 'newest' | 'used' | 'source';
 
@@ -34,13 +36,14 @@ export function CollectionView({
   const clips = useLiveQuery(() => db.clips.where('collectionId').equals(id).toArray(), [id]);
   const [sort, setSort] = useState<Sort>('newest');
   const [editing, setEditing] = useState(false);
+  const [panel, setPanel] = useState<'color' | 'delete' | null>(null);
   const sorted = useMemo(() => [...(clips ?? [])].sort(SORTS[sort]), [clips, sort]);
 
   if (collection === undefined || clips === undefined) return null;
   if (collection === null) return null;
 
   async function remove() {
-    if (!collection || !confirm(`Delete “${collection.name}”? Its clips stay in your history.`)) return;
+    if (!collection) return;
     await deleteCollection(collection.id);
     notify('Collection deleted');
     onBack();
@@ -61,7 +64,19 @@ export function CollectionView({
             >
               Rename
             </button>
-            <IconButton label="Delete collection" className="size-9 bg-bg/70 text-danger" onClick={() => void remove()}>
+            <button
+              type="button"
+              aria-expanded={panel === 'color'}
+              onClick={() => setPanel(panel === 'color' ? null : 'color')}
+              className="h-9 cursor-pointer rounded-full bg-bg/70 px-3 text-[13px] font-semibold text-ink"
+            >
+              Color
+            </button>
+            <IconButton
+              label="Delete collection"
+              className="size-9 bg-bg/70 text-danger"
+              onClick={() => setPanel(panel === 'delete' ? null : 'delete')}
+            >
               <Trash2 size={16} aria-hidden />
             </IconButton>
           </div>
@@ -94,6 +109,21 @@ export function CollectionView({
           <p className="mt-0.5 text-[13px]">
             {clips.length} {clips.length === 1 ? 'clip' : 'clips'}
           </p>
+          {panel === 'color' && (
+            <div className="mt-3 rounded-2xl bg-bg p-3.5 text-ink">
+              <ColorPicker value={collection.color} onChange={(color) => void recolorCollection(collection.id, color)} />
+            </div>
+          )}
+          {panel === 'delete' && (
+            <div className="mt-3 text-ink">
+              <InlineConfirm
+                message={`Delete “${collection.name}”? Its clips stay in your history.`}
+                confirmLabel="Delete collection"
+                onConfirm={() => void remove()}
+                onCancel={() => setPanel(null)}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -125,7 +155,7 @@ export function CollectionView({
         {collection.kind !== 'manual' && (
           <p className="py-5 text-[13px] leading-5 text-text-3">
             Sorted here automatically. Wrong folder? Drag a clip onto another collection on the home screen, or open it and pick
-            one. Similar clips will follow.
+            one.
           </p>
         )}
       </main>

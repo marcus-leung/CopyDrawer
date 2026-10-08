@@ -178,7 +178,7 @@ interface ClipEdit {
 
 /**
  * Changes a saved clip's text or title (only this saved copy; nothing on the
- * page). New text gets a fresh type, title and search vector, and is sorted
+ * page). New text gets a fresh type and title, and is sorted
  * again unless the user placed the clip. Returns false for empty text.
  */
 export async function editClip(id: string, edit: ClipEdit, db: ClipDatabase = defaultDb): Promise<boolean> {
@@ -197,8 +197,6 @@ export async function editClip(id: string, edit: ClipEdit, db: ClipDatabase = de
           kind,
           html: undefined, // the formatted copy no longer matches
           hash: hashText(text),
-          embedding: undefined,
-          embeddingModel: undefined,
         };
         if (clip.titleSource !== 'user') next = { ...next, title: makeTitle(text, kind), titleSource: 'heuristic' };
         if (!clip.collectionLocked) next.collectionId = undefined;
@@ -217,6 +215,21 @@ export async function editClip(id: string, edit: ClipEdit, db: ClipDatabase = de
   });
 }
 
+/** Where a clip sits in the "Images and colors" strip: reordered position, else newest first. */
+export function stripRank(clip: Clip): number {
+  return clip.stripRank ?? clip.createdAt;
+}
+
+/** Moves a clip just before `beforeId` in the strip, given the strip in its current order. */
+export async function moveInStrip(id: string, beforeId: string, strip: Clip[], db: ClipDatabase = defaultDb): Promise<void> {
+  const rest = strip.filter((c) => c.id !== id);
+  const at = rest.findIndex((c) => c.id === beforeId);
+  if (id === beforeId || at < 0) return;
+  const next = stripRank(rest[at]!);
+  const prev = at > 0 ? stripRank(rest[at - 1]!) : next + 2;
+  await db.clips.update(id, { stripRank: (prev + next) / 2 });
+}
+
 export async function togglePin(id: string, db: ClipDatabase = defaultDb): Promise<void> {
   const clip = await db.clips.get(id);
   if (!clip) return;
@@ -229,15 +242,23 @@ export async function markUsed(id: string, db: ClipDatabase = defaultDb): Promis
   await db.clips.update(id, { lastUsedAt: Date.now(), useCount: clip.useCount + 1 });
 }
 
+/** Unpinned clips older than `days`. 0 means keep forever. */
+function olderThan(days: number, db: ClipDatabase) {
+  const cutoff = Date.now() - days * 86_400_000;
+  return db.clips
+    .where('createdAt')
+    .below(cutoff)
+    .filter((c) => c.pinned === 0);
+}
+
+export async function countOlderThan(days: number, db: ClipDatabase = defaultDb): Promise<number> {
+  return days > 0 ? olderThan(days, db).count() : 0;
+}
+
 /** Deletes unpinned clips older than `days`. 0 means keep forever. */
 export async function deleteOlderThan(days: number, db: ClipDatabase = defaultDb): Promise<number> {
   if (days <= 0) return 0;
-  const cutoff = Date.now() - days * 86_400_000;
-  const old = await db.clips
-    .where('createdAt')
-    .below(cutoff)
-    .filter((c) => c.pinned === 0)
-    .toArray();
+  const old = await olderThan(days, db).toArray();
   await removeClips(db, old);
   return old.length;
 }

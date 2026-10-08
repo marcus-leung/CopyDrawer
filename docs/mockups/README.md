@@ -6,3 +6,4 @@ Source of the design canvas: https://claude.ai/artifact/416MBBuqTKwgNxzm4zJ7PW (
 - `canvas.json` is the canvas index: board positions, titles, pages (Directions, All screens, Flows).
 - The canvas is the live version; this folder is a snapshot. Re-copy after design changes.
 - Design rules and tokens: [../05-ui-design-system.md](../05-ui-design-system.md).
+- **Snapshot predates removing AI and Pro.** Some remaining screens (Welcome, Notices, Settings) still show AI or Pro elements; the shipped app and [../05-ui-design-system.md](../05-ui-design-system.md) are the reference. AI-only and Pro screens were removed from this folder.

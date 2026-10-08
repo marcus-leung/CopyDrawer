@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyPlain, htmlToMarkdown, listItems, titleCase } from '@/lib/transforms';
+import { applyTransform, htmlToMarkdown, listItems, titleCase } from '@/lib/transforms';
 
 describe('listItems', () => {
   it('uses lines, then commas outside parentheses, then sentences', () => {
@@ -19,10 +19,10 @@ describe('listItems', () => {
   });
 });
 
-describe('applyPlain', () => {
+describe('applyTransform', () => {
   it('makes lists and changes case', () => {
-    expect(applyPlain('checklist', 'eggs, milk, bread')).toBe('- [ ] eggs\n- [ ] milk\n- [ ] bread');
-    expect(applyPlain('oneline', 'a\n  b\tc ')).toBe('a b c');
+    expect(applyTransform('checklist', 'eggs, milk, bread')).toBe('- [ ] eggs\n- [ ] milk\n- [ ] bread');
+    expect(applyTransform('oneline', 'a\n  b\tc ')).toBe('a b c');
     expect(titleCase('the lord of the rings: a guide')).toBe('The Lord of the Rings: a Guide');
   });
 
@@ -31,6 +31,6 @@ describe('applyPlain', () => {
       '<h2>Lemon pasta</h2><p>Use <b>fresh</b> lemons &amp; <a href="https://x.test/a">good oil</a>.</p><ul><li>One</li><li>Two</li></ul>',
     );
     expect(md).toBe('## Lemon pasta\n\nUse **fresh** lemons & [good oil](https://x.test/a).\n\n- One\n- Two');
-    expect(applyPlain('markdown', 'plain only')).toBe('plain only');
+    expect(applyTransform('markdown', 'plain only')).toBe('plain only');
   });
 });

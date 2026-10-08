@@ -3,8 +3,9 @@
  * and paste it into the field you were typing in. Injected on demand with
  * activeTab, so it needs no site access.
  */
-import { PLAIN_TRANSFORMS, AI_TRANSFORMS, type Transform } from '@/lib/transforms';
+import { TRANSFORMS, type Transform } from '@/lib/transforms';
 import type { QuickClip } from '@/lib/quickpaste';
+import { modKey } from '@/lib/format';
 
 declare global {
   interface Window {
@@ -16,12 +17,12 @@ const CSS = `
 :host { all: initial; }
 * { box-sizing: border-box; }
 .scrim { position: fixed; inset: 0; background: rgba(23,25,35,.28); z-index: 2147483647; display: flex; justify-content: center; align-items: flex-start; padding-top: 14vh; font: 14px/1.45 "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); }
-.box { --ink:#171923; --bg:#fff; --surface:#F1F2F6; --line:#E5E7EE; --t3:#6B7080; --sel:#E6EEFC; --ai:#E6EEFC; --aifg:#173D8F;
+.box { --ink:#171923; --bg:#fff; --surface:#F1F2F6; --line:#E5E7EE; --t3:#6B7080; --sel:#E6EEFC; --pill:#E6EEFC; --pillfg:#173D8F;
   width: min(560px, 92vw); background: var(--bg); color: var(--ink); border-radius: 18px; box-shadow: 0 18px 48px rgba(23,25,35,.22), 0 2px 6px rgba(23,25,35,.08); overflow: hidden; }
-@media (prefers-color-scheme: dark) { .box { --ink:#F4F5F8; --bg:#1B1D27; --surface:#262936; --line:#323646; --t3:#A3A8BC; --sel:#1E2C4D; --ai:#1E2C4D; --aifg:#B9CCFF; } }
+@media (prefers-color-scheme: dark) { .box { --ink:#F4F5F8; --bg:#1B1D27; --surface:#262936; --line:#323646; --t3:#A3A8BC; --sel:#1E2C4D; --pill:#1E2C4D; --pillfg:#B9CCFF; } }
 .head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
 .head input { flex: 1; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; padding: 6px 0; }
-.mode { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--ai); color: var(--aifg); }
+.mode { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--pill); color: var(--pillfg); }
 ul { list-style: none; margin: 0; padding: 6px; max-height: 340px; overflow-y: auto; }
 li { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; cursor: pointer; }
 li[aria-selected="true"] { background: var(--sel); }
@@ -30,7 +31,6 @@ li[aria-selected="true"] { background: var(--sel); }
 .title, .sub { display: block; }
 .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sub { font-size: 12px; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ai { color: var(--aifg); }
 kbd { font: 600 11px/1 "JetBrains Mono", ui-monospace, monospace; padding: 3px 6px; border-radius: 6px; background: var(--surface); color: var(--ink); }
 .foot { display: flex; gap: 14px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--t3); }
 .foot .r { margin-left: auto; }
@@ -45,7 +45,11 @@ type Target =
 function captureTarget(): Target {
   let el = document.activeElement;
   while (el?.shadowRoot?.activeElement) el = el.shadowRoot.activeElement;
-  if (el instanceof HTMLTextAreaElement || (el instanceof HTMLInputElement && /^(text|search|email|url|tel|)$/.test(el.type))) {
+  const writable = (f: HTMLInputElement | HTMLTextAreaElement) => !f.readOnly && !f.disabled;
+  if (
+    (el instanceof HTMLTextAreaElement && writable(el)) ||
+    (el instanceof HTMLInputElement && /^(text|search|email|url|tel|)$/.test(el.type) && writable(el))
+  ) {
     // selectionStart is null on input types without a selection API (email).
     return { kind: 'field', el, start: el.selectionStart, end: el.selectionEnd };
   }
@@ -149,8 +153,10 @@ function open() {
   let shown: QuickClip[] = [];
   let selected = 0;
   let pasteAs: QuickClip | null = null;
-  const options = [...PLAIN_TRANSFORMS, ...AI_TRANSFORMS] as { id: Transform; label: string }[];
-  let aiReady = false;
+  const options = TRANSFORMS;
+  let loaded = false;
+  // Keys pressed before the clips arrive (the background may still be waking up), replayed in order.
+  const early: string[] = [];
 
   const close = () => {
     host.remove();
@@ -173,7 +179,7 @@ function open() {
     if (!insertAt(target, text)) {
       try {
         await navigator.clipboard.writeText(text);
-        toast('Copied. Click where you want it and press Ctrl+V.');
+        toast(`Copied. Click where you want it and press ${modKey('V')}.`);
       } catch {
         toast("Couldn't paste here. Open the side panel to copy it.");
       }
@@ -187,16 +193,13 @@ function open() {
       mode.hidden = false;
       input.placeholder = 'Filter options';
       const q = input.value.toLowerCase();
-      const opts = options.filter(
-        (o) => o.label.toLowerCase().includes(q) && (aiReady || !AI_TRANSFORMS.some((a) => a.id === o.id)),
-      );
+      const opts = options.filter((o) => o.label.toLowerCase().includes(q));
       selected = Math.min(selected, Math.max(0, opts.length - 1));
       opts.forEach((o, i) => {
         const li = el('li');
         li.setAttribute('role', 'option');
         li.setAttribute('aria-selected', String(i === selected));
-        const isAi = AI_TRANSFORMS.some((a) => a.id === o.id);
-        li.append(el('span', `title${isAi ? ' ai' : ''}`, o.label));
+        li.append(el('span', 'title', o.label));
         li.onmousedown = (e) => {
           e.preventDefault();
           void finish(pasteAs!, o.id);
@@ -248,38 +251,43 @@ function open() {
     return s;
   }
 
-  // Keep the page's own shortcuts from reacting while the box is open.
-  const trap = (e: KeyboardEvent) => {
-    if (!host.isConnected) return;
-    e.stopPropagation();
+  /** Runs a box shortcut. Returns false for keys that aren't one. */
+  const handleKey = (key: string): boolean => {
     const count = pasteAs ? Number(list.dataset.count ?? 0) : shown.length;
-    if (e.key === 'Escape') {
-      e.preventDefault();
+    if (key === 'Escape') {
       if (pasteAs) {
         pasteAs = null;
         input.value = '';
         render();
       } else close();
-    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (count) selected = (selected + (e.key === 'ArrowDown' ? 1 : count - 1)) % count;
+    } else if (key === 'ArrowDown' || key === 'ArrowUp') {
+      if (count) selected = (selected + (key === 'ArrowDown' ? 1 : count - 1)) % count;
       render();
-    } else if (e.key === 'Tab') {
-      e.preventDefault();
+    } else if (key === 'Tab') {
       if (!pasteAs && shown[selected]) {
         pasteAs = shown[selected]!;
         selected = 0;
         input.value = '';
         render();
       }
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
+    } else if (key === 'Enter') {
       if (pasteAs) {
         const opt = list.querySelectorAll('li')[selected]?.textContent;
         const o = options.find((x) => x.label === opt);
         if (o) void finish(pasteAs, o.id);
       } else if (shown[selected]) void finish(shown[selected]!);
-    }
+    } else return false;
+    return true;
+  };
+
+  // Keep the page's own shortcuts from reacting while the box is open.
+  const trap = (e: KeyboardEvent) => {
+    if (!host.isConnected) return;
+    e.stopPropagation();
+    if (!loaded && e.key !== 'Escape' && !e.isComposing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      early.push(e.key);
+    } else if (handleKey(e.key)) e.preventDefault();
   };
   document.addEventListener('keydown', trap, true);
   for (const type of ['keyup', 'keypress'] as const) host.addEventListener(type, (e) => e.stopPropagation());
@@ -294,10 +302,18 @@ function open() {
   document.documentElement.append(host);
   input.focus();
   render();
-  void browser.runtime.sendMessage({ type: 'qp-clips' }).then((res: { clips: QuickClip[]; aiReady: boolean }) => {
+  void browser.runtime.sendMessage({ type: 'qp-clips' }).then((res: { clips: QuickClip[] }) => {
     clips = res?.clips ?? [];
-    aiReady = !!res?.aiReady;
+    loaded = true;
     render();
+    for (const key of early) {
+      if (!host.isConnected) break;
+      if (key.length === 1 || key === 'Backspace') {
+        input.value = key === 'Backspace' ? input.value.slice(0, -1) : input.value + key;
+        selected = 0;
+        render();
+      } else handleKey(key);
+    }
   });
 }
 

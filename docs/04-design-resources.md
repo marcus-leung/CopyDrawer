@@ -95,7 +95,7 @@ Security rule for skills: read every SKILL.md before installing (skills are inst
 ## 7. Extension-specific motion guidelines (draft)
 
 1. **Motion answers actions.** Clip saved → small "pop" on the toolbar badge; clip pasted → brief confirmation; item removed → collapse. No decorative loops.
-2. **One signature moment:** the first-run onboarding or the "smart collections forming" animation. Everything else stays quiet.
+2. **One signature moment:** the first-run onboarding or the "collections forming" animation. Everything else stays quiet.
 3. **Speed:** 120–200 ms for micro-interactions, ≤ 300 ms for panel transitions; ease-out on enter, ease-in on exit.
 4. **`prefers-reduced-motion`** respected everywhere (Motion's `useReducedMotion`, CSS media query).
 5. **Content-script overlay (palette):** CSS-only animations, inside Shadow DOM, so the injected bundle stays tiny and never clashes with page styles.
@@ -121,10 +121,10 @@ Security rule for skills: read every SKILL.md before installing (skills are inst
 Use these in Claude Code from this repo; they reference the installed skills.
 
 **P1: Visual direction**
-> Use the `frontend-design` skill. Our product is described in `docs/02-design.md` (a private, AI-powered clipboard manager for Chrome; general audience of students and knowledge workers). Propose 2 distinct visual directions as compact token systems (4–6 named hex colors, typefaces from Fontsource, layout concept with ASCII wireframes for the 400px-wide side panel, principles). Review each against the generic-AI defaults list and revise. Don't write code yet.
+> Use the `frontend-design` skill. Our product is described in `docs/02-design.md` (a private clipboard manager for Chrome; general audience of students and knowledge workers). Propose 2 distinct visual directions as compact token systems (4–6 named hex colors, typefaces from Fontsource, layout concept with ASCII wireframes for the 400px-wide side panel, principles). Review each against the generic-AI defaults list and revise. Don't write code yet.
 
 **P2: Wireframes for key flows**
-> Using the chosen direction, create low-fidelity wireframes (ASCII or a single HTML page) for the 7 key flows in `docs/02-design.md` §5.3: first run → first capture → first paste; search by description; Paste as…; research mode → Compose; pausing/blocking a site; turning on auto-capture (permission explainer); AI-on-this-device status + model download consent.
+> Using the chosen direction, create low-fidelity wireframes (ASCII or a single HTML page) for the key flows in `docs/02-design.md` §4: first run → first capture → first paste; search; Paste as…; pausing/blocking a site; turning on auto-capture (permission explainer); naming a collection and picking its color in place.
 
 **P3: Design tokens + system**
 > Use `design:design-system`. Turn the chosen direction into a token set (color incl. dark mode, type scale, spacing, radius, shadow, motion durations/easings) as Tailwind v4 theme variables, plus component inventory mapped to shadcn/ui components.

@@ -1,11 +1,19 @@
+import { useState } from 'react';
 import type { Clip } from '@/lib/db';
 import { colorFormats, parseColor } from '@/lib/actions';
+import { moveInStrip, stripRank } from '@/lib/clips';
 import { useObjectUrl } from '@/lib/useObjectUrl';
+import { useDragOut } from '@/lib/useDragOut';
+import { CLIP_DRAG_TYPE } from './ClipRow';
 
-/** Recent images and colors, side by side (home, Folders design). */
+/** Marks a drag that started in the strip, so dropping on another tile reorders. */
+const STRIP_DRAG_TYPE = 'application/x-clipboard-strip';
+
+/** Recent images and colors, side by side (home, Folders design). Drag to reorder, file or drag out. */
 export function ImageStrip({ clips, onOpen, onSeeAll }: { clips: Clip[]; onOpen: (clip: Clip) => void; onSeeAll: () => void }) {
   const items = clips
     .filter((c) => c.kind === 'image' || (c.kind === 'text' && c.text.length <= 40 && parseColor(c.text)))
+    .sort((a, b) => stripRank(b) - stripRank(a))
     .slice(0, 12);
   if (!items.length) return null;
   return (
@@ -24,14 +32,54 @@ export function ImageStrip({ clips, onOpen, onSeeAll }: { clips: Clip[]; onOpen:
       </div>
       <ul className="-mx-[18px] flex gap-2 overflow-x-auto px-[18px] pb-1" aria-label="Images and colors">
         {items.map((c) => (
-          <li key={c.id} className="shrink-0">
-            <button type="button" onClick={() => onOpen(c)} className="block cursor-pointer" aria-label={c.title}>
-              {c.kind === 'image' ? <Thumb clip={c} /> : <ColorChip text={c.text} />}
-            </button>
-          </li>
+          <StripItem key={c.id} clip={c} onOpen={onOpen} onReorder={(id) => void moveInStrip(id, c.id, items)} />
         ))}
       </ul>
     </section>
+  );
+}
+
+function StripItem({ clip, onOpen, onReorder }: { clip: Clip; onOpen: (clip: Clip) => void; onReorder: (id: string) => void }) {
+  const dragOut = useDragOut(clip);
+  const [over, setOver] = useState(false);
+  const isStripDrag = (e: React.DragEvent) => e.dataTransfer.types.includes(STRIP_DRAG_TYPE);
+  return (
+    <li
+      className="shrink-0 rounded-xl data-[drop-target]:outline-2 data-[drop-target]:outline-offset-2 data-[drop-target]:outline-ink"
+      data-drop-target={over || undefined}
+      onDragOver={(e) => {
+        if (!isStripDrag(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        setOver(false);
+        if (!isStripDrag(e)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onReorder(e.dataTransfer.getData(CLIP_DRAG_TYPE));
+      }}
+    >
+      <button
+        type="button"
+        draggable
+        onPointerEnter={() => void dragOut.prepare()}
+        onFocus={() => void dragOut.prepare()}
+        onDragStart={(e) => {
+          e.dataTransfer.setData(CLIP_DRAG_TYPE, clip.id);
+          e.dataTransfer.setData(STRIP_DRAG_TYPE, clip.id);
+          dragOut.setData(e.dataTransfer);
+          e.dataTransfer.effectAllowed = 'copyMove';
+        }}
+        onClick={() => onOpen(clip)}
+        className="block cursor-pointer"
+        aria-label={clip.title}
+      >
+        {clip.kind === 'image' ? <Thumb clip={clip} /> : <ColorChip text={clip.text} />}
+      </button>
+    </li>
   );
 }
 

@@ -48,13 +48,12 @@ export async function readClipboard(): Promise<ClipboardContents> {
   }
 }
 
-/** Pulls images and text out of a paste or drop. */
+/** Pulls files and text out of a paste or drop. Unsupported files are kept so saving can say why. */
 export function fromDataTransfer(data: DataTransfer | null): ClipboardContents & { images: File[] } {
   if (!data) return { text: '', images: [] };
-  const images = Array.from(data.files).filter((f) => IMAGE_TYPES.includes(f.type));
   return {
     text: data.getData('text/plain'),
     html: data.getData('text/html') || undefined,
-    images,
+    images: Array.from(data.files),
   };
 }

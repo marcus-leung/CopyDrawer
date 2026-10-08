@@ -3,6 +3,7 @@ import { test, expect } from './fixtures';
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>Lisbon guide</title></head><body>
 <p id="tip">Belém Tower opens at 10:00.</p>
 <input id="pw" type="password" value="hunter2-secret">
+<iframe id="editor" srcdoc="<p id='draft'>Draft typed in an editor frame</p>"></iframe>
 </body></html>`;
 
 test('auto-save keeps what you copy, skips passwords, pauses and blocks', async ({ context, extensionId }) => {
@@ -39,12 +40,36 @@ test('auto-save keeps what you copy, skips passwords, pauses and blocks', async 
     await page.close();
   };
 
+  // Rich-text editors often live in blank or srcdoc frames; those belong to the page around them.
+  const copyInFrame = async (url: string) => {
+    const page = await context.newPage();
+    await page.goto(url);
+    await page
+      .frameLocator('#editor')
+      .locator('#draft')
+      .evaluate((el) => {
+        const doc = el.ownerDocument;
+        const range = doc.createRange();
+        range.selectNodeContents(el);
+        doc.getSelection()!.removeAllRanges();
+        doc.getSelection()!.addRange(range);
+        doc.execCommand('copy');
+      });
+    await page.waitForTimeout(300);
+    await page.close();
+  };
+
   await copyOn('https://guide.e2e.test/', '#tip');
   await copyOn('https://guide.e2e.test/', '#pw');
   await copyOn('https://blocked.e2e.test/', '#tip');
+  await copyInFrame('https://blocked.e2e.test/');
+  await copyInFrame('https://guide.e2e.test/');
 
   const list = panel.getByRole('list', { name: 'Clips' });
-  await expect(list.getByRole('listitem')).toHaveCount(1);
+  await expect(list.getByRole('listitem')).toHaveCount(2);
+  await expect(list.getByRole('listitem').filter({ hasText: 'Draft typed in an editor frame' })).toContainText(
+    /from guide\.e2e\.test/i,
+  );
   await expect(list).toContainText('Belém Tower opens at 10:00.');
   await expect(list).toContainText(/from guide\.e2e\.test/i);
   await expect(panel.getByText('hunter2-secret')).toHaveCount(0);
@@ -62,5 +87,5 @@ test('auto-save keeps what you copy, skips passwords, pauses and blocks', async 
     document.execCommand('copy');
   });
   await page.waitForTimeout(500);
-  await expect(list.getByRole('listitem')).toHaveCount(1);
+  await expect(list.getByRole('listitem')).toHaveCount(2);
 });

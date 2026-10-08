@@ -3,7 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, Pencil, Pin, PinOff, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
 import { editClip, togglePin } from '@/lib/clips';
-import { moveClip, promptNewCollection } from '@/lib/collections';
+import { moveClip } from '@/lib/collections';
+import { NewCollectionForm } from '@/components/NewCollectionForm';
 import { hostOf } from '@/lib/format';
 import { formatBytes } from '@/lib/images';
 import { useObjectUrl } from '@/lib/useObjectUrl';
@@ -152,32 +153,42 @@ const NEW = '__new__';
 
 function MoveTo({ clip }: { clip: Clip }) {
   const collections = useLiveQuery(() => db.collections.orderBy('order').toArray(), []);
+  const [creating, setCreating] = useState(false);
   if (!collections) return null;
-  async function change(value: string) {
-    if (value === NEW) {
-      const created = await promptNewCollection();
-      if (created) await moveClip(clip.id, created.id);
-      return;
-    }
-    await moveClip(clip.id, value || undefined);
-  }
   return (
-    <label className="mt-3 flex items-center gap-2 text-[13px] text-text-2">
-      Collection
-      <select
-        value={clip.collectionId ?? ''}
-        onChange={(e) => void change(e.target.value)}
-        className="h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink"
-      >
-        <option value="">None</option>
-        {collections.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-        <option value={NEW}>New collection…</option>
-      </select>
-    </label>
+    <>
+      <label className="mt-3 flex items-center gap-2 text-[13px] text-text-2">
+        Collection
+        <select
+          value={creating ? NEW : (clip.collectionId ?? '')}
+          onChange={(e) => {
+            const value = e.target.value;
+            setCreating(value === NEW);
+            if (value !== NEW) void moveClip(clip.id, value || undefined);
+          }}
+          className="h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink"
+        >
+          <option value="">None</option>
+          {collections.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+          <option value={NEW}>New collection…</option>
+        </select>
+      </label>
+      {creating && (
+        <div className="mt-2.5">
+          <NewCollectionForm
+            onCancel={() => setCreating(false)}
+            onCreated={(c) => {
+              setCreating(false);
+              void moveClip(clip.id, c.id);
+            }}
+          />
+        </div>
+      )}
+    </>
   );
 }
 

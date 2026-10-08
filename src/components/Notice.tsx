@@ -1,10 +1,9 @@
-type Tone = 'warning' | 'info' | 'neutral' | 'ai';
+type Tone = 'warning' | 'info' | 'neutral';
 
 const TONES: Record<Tone, string> = {
   warning: 'bg-warning-bg border-warning-line text-warning-fg',
-  info: 'bg-ai-bg border-transparent text-ai-fg',
+  info: 'bg-info-bg border-transparent text-info-fg',
   neutral: 'bg-surface border-line-strong text-ink',
-  ai: 'bg-[#EEE8FB] border-[#CDBEF2] text-[#4A2FA0] dark:bg-[#2D2547] dark:border-[#3d3260] dark:text-[#B69CFF]',
 };
 
 export function Notice({

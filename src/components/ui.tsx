@@ -1,14 +1,13 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ComponentProps, InputHTMLAttributes, ReactNode } from 'react';
 import { Search } from 'lucide-react';
 
-type Variant = 'primary' | 'secondary' | 'outline' | 'ai' | 'danger';
+type Variant = 'primary' | 'secondary' | 'outline' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
 const VARIANTS: Record<Variant, string> = {
   primary: 'bg-ink text-on-ink',
   secondary: 'bg-surface text-ink',
   outline: 'border-[1.5px] border-ink bg-transparent text-ink',
-  ai: 'bg-ai-bg text-ai-fg',
   danger: 'border-[1.5px] border-danger bg-transparent text-danger',
 };
 
@@ -23,7 +22,7 @@ export function Button({
   size = 'md',
   className = '',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size }) {
+}: ComponentProps<'button'> & { variant?: Variant; size?: Size }) {
   return (
     <button
       type="button"

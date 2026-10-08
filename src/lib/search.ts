@@ -1,8 +1,6 @@
 import type { Clip, ClipKind } from './db';
 import { matchesQuery } from './clips';
 import { hostOf } from './format';
-import { semanticSearch } from './embed/indexer';
-import type { Embedder } from './embed/vector';
 
 export type DateFilter = 'any' | 'today' | 'week' | 'month';
 
@@ -13,12 +11,6 @@ export interface SearchFilters {
 }
 
 export const NO_FILTERS: SearchFilters = { kind: 'any', site: 'any', date: 'any' };
-
-export interface SearchResult {
-  clip: Clip;
-  /** Found by words in the clip, or only by meaning. */
-  match: 'words' | 'meaning';
-}
 
 function since(date: DateFilter, now: number): number {
   const d = new Date(now);
@@ -84,27 +76,10 @@ export function matchesWithTypos(clip: Clip, query: string): boolean {
   });
 }
 
-/**
- * Word matches first (in the order given: pinned, then newest), then clips that
- * only match by meaning, closest first.
- */
-export async function searchClips(
-  query: string,
-  clips: Clip[],
-  filters: SearchFilters,
-  embedder: Embedder | null,
-  now = Date.now(),
-): Promise<SearchResult[]> {
+/** Clips with every query word (small typos allowed), in the order given: pinned, then newest. */
+export function searchClips(query: string, clips: Clip[], filters: SearchFilters, now = Date.now()): Clip[] {
   const pool = clips.filter((c) => passesFilters(c, filters, now));
   const q = query.trim();
-  if (!q) return pool.map((clip) => ({ clip, match: 'words' }));
-  const words = pool.filter((c) => matchesQuery(c, q) || matchesWithTypos(c, q));
-  const results: SearchResult[] = words.map((clip) => ({ clip, match: 'words' }));
-  if (!embedder || q.length < 3) return results;
-  const seen = new Set(words.map((c) => c.id));
-  const minScore = embedder.semantic ? 0.3 : 0.25;
-  for (const { clip } of await semanticSearch(q, embedder, pool, minScore)) {
-    if (!seen.has(clip.id)) results.push({ clip, match: 'meaning' });
-  }
-  return results;
+  if (!q) return pool;
+  return pool.filter((c) => matchesQuery(c, q) || matchesWithTypos(c, q));
 }

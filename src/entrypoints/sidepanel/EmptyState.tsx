@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui';
+import { modKey } from '@/lib/format';
 
 /** Home before anything is saved: where collections will appear, and how to save. */
 export function EmptyState({ onGrab, autoSave }: { onGrab: () => void; autoSave: boolean }) {
   return (
     <>
-      <h2 className="font-display text-[17px] font-semibold">Smart collections</h2>
+      <h2 className="font-display text-[17px] font-semibold">Collections</h2>
       <p className="mt-2 mb-4 rounded-xl border-2 border-dashed border-line-strong px-4 py-5 text-center text-[13px] text-text-2">
         Collections appear as you save. You don't need to make any.
       </p>
@@ -16,7 +17,7 @@ export function EmptyState({ onGrab, autoSave }: { onGrab: () => void; autoSave:
           <Step n={1}>
             {autoSave ? (
               <>
-                Copy text or a link on any site with <kbd className="bg-bg">Ctrl+C</kbd>
+                Copy text or a link on any site with <kbd className="bg-bg">{modKey('C')}</kbd>
               </>
             ) : (
               <>

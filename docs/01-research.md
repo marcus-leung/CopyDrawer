@@ -1,5 +1,7 @@
 # 01 · Research
 
+> **Scope note:** AI features and a paid Pro tier are out of scope for now; the app ships without them. This research is kept unchanged as the record, in case they come back. Current decisions: [02-design.md](02-design.md) and [03-plan.md](03-plan.md).
+
 _Research date: October 2026 · Process: **Research → [Design](02-design.md) → [Plan](03-plan.md)**_
 
 This doc holds **facts and findings only**. Product decisions live in the design doc; costs, go-to-market and roadmap live in the plan.

@@ -30,8 +30,36 @@ const CATEGORY_COLOR: Record<CategoryId, string> = {
   personal: 'grey',
 };
 
+export const PRESET_COLORS = COLOR_ORDER;
+
+function hsl(h: number, s: number, l: number): string {
+  const a = (s / 100) * Math.min(l / 100, 1 - l / 100);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const v = l / 100 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(v * 255)
+      .toString(16)
+      .padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+/** A collection's color: a preset name ("blue") or a custom hue ("hue:200"). */
 export function colorOf(collection: Pick<Collection, 'color'> | undefined): CollectionColor {
-  return COLORS[collection?.color ?? 'grey'] ?? COLORS.grey!;
+  const color = collection?.color ?? 'grey';
+  const hue = /^hue:(\d{1,3})$/.exec(color);
+  if (hue && Number(hue[1]) < 360) {
+    const h = Number(hue[1]);
+    // Lightness steps chosen so every hue stays readable (see tests).
+    return {
+      accent: hsl(h, 70, 34),
+      tint: hsl(h, 70, 93),
+      text: hsl(h, 75, 22),
+      accentDark: hsl(h, 80, 68),
+      tintDark: hsl(h, 35, 20),
+    };
+  }
+  return COLORS[color] ?? COLORS.grey!;
 }
 
 /** Finds or creates the collection for a key. Must run inside a transaction that includes `collections`. */
@@ -116,23 +144,29 @@ export async function moveClip(clipId: string, collectionId: string | undefined,
   await db.clips.update(clipId, { collectionId, collectionLocked: 1 });
 }
 
-export async function createCollection(name: string, db: ClipDatabase = defaultDb): Promise<Collection> {
-  return db.transaction('rw', db.collections, async () => {
-    const used = new Set((await db.collections.toArray()).map((c) => c.color));
-    const color = COLOR_ORDER.find((c) => !used.has(c)) ?? COLOR_ORDER[(await db.collections.count()) % COLOR_ORDER.length]!;
-    const id = crypto.randomUUID();
-    return ensureCollection(db, `manual:${id}`, { name: name.trim() || 'New collection', color, kind: 'manual' });
-  });
+/** The first preset no collection uses yet, so new collections look different by default. */
+export async function nextColor(db: ClipDatabase = defaultDb): Promise<string> {
+  const used = new Set((await db.collections.toArray()).map((c) => c.color));
+  return COLOR_ORDER.find((c) => !used.has(c)) ?? COLOR_ORDER[(await db.collections.count()) % COLOR_ORDER.length]!;
 }
 
-/** Asks for a name and creates the collection; null if the user cancels. */
-export async function promptNewCollection(): Promise<Collection | null> {
-  const name = prompt('Name the new collection');
-  return name?.trim() ? createCollection(name) : null;
+export async function createCollection(name: string, color?: string, db: ClipDatabase = defaultDb): Promise<Collection> {
+  return db.transaction('rw', db.collections, async () => {
+    const id = crypto.randomUUID();
+    return ensureCollection(db, `manual:${id}`, {
+      name: name.trim() || 'New collection',
+      color: color ?? (await nextColor(db)),
+      kind: 'manual',
+    });
+  });
 }
 
 export async function renameCollection(id: string, name: string, db: ClipDatabase = defaultDb): Promise<void> {
   if (name.trim()) await db.collections.update(id, { name: name.trim() });
+}
+
+export async function recolorCollection(id: string, color: string, db: ClipDatabase = defaultDb): Promise<void> {
+  await db.collections.update(id, { color });
 }
 
 /** Deletes a collection; its clips stay in history without a collection. */

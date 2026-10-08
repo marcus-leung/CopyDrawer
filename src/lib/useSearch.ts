@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Clip } from './db';
-import { searchClips, type SearchFilters, type SearchResult } from './search';
-import { activeEmbedder } from './useIndexer';
+import { searchClips, type SearchFilters } from './search';
 
 /**
  * Searches as you type (150 ms debounce). `results` is null while searching
@@ -10,20 +9,12 @@ import { activeEmbedder } from './useIndexer';
 export function useSearch(query: string, filters: SearchFilters, clips: Clip[] | undefined) {
   const filtering = filters.kind !== 'any' || filters.site !== 'any' || filters.date !== 'any';
   const searching = query.trim() !== '' || filtering;
-  const [found, setFound] = useState<{ items: SearchResult[]; query: string; filters: SearchFilters; clips: Clip[] }>();
+  const [found, setFound] = useState<{ items: Clip[]; query: string; filters: SearchFilters; clips: Clip[] }>();
 
   useEffect(() => {
     if (!searching || !clips) return;
-    let cancelled = false;
-    const t = setTimeout(() => {
-      void searchClips(query, clips, filters, activeEmbedder())
-        .then((items) => !cancelled && setFound({ items, query, filters, clips }))
-        .catch(() => {});
-    }, 150);
-    return () => {
-      cancelled = true;
-      clearTimeout(t);
-    };
+    const t = setTimeout(() => setFound({ items: searchClips(query, clips, filters), query, filters, clips }), 150);
+    return () => clearTimeout(t);
   }, [searching, query, filters, clips]);
 
   const fresh = found && found.query === query && found.filters === filters && found.clips === clips;
