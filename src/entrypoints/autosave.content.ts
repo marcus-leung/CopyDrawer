@@ -3,12 +3,21 @@
  * background. Registered at runtime only after the user grants all-sites
  * access, so it's not in the manifest.
  */
+declare global {
+  interface Window {
+    __clipboardAutosave?: boolean;
+  }
+}
+
 export default defineContentScript({
   registration: 'runtime',
   matches: ['<all_urls>'],
   allFrames: true,
   runAt: 'document_start',
   main() {
+    // Already-open pages get the script when auto-save starts; listen once even if it arrives twice.
+    if (window.__clipboardAutosave) return;
+    window.__clipboardAutosave = true;
     const onCopy = (event: ClipboardEvent) => {
       const target = event.target;
       // Never read password fields.

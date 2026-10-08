@@ -7,7 +7,7 @@ import type { QuickClip } from '@/lib/quickpaste';
 import { OPEN_CLIP_KEY } from '@/lib/openClip';
 import { getSettings, isPaused, pullSyncedSettings, syncedSettingsItem, updateSettings } from '@/lib/settings';
 import { isBlocked } from '@/lib/exclusions';
-import { syncAutosaveRegistration } from '@/lib/autosave';
+import { onPermissionsAdded, syncAutosaveRegistration } from '@/lib/autosave';
 import { blobToDataUrl, dataUrlToBlob, ImageError, saveImageClip } from '@/lib/images';
 import { fetchImageInPage, readSelection, selectArea, showSavedToast } from '@/lib/injected';
 import type { Clip, ClipSource } from '@/lib/db';
@@ -262,6 +262,7 @@ export default defineBackground(() => {
 
   // If the user removes the all-sites permission in Chrome, stop auto-save.
   browser.permissions.onRemoved.addListener(() => void syncAutosaveRegistration());
+  browser.permissions.onAdded.addListener((added) => void onPermissionsAdded(added));
 
   // The toolbar button opens the popup (recent clips); the popup opens the panel.
   browser.sidePanel?.setPanelBehavior({ openPanelOnActionClick: false }).catch(() => {});
@@ -318,6 +319,11 @@ export default defineBackground(() => {
         if (msg.action === 'quick-paste') await openQuickPaste(tab);
         sendResponse(true);
       });
+      return true;
+    }
+    // Test-only: Playwright can't click Chrome's permission prompt.
+    if (__E2E__ && msg.type === 'e2e-permissions-added') {
+      void onPermissionsAdded({ origins: ['<all_urls>'] }).then(() => sendResponse(true));
       return true;
     }
   });

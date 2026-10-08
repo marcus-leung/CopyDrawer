@@ -120,7 +120,7 @@ Rules:
 | **Icon button** | 44 × 44, round, `--surface` or transparent, `aria-label` required, Lucide icon 18–20px, stroke 2. |
 | **Search field** | 44px tall, round, `--surface` fill, search icon, placeholder "Search your clips". Active state: 2px `--link` border. |
 | **Folder tile** | Tab (accent) above a tinted body with a 3px accent top border; name 15px/600 + count line 13px. 2-column grid, 10px gap. Compact variant: 4 tiles in one row. |
-| **Clip row** | Collection dot (8–10px) · title (14px/600, one line, ellipsis) · meta (12px, `--text-3`) · one action on the right (Paste). Row min-height 48–64px, divider `--border`. |
+| **Clip row** | Collection dot (8–10px) · title (14px/600, one line, ellipsis) · meta (12px, `--text-3`) · a copy icon button on the right (Lucide `Copy`, 40px, `--surface`, `aria-label` "Copy" or "Copy image"). Row min-height 48–64px, divider `--border`. Clicking the row opens the clip. |
 | **Clip card** (selected / expanded) | 2px `--ink` or accent border, radius 16, padding 14, actions inside. |
 | **Chip / filter** | 32px tall, round. Off: 1px `--border-strong` on white. On: `--ink` fill, white text, `aria-pressed`. |
 | **Segmented control** | `--surface` track with 4px padding; selected segment white + elevation 1. |
@@ -128,8 +128,9 @@ Rules:
 | **Notice** | Radius 16, padding 14×16, tinted by meaning (warning, info blue, neutral grey), title 14/600 + one sentence + up to two buttons. One at a time, under search. |
 | **Inline confirm** | Replaces browser dialogs. A `--surface` box with a `--danger`-tinted border, shown in place under the control that asked: one sentence, a danger outline button naming the action ("Delete collection") and Cancel. Focus moves to Cancel; Esc cancels; focus returns to the trigger. `role="alertdialog"`. |
 | **New collection form** | Inline, above the collection grid (or under the Collection select in clip detail): "Collection name" field (focused, up to 100 characters; rename and import use the same cap), color picker, Create (primary) and Cancel. Enter creates, Esc cancels, an empty name shows "Give the collection a name." |
+| **Add clip form** | The + button in the home header ("Add a clip") opens it under the search bar: a "Clip" textarea (focused), Save (primary) and Cancel. Cmd/Ctrl+Enter saves, Esc cancels, empty text shows "Type or paste something to save." Pasting into it stays in the box. |
 | **Color picker** | A row of 7 round preset swatches (28px, `role="radio"`, ring on the selected one) and a 12px rainbow bar (`<input type="range">` 0–359, labelled "Custom color", ring when a custom hue is chosen). |
-| **Popup footer** | Two rows: the status hint ("Click a clip to copy it", then "Copied…"), then the auto-save switch labelled "Save what I copy" with the sub-line "On: everything you copy on websites is saved. Off: save by hand." |
+| **Popup rows and footer** | Each recent clip: clicking it opens the clip in the side panel; a copy icon button on the right copies it. Under the list, the hint "Click a clip to open it, or the copy icon to copy it" (then "Copied…"). Footer: the auto-save switch labelled "Save what I copy" with the sub-line "On: everything you copy on websites is saved. Off: save by hand." |
 | **Toast** | Dark (`--ink`) bar for "Clip deleted · Undo"; white card with thumbnail for "Image saved, filed in Research · Open · Undo" (shown on the page, bottom right, 5s). |
 | **Sheet** | Bottom sheet over a scrim, radius 24 top corners, grab handle, close button. |
 | **Drop zone** | 3px dashed `--link`, blue-tint fill at 92%, centered illustration + "Drop to save N images". |
