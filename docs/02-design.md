@@ -2,7 +2,7 @@
 
 _Process: [Research](01-research.md) → **Design** → [Plan](03-plan.md)_
 
-Status: **decisions locked** (name deferred). Next: wireframes.
+Status: **decisions locked**; name chosen (CopyDrawer, see [08-branding.md](08-branding.md)). MVP built per [06-build-plan.md](06-build-plan.md).
 
 ---
 

@@ -62,7 +62,7 @@ Settings { autoSave, blockedSites[], retentionDays, theme, analytics, shortcutsS
 
 ---
 
-## 4. Barebones v0.1 (≈ 1.5 weeks)
+## 4. Barebones v0.1 (≈ 1.5 weeks) ✅ Built
 
 **In scope:**
 1. WXT + React + TS + Tailwind project, design tokens (light only), fonts bundled.
@@ -99,33 +99,33 @@ Settings { autoSave, blockedSites[], retentionDays, theme, analytics, shortcutsS
 
 ---
 
-## 5. MVP v1.0 (≈ 5 weeks after v0.1)
+## 5. MVP v1.0 (≈ 5 weeks after v0.1) ✅ Built
 
 Built on top of v0.1, in this order. Each week ends with a usable build.
 
-### Week 1: capture everything
+### Week 1: capture everything ✅
 - **Auto-save (opt-in):** onboarding step requests optional all-sites access; content script captures copy/cut with source; pause (1 hour default) and per-site block; built-in exclusions (password managers, banks); no capture in incognito by default. _Screens 1.2, 5.2, 5.3._
 - **Images:** right-click "Save image", screenshot an area (`captureVisibleTab` + crop), drop/paste images into the panel; files in OPFS, thumbnails in IndexedDB; size limit 20 MB; formats PNG/JPG/GIF/WebP. _Screens 2.1–2.5._
 - In-page "Saved" toast with Open/Undo. _Screen 2.3._
 
-### Week 2: organize (AI, part 1)
+### Week 2: organize (AI, part 1) ✅
 - **Embeddings pipeline** in the offscreen worker: model downloaded once and cached; index new clips in the background; re-index on model change.
 - **Smart collections:** assign clips to collections by similarity to collection examples; create new ones when clusters appear; colors from doc 05; users can rename, recolor, move clips ("future clips like it follow"). _Home, screen 4.1._
 - **Trip collections:** destination + date detection groups travel clips (mustard color). _Screen 6.1._
 - **Titles:** heuristic everywhere; Gemini Nano titles when available.
 
-### Week 3: find and paste
+### Week 3: find and paste ✅
 - **Search by description** (semantic + keyword blend), filters: type, site, date. _Screen 3.1._
 - **Quick-paste box** (Alt+Shift+V): overlay in Shadow DOM via activeTab, type to filter, Enter paste into the focused field, Tab for Paste as, Esc close. _Screen 3.2._
 - **Paste as:** plain text, Markdown, bullet list, case, strip formatting (all devices); summarize, rewrite tone, fix grammar, translate (Nano devices) with preview. _Screens 3.3–3.4._
 
-### Week 4: smart actions + home polish
+### Week 4: smart actions + home polish ✅
 - **Smart types and actions:** link tracking-param removal, color swatch + formats, JSON tidy, code highlight, **date → Add to calendar (.ics)**, **address → Open in Google Maps**, flight number / tracking number → status link, email/phone. Prices keep their currency symbol (no conversion). _Screens 3.3, 6.2._
 - **Home** (Folders design), recent list, images and colors strip, empty state, first-clip tip. _Screens 1.4, 1.5, home._
 - **Toolbar popup.** _Screen 3.6._
 - **Dark theme** (system + override). _C1._
 
-### Week 5: onboarding, settings, launch prep
+### Week 5: onboarding, settings, launch prep ✅
 - **Onboarding** 3 steps incl. AI capability check and Nano download consent. _Screens 1.1–1.3._
 - **Settings** complete: auto-save, blocked sites, shortcuts, history and auto-delete, AI status, theme, anonymous usage counts toggle, export/import/delete all. _Screen 5.1._
 - **Notices:** paused, site blocked, history full, basic AI. _Screen 5.3._
@@ -186,6 +186,6 @@ Built on top of v0.1, in this order. Each week ends with a usable build.
 
 ---
 
-## 9. Next step
+## 9. Status
 
-Start **B1** (scaffold). It will be built on a feature branch and committed under your name only.
+v0.1 and MVP weeks 1–5 are built and merged to `main` (`package.json` version 1.0.0). Not yet done: the unlisted store submission, the 20-site capture test, private beta, and the store approvals in the MVP exit criteria. Next steps are in [03-plan.md](03-plan.md) §6.
