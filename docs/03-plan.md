@@ -55,14 +55,14 @@ Spending that's optional but worth it later: a privacy-friendly analytics upgrad
 
 ### 2.1 Launch checklist
 - [ ] Developer account + 2-step verification (use a dedicated Google account; hardware key recommended)
-- [ ] Privacy policy page that lists every permission and exactly what data is used (local only)
-- [ ] Single-purpose statement: "Save, organize, and paste things you copy"
-- [ ] A justification for each permission (write it during development, not at submission)
+- [x] Privacy policy page that lists every permission and exactly what data is used (local only): [PRIVACY.md](../PRIVACY.md); still needs a public URL
+- [x] Single-purpose statement: "Save, organize, and paste things you copy"
+- [x] A justification for each permission ([07-store-listing.md](07-store-listing.md) §3)
 - [ ] Data-usage disclosure form (certify Limited Use)
-- [ ] Assets: 128px icon, 3–5 screenshots at 1280×800, 440×280 promo tile, 30–60 s demo video (YouTube)
-- [ ] Store copy with keywords: "clipboard manager", "clipboard history", "copy paste", "AI"
+- [ ] Assets: 128px icon, 3–5 screenshots at 1280×800, 440×280 promo tile, 30–60 s demo video (YouTube); icon done, rest open
+- [x] Store copy with keywords: "clipboard manager", "clipboard history", "copy paste", "AI"
 - [ ] Unlisted beta listing first (tests the review process early and gets testers on real installs)
-- [ ] Edge Add-ons submission
+- [ ] Edge Add-ons submission (package builds with `pnpm zip:edge`)
 - [ ] Support email + feedback link + uninstall survey URL (`chrome.runtime.setUninstallURL`)
 
 ---
@@ -137,8 +137,8 @@ Spending that's optional but worth it later: a privacy-friendly analytics upgrad
 | Phase | Weeks | Goal | Key deliverables | Exit criteria |
 |---|---|---|---|---|
 | **0. Research** | done | Understand market, constraints | [01-research.md](01-research.md) | ✅ |
-| **1. Design** | 1–2 | Lock decisions, de-risk tech | Name (when ready) · wireframes for the 7 key flows · mini design system (colors, type, components) · technical spike · **unlisted test submission** (with optional all-sites permission) | Design approved; spike confirms capture works on ≥ 90% of top 30 sites; Nano and embeddings performance measured |
-| **2. MVP build** | 3–7 | Free core + hero AI | See week-by-week below | All MVP features in Design §6 working; e2e tests pass |
+| **1. Design** | 1–2 | Lock decisions, de-risk tech | Name (when ready) · wireframes for the 7 key flows · mini design system (colors, type, components) · technical spike · **unlisted test submission** (with optional all-sites permission) | ✅ Decisions locked, name chosen, design system done ([05](05-ui-design-system.md)). Unlisted test submission not yet made |
+| **2. MVP build** | 3–7 | Free core + hero AI | See [06-build-plan.md](06-build-plan.md) | ✅ v1.0 candidate built on `main` with unit + Playwright e2e tests in CI |
 | **3. Private beta** | 8–9 | Real-world feedback | Unlisted listing · 30–50 testers · bug fixes · onboarding tuning | Activation ≥ 40% in beta; no P0 bugs; listing approved |
 | **4. Public launch v1.0** | 10 | Distribution | Listed on Chrome + Edge · launch campaign (§3.3) | Live; launch posts out |
 | **5. v1.1 AI release + growth + Safari** | 11–16 | Second launch moment, retention, new platform | Research Compose with citations · paste stack · cloud-AI fallback **behind a waitlist/fake door** · Product Hunt launch · SEO articles · **Safari build** (popup/tab UI, no Nano) via Mac App Store | KPIs tracked weekly; Safari approved |
@@ -146,6 +146,7 @@ Spending that's optional but worth it later: a privacy-friendly analytics upgrad
 | **7. Expansion** | 23+ | Moat | Remote MCP server / "Send to AI" · shareable boards · phone handoff · Teams · desktop companion | Driven by data |
 
 ### 4.1 Phase 1: Design (weeks 1–2) in detail
+_Superseded: the build followed [06-build-plan.md](06-build-plan.md). Kept for reference._
 - **Week 1:** decide license (and name if ready) · wireframes (side panel, palette, clip card, onboarding + permission explainer, research mode, pause/blocklist, AI status).
 - **Week 2: technical spike** (throwaway code):
   - Copy capture via content script on 30 top sites (Google Docs, Gmail, Notion, GitHub, Figma, ChatGPT, Wikipedia, YouTube…), measuring what's captured.
@@ -156,6 +157,7 @@ Spending that's optional but worth it later: a privacy-friendly analytics upgrad
 - Output: a final architecture note added to the design doc, and an updated scope.
 
 ### 4.2 Phase 2: MVP build (weeks 3–7), week by week
+_Superseded by [06-build-plan.md](06-build-plan.md), which is what was built._
 
 | Week | Build |
 |---|---|
@@ -191,5 +193,8 @@ Spending that's optional but worth it later: a privacy-friendly analytics upgrad
 ---
 
 ## 6. Immediate next steps
-1. Create wireframes for the 7 key flows.
-2. Run the technical spike (Phase 1, week 2), including the unlisted store submission.
+Phases 0–2 are done; next is the **private beta** (Phase 3).
+1. Close the open items in [07-store-listing.md](07-store-listing.md) §5: on-device model download check, real-device check of Chrome's built-in AI, Pro waitlist URL, screenshots and promo tile.
+2. Finish branding in [08-branding.md](08-branding.md): trademark search, buy the domains, claim handles; then rename the extension from "Clipboard" to CopyDrawer.
+3. Finish the launch checklist (§2.1): developer account, public privacy policy URL, support email and uninstall survey URL.
+4. Submit an unlisted build to the Chrome Web Store and recruit 30–50 beta testers.
