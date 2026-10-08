@@ -40,12 +40,11 @@ export interface Clip {
   collectionId?: string;
   /** 1 when the user put the clip in its collection; auto-sorting won't move it. */
   collectionLocked?: 0 | 1;
+  /** Position in the "Images and colors" strip after the user reordered it (higher = earlier). */
+  stripRank?: number;
   image?: ClipImage;
-  /** Where the title came from: rules from the text, on-device AI, or the user. */
-  titleSource?: 'heuristic' | 'ai' | 'user';
-  /** Search vector (normalized) and the model that made it. */
-  embedding?: Float32Array;
-  embeddingModel?: string;
+  /** Where the title came from: rules from the text, or the user. */
+  titleSource?: 'heuristic' | 'user';
 }
 
 export interface Collection {
@@ -81,6 +80,19 @@ export class ClipDatabase extends Dexie {
       clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId, embeddingModel',
       collections: 'id, &key, order',
     });
+    // Search vectors and AI titles from earlier versions are no longer used.
+    this.version(4)
+      .stores({ clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId' })
+      .upgrade((tx) =>
+        tx
+          .table('clips')
+          .toCollection()
+          .modify((c: Record<string, unknown>) => {
+            delete c.embedding;
+            delete c.embeddingModel;
+            if (c.titleSource === 'ai') c.titleSource = 'heuristic';
+          }),
+      );
   }
 }
 

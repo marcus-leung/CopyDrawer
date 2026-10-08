@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Check, Download, Lock, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Lock } from 'lucide-react';
 import { enableAutosave } from '@/lib/autosave';
-import { downloadNano, nanoAvailability, type Availability } from '@/lib/ai/nano';
 import { updateSettings } from '@/lib/settings';
 import { COLORS } from '@/lib/collections';
 import { Button } from '@/components/ui';
@@ -10,20 +9,9 @@ import { Button } from '@/components/ui';
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(1);
   const [autoSave, setAutoSave] = useState<boolean | null>(null);
-  const [nano, setNano] = useState<Availability | null>(null);
-  const [progress, setProgress] = useState<number | null>(null);
   const [finished, setFinished] = useState(false);
 
-  useEffect(() => {
-    void nanoAvailability().then(setNano);
-  }, []);
-
-  async function finish(download: boolean) {
-    if (download) {
-      setProgress(0);
-      await downloadNano((f) => setProgress(f));
-      setProgress(null);
-    }
+  async function finish() {
     await updateSettings({ onboarded: true });
     setFinished(true);
   }
@@ -78,8 +66,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <div className="mt-6 flex gap-3 rounded-2xl bg-surface p-4">
               <Lock size={18} className="mt-0.5 shrink-0" aria-hidden />
               <p className="text-sm leading-5">
-                <b>Private by design.</b> No account. Your clips and the AI that sorts them stay on this computer. The code is
-                open source.
+                <b>Private by design.</b> No account. Your clips stay on this computer. The code is open source.
               </p>
             </div>
             <Button variant="primary" size="lg" className="mt-8 w-full" onClick={() => setStep(2)}>
@@ -133,79 +120,23 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         ) : (
           <section aria-labelledby="ob-title">
             <h1 id="ob-title" className="font-display text-[30px] leading-tight font-extrabold">
-              Smart features that run on your computer
+              Two shortcuts to know
             </h1>
-            <p className="mt-3 text-[15px] leading-[23px] text-text-2">We checked this device. Here is what you get.</p>
+            <p className="mt-3 text-[15px] leading-[23px] text-text-2">They work on any page. You can change them anytime.</p>
             <div className="mt-5 flex flex-col gap-2.5">
-              <Capability state="ready" title="Ready now" body="Auto-sorting into collections and search by description." />
-              {nano === 'available' ? (
-                <Capability
-                  state="ready"
-                  title="Ready now"
-                  body="Titles, rewriting, summaries and translation with Chrome's built-in AI."
-                />
-              ) : nano === 'downloadable' || nano === 'downloading' ? (
-                <Capability
-                  state="download"
-                  title="Needs a one-time download"
-                  body={
-                    progress !== null
-                      ? `Downloading Chrome's built-in AI: ${Math.round(progress * 100)}%`
-                      : "Titles, rewriting, summaries and translation use Chrome's built-in AI. It is a few GB and downloads once."
-                  }
-                />
-              ) : nano === 'unavailable' ? (
-                <Capability
-                  state="none"
-                  title="Not on this computer"
-                  body="Rewriting and summaries need Chrome's built-in AI, which this computer doesn't support. Everything else works."
-                />
-              ) : null}
+              <Shortcut title="Save what you selected" keys="Alt+Shift+S" />
+              <Shortcut title="Open quick paste" hint="In any text box" keys="Alt+Shift+V" />
             </div>
-            <div className="mt-5 flex items-center justify-between rounded-2xl border border-line-strong p-4 text-sm">
-              <span>
-                <span className="block font-semibold">Open quick paste</span>
-                <span className="text-text-3">In any text box</span>
-              </span>
-              <span className="flex items-center gap-2">
-                <kbd>Alt+Shift+V</kbd>
-                <button
-                  type="button"
-                  className="cursor-pointer text-[13px] font-semibold text-link hover:text-link-hover"
-                  onClick={() => void browser.tabs.create({ url: 'chrome://extensions/shortcuts' })}
-                >
-                  Change
-                </button>
-              </span>
-            </div>
-            {nano === 'downloadable' || nano === 'downloading' ? (
-              <>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  className="mt-8 w-full"
-                  disabled={progress !== null}
-                  onClick={() => void finish(true)}
-                >
-                  <Download size={18} aria-hidden />
-                  Download AI and finish
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  className="mt-2.5 w-full"
-                  disabled={progress !== null}
-                  onClick={() => void finish(false)}
-                >
-                  Finish without it
-                </Button>
-                <p className="mt-2 text-center text-[13px] text-text-3">You can download it later in Settings.</p>
-              </>
-            ) : (
-              <Button variant="primary" size="lg" className="mt-8 w-full" onClick={() => void finish(false)}>
-                Finish
-              </Button>
-            )}
+            <button
+              type="button"
+              className="mt-3 cursor-pointer text-[13px] font-semibold text-link hover:text-link-hover"
+              onClick={() => void browser.tabs.create({ url: 'chrome://extensions/shortcuts' })}
+            >
+              Change shortcuts in Chrome
+            </button>
+            <Button variant="primary" size="lg" className="mt-8 w-full" onClick={() => void finish()}>
+              Finish
+            </Button>
           </section>
         )}
       </main>
@@ -213,21 +144,14 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   );
 }
 
-function Capability({ state, title, body }: { state: 'ready' | 'download' | 'none'; title: string; body: string }) {
-  const tone =
-    state === 'ready'
-      ? 'bg-[#DDF3EC] text-[#0B5C4A] dark:bg-[#163A33] dark:text-[#5FD6B5]'
-      : state === 'download'
-        ? 'bg-ai-bg text-ai-fg'
-        : 'bg-surface text-text-2';
-  const Icon = state === 'ready' ? Check : state === 'download' ? Download : Sparkles;
+function Shortcut({ title, hint, keys }: { title: string; hint?: string; keys: string }) {
   return (
-    <div className={`flex gap-3 rounded-2xl p-4 ${tone}`}>
-      <Icon size={18} className="mt-0.5 shrink-0" aria-hidden />
-      <p className="text-sm leading-5">
-        <b className="block">{title}</b>
-        {body}
-      </p>
+    <div className="flex items-center justify-between rounded-2xl border border-line-strong p-4 text-sm">
+      <span>
+        <span className="block font-semibold">{title}</span>
+        {hint && <span className="text-text-3">{hint}</span>}
+      </span>
+      <kbd>{keys}</kbd>
     </div>
   );
 }

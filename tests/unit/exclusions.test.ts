@@ -25,4 +25,10 @@ describe('blocked sites', () => {
     expect(normalizeSite('not a site')).toBeUndefined();
     expect(normalizeSite('')).toBeUndefined();
   });
+
+  it('treats a wildcard as the site itself (subdomains are always included)', () => {
+    expect(normalizeSite('*.evil.com')).toBe('evil.com');
+    expect(isBlocked('https://a.evil.com/', [normalizeSite('*.evil.com')!])).toBe(true);
+    expect(normalizeSite('ev*l.com')).toBeUndefined();
+  });
 });

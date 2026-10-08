@@ -23,6 +23,8 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm build
+      - name: All-sites access stays optional
+        run: node -e "const m = require('./.output/chrome-mv3/manifest.json'); if (m.host_permissions) throw new Error('host_permissions in the shipped manifest: ' + m.host_permissions)"
       - run: pnpm exec playwright install --with-deps chromium
       - run: xvfb-run --auto-servernum pnpm test:e2e
       - run: pnpm zip

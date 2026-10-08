@@ -161,7 +161,6 @@ test('settings sync with other computers through chrome.storage.sync', async ({ 
         blockedSites: ['work.example.com'],
         retentionDays: 90,
         saveInIncognito: false,
-        smartModel: false,
         updatedAt: Date.now() + 1000,
       },
     });
@@ -170,7 +169,6 @@ test('settings sync with other computers through chrome.storage.sync', async ({ 
   await expect(panel.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(panel.getByLabel('Delete old clips')).toHaveValue('90');
   await expect(panel.getByText('work.example.com')).toBeVisible();
-  await expect(panel.getByRole('switch', { name: /Sort and search by meaning/ })).not.toBeChecked();
 
   // Bad values from elsewhere are ignored; an older copy doesn't overwrite newer settings.
   await panel.evaluate(async () => {
@@ -184,4 +182,44 @@ test('settings sync with other computers through chrome.storage.sync', async ({ 
   await panel.evaluate(async () => chrome.storage.sync.set({ settings: { theme: 'dark', updatedAt: 1 } }));
   await panel.waitForTimeout(400);
   await expect(panel.getByLabel('Theme')).toHaveValue('light');
+});
+
+test('turning on auto-delete asks first and says how many clips go', async ({ context, extensionId }) => {
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await pasteIntoPanel(panel, 'old one', 'old two', 'pinned old', 'fresh');
+  await expect(panel.getByRole('list', { name: 'Clips' }).getByRole('listitem')).toHaveCount(4);
+  // Age three clips by 40 days and pin one of them.
+  await panel.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const req = indexedDB.open('clipboard');
+        req.onsuccess = () => {
+          const store = req.result.transaction('clips', 'readwrite').objectStore('clips');
+          store.getAll().onsuccess = (e) => {
+            for (const c of (e.target as IDBRequest).result) {
+              if (c.text === 'fresh') continue;
+              store.put({ ...c, createdAt: Date.now() - 40 * 86_400_000, pinned: c.text === 'pinned old' ? 1 : 0 });
+            }
+            store.transaction.oncomplete = () => resolve();
+          };
+        };
+      }),
+  );
+  await panel.getByRole('button', { name: 'Settings' }).click();
+  const retention = panel.getByLabel('Delete old clips');
+  const ask = panel.getByRole('alertdialog');
+
+  await retention.selectOption('30');
+  await expect(ask).toContainText('Delete 2 clips older than 30 days now? Pinned clips are kept.');
+  await ask.getByRole('button', { name: 'Cancel' }).click();
+  await expect(ask).toHaveCount(0);
+  await expect(retention).toHaveValue('0');
+  expect(await readClips(panel)).toHaveLength(4);
+
+  await retention.selectOption('30');
+  await ask.getByRole('button', { name: 'Delete and turn on' }).click();
+  await expect(panel.getByRole('status')).toContainText('Deleted 2 old clips');
+  await expect(retention).toHaveValue('30');
+  expect((await readClips(panel)).map((c) => c.text).sort()).toEqual(['fresh', 'pinned old']);
 });

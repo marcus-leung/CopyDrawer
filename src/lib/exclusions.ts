@@ -32,10 +32,11 @@ export const BUILT_IN_BLOCKED = [
 
 /** Normalizes what a user types ("https://www.Example.com/x") to "example.com". */
 export function normalizeSite(input: string): string | undefined {
-  const t = input.trim().toLowerCase();
+  // "*.example.com" means the same as "example.com": subdomains are always included.
+  const t = input.trim().toLowerCase().replace(/^\*\./, '');
   if (!t) return undefined;
   const host = hostOf(t.includes('://') ? t : `https://${t}`);
-  return host && host.includes('.') ? host : undefined;
+  return host && host.includes('.') && /^[a-z0-9.-]+$/.test(host) ? host : undefined;
 }
 
 /** True when `host` equals `site` or is a subdomain of it. */

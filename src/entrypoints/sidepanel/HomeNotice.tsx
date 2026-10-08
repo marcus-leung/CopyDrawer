@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MAX_CLIPS } from '@/lib/clips';
 import { hostOf } from '@/lib/format';
-import { nanoAvailability } from '@/lib/ai/nano';
 import { isPaused, updateSettings, type Settings } from '@/lib/settings';
 import { Notice } from '@/components/Notice';
 
@@ -27,25 +26,19 @@ function useActiveHost(): string | null {
   return host;
 }
 
-/** One notice at a time under the search bar: paused, site blocked, history full, basic AI. */
+/** One notice at a time under the search bar: paused, site blocked, history full. */
 export function HomeNotice({
   settings,
   now,
   count,
   onCleanUp,
-  onPro,
 }: {
   settings: Settings;
   now: number;
   count: number;
   onCleanUp: () => void;
-  onPro: () => void;
 }) {
   const host = useActiveHost();
-  const [basicAi, setBasicAi] = useState(false);
-  useEffect(() => {
-    void nanoAvailability().then((a) => setBasicAi(a === 'unavailable'));
-  }, []);
 
   let notice: React.ReactNode = null;
   if (isPaused(settings, now)) {
@@ -77,19 +70,6 @@ export function HomeNotice({
         title={`History is full: ${count.toLocaleString()} of ${MAX_CLIPS.toLocaleString()}`}
         body="New clips replace your oldest unpinned ones. Pinned clips are kept."
         action={{ label: 'Clean up', onClick: onCleanUp }}
-        secondary={{ label: 'Unlimited with Pro', onClick: onPro }}
-      />
-    );
-  } else if (basicAi && settings.onboarded && !settings.dismissedTips.includes('basic-ai')) {
-    notice = (
-      <Notice
-        tone="ai"
-        title="Basic AI on this computer"
-        body="Sorting and search work. Rewriting and summaries need Chrome's built-in AI, which this computer doesn't support."
-        action={{
-          label: 'Got it',
-          onClick: () => void updateSettings({ dismissedTips: [...settings.dismissedTips, 'basic-ai'] }),
-        }}
       />
     );
   }

@@ -1,6 +1,6 @@
 # Clipboard (working name)
 
-A private, AI-powered clipboard for Chrome and Edge. Everything you copy is kept, sorted into collections, and ready to paste again. Clips and the AI that sorts them stay on your device.
+A private clipboard for Chrome and Edge. Everything you copy is kept, sorted into collections, and ready to paste again. Your clips stay on your device.
 
 > Status: **MVP (v1.0 candidate)**. Built per [docs/06-build-plan.md](docs/06-build-plan.md); launch checklist in [docs/07-store-listing.md](docs/07-store-listing.md).
 
@@ -22,22 +22,22 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 | `pnpm test` | Unit tests (Vitest) |
 | `pnpm test:e2e` | Builds a test copy and runs end-to-end tests with the real extension in Chromium (Playwright), incl. accessibility checks (axe) |
 | `pnpm zip` / `pnpm zip:edge` | Store-ready zip in `.output/` |
-| `node scripts/make-test-model.mjs` | Regenerates the tiny stand-in AI model in `tests/fixtures/minilm-stub/` that e2e tests serve instead of Hugging Face |
 
 ## Features
 
 - **Save:** Alt+Shift+S or right-click → Save selection; right-click → Save image; Alt+Shift+X screenshot an area; paste or drop into the panel; optional **auto-save** of everything you copy (asks for site access only when you turn it on; skips password fields, banks, password managers and blocked sites; pause anytime).
-- **Smart collections:** rules sort clips into Research, Links, Code, Shopping, Recipes, Personal, and trips named after the place ("Lisbon trip"). An on-device model (all-MiniLM-L6-v2 via transformers.js, bundled ONNX runtime) sorts the rest and learns from clips you move.
-- **Find:** search blends word matches and meaning, with type, site and date filters.
-- **Paste back:** Alt+Shift+V quick-paste box in any text box; toolbar popup with recent clips; **Paste as** plain text, Markdown, bullets, checklist, one line, case, plus summarize/rewrite/grammar/translate with Chrome's built-in AI (preview first).
+- **Collections:** rules sort clips into Research, Links, Code, Shopping, Recipes, Personal, and trips named after the place ("Lisbon trip"). Make your own right in the panel, rename them, and pick any color (presets or a rainbow bar). Drag clips and images onto a collection to file them.
+- **Images:** save by paste, drop, right-click or screenshot. Drag images within the panel to reorder them or file them, or drag one out onto a page or the desktop.
+- **Find:** word search that forgives small typos, with type, site and date filters.
+- **Paste back:** Alt+Shift+V quick-paste box in any text box; toolbar popup with recent clips; **Paste as** plain text, Markdown, bullets, checklist, one line, case.
 - **Smart actions:** track package, flight status, add to calendar (.ics), open address in Maps, email/call, color formats, tidy JSON, links without tracking parameters.
 - **Your data:** export/import (JSON), auto-delete after 30/90 days, delete all. Light and dark themes.
+- **No pop-ups:** naming, colors and confirmations all happen inside the panel. The only prompt you'll see is Chrome's own permission request when you turn on auto-save.
 
-## Configuration
+## Known limitations
 
-| Variable | Use |
-|---|---|
-| `WXT_WAITLIST_URL` | Form opened by "Email me when it's ready" on the Pro page. Unset: the page says the waitlist opens soon. |
+- **Copy buttons on sites aren't auto-saved.** Auto-save notices copy events (Ctrl/Cmd+C, Copy in the menu). Buttons that copy with `navigator.clipboard.writeText` (GitHub code blocks, ChatGPT answers) fire no copy event, so those copies aren't saved. Use **Grab clipboard** in the panel instead.
+- **Shortcut labels show the defaults.** The panel, popup, onboarding and quick-paste box show Alt+Shift+S, Alt+Shift+V and Alt+Shift+X. If you change a shortcut at `chrome://extensions/shortcuts`, or Chrome couldn't assign one because another extension uses it, the labels still show the default.
 
 ## Project layout
 
@@ -47,7 +47,7 @@ src/entrypoints/sidepanel/      React side panel (home, collections, detail, set
 src/entrypoints/popup/          toolbar popup (recent clips)
 src/entrypoints/*.content.ts    auto-save listener, quick-paste box (injected on demand)
 src/lib/                        storage (Dexie), clips, collections + classifier, search,
-                                embeddings (embed/), Chrome AI (ai/), smart actions, transforms
+                                smart actions, transforms
 src/components/                 UI building blocks (design system in docs/05)
 tests/unit, tests/e2e           Vitest and Playwright tests
 docs/                           research, design, plan, design system, mockups

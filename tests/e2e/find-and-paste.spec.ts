@@ -1,11 +1,11 @@
 /**
  * Finding and pasting, end to end in Chromium with the real extension: search
- * (words, meaning, filters), the Alt+Shift+V quick-paste box on many kinds of
- * fields and edge cases, and Paste as (plain options and the AI preview).
+ * (words, typos, filters), the Alt+Shift+V quick-paste box on many kinds of
+ * fields and edge cases, and Paste as.
  */
 import type { BrowserContext, Page } from '@playwright/test';
 import { test, expect } from './fixtures';
-import { mockChromeAI, pasteIntoPanel, readClips, stubModel } from './helpers';
+import { pasteIntoPanel, readClips } from './helpers';
 
 async function openPanel(context: BrowserContext, extensionId: string, settings: Record<string, unknown> = {}) {
   const panel = await context.newPage();
@@ -19,8 +19,7 @@ async function openPanel(context: BrowserContext, extensionId: string, settings:
 
 // ---------- Search ----------
 
-test('search: words, typos, meaning, filters, empty results', async ({ context, extensionId }) => {
-  await stubModel(context);
+test('search: words, typos, filters, empty results', async ({ context, extensionId }) => {
   const panel = await openPanel(context, extensionId);
   await pasteIntoPanel(
     panel,
@@ -32,10 +31,6 @@ test('search: words, typos, meaning, filters, empty results', async ({ context, 
   const list = panel.getByRole('list', { name: 'Clips' });
   await expect(list.getByRole('listitem')).toHaveCount(4);
   const search = panel.getByRole('searchbox', { name: 'Search your clips' });
-  // Wait for the model so "meaning" uses it.
-  await expect
-    .poll(async () => (await readClips(panel)).every((c) => c.embeddingModel === 'minilm-l6-q8'), { timeout: 30_000 })
-    .toBe(true);
 
   // Words: collections hide while searching; the count is announced.
   await search.fill('garlic');
@@ -43,14 +38,10 @@ test('search: words, typos, meaning, filters, empty results', async ({ context, 
   await expect(panel.getByText('1 clip matches')).toBeVisible();
   await expect(panel.getByRole('list', { name: 'Collections' })).toHaveCount(0);
 
-  // Meaning: none of these words are in the clip.
-  await search.fill('what should I cook');
-  await expect(list.getByRole('listitem').first()).toContainText('Lemon garlic pasta');
-  await expect(panel.getByText(/by meaning/)).toBeVisible();
-
-  // Word matches come before meaning matches.
-  await search.fill('sunlight energy');
-  await expect(list.getByRole('listitem').first()).toContainText('Photosynthesis');
+  // Every word has to match, in any order.
+  await search.fill('energy sunlight');
+  await expect(list.getByRole('listitem')).toHaveCount(1);
+  await expect(list).toContainText('Photosynthesis');
 
   // Filters: type, site, date. The site list comes from your clips.
   await search.fill('');
@@ -77,10 +68,10 @@ test('search: words, typos, meaning, filters, empty results', async ({ context, 
   await expect(list.getByRole('listitem')).toHaveCount(4);
 });
 
-test('search without the AI model still forgives typos', async ({ context, extensionId }) => {
-  const panel = await openPanel(context, extensionId, { smartModel: false });
+test('search forgives typos', async ({ context, extensionId }) => {
+  const panel = await openPanel(context, extensionId);
   await pasteIntoPanel(panel, 'Photosynthesis is how plants turn sunlight into energy', 'Trail running shoes');
-  await expect.poll(async () => (await readClips(panel)).every((c) => c.embeddingModel === 'hash-v1')).toBe(true);
+  await expect(panel.getByRole('list', { name: 'Clips' }).getByRole('listitem')).toHaveCount(2);
   await panel.getByRole('searchbox', { name: 'Search your clips' }).fill('photosynthsis');
   const list = panel.getByRole('list', { name: 'Clips' });
   await expect(list.getByRole('listitem')).toHaveCount(1);
@@ -94,7 +85,7 @@ test('search: site filter and "See all" images', async ({ context, extensionId }
   await context.route('https://site-a.e2e.test/**', (r) =>
     r.fulfill({ contentType: 'text/html', body: '<meta charset="utf-8"><p id="t">Notes from site A</p>' }),
   );
-  const panel = await openPanel(context, extensionId, { smartModel: false });
+  const panel = await openPanel(context, extensionId);
   await panel.evaluate(async () => {
     const { settings } = await chrome.storage.local.get('settings');
     await chrome.storage.local.set({ settings: { ...(settings as object), autoSave: true } });
@@ -103,7 +94,7 @@ test('search: site filter and "See all" images', async ({ context, extensionId }
   const tab = await context.newPage();
   await tab.goto('https://site-a.e2e.test/');
   await tab.locator('#t').selectText();
-  await tab.keyboard.press('Control+C');
+  await tab.keyboard.press('ControlOrMeta+C');
   await tab.waitForTimeout(250);
   await tab.close();
   await panel.bringToFront();
@@ -137,6 +128,7 @@ const FORM = `<!doctype html><html><head><meta charset="utf-8"><title>Form</titl
 <textarea id="notes">Dear team, PLACEHOLDER thanks.</textarea>
 <div id="ce" contenteditable="true">Draft:&nbsp;</div>
 <input id="react" type="text">
+<input id="locked" type="text" readonly value="locked">
 <p id="state"></p>
 <p id="keys">0</p>
 <iframe id="frame" srcdoc="<input id='inner'>"></iframe>
@@ -151,7 +143,7 @@ const FORM = `<!doctype html><html><head><meta charset="utf-8"><title>Form</titl
 
 async function setupQuickPaste(context: BrowserContext, extensionId: string, clips: string[]) {
   await context.route('https://form.e2e.test/**', (route) => route.fulfill({ contentType: 'text/html', body: FORM }));
-  const panel = await openPanel(context, extensionId, { smartModel: false });
+  const panel = await openPanel(context, extensionId);
   await pasteIntoPanel(panel, ...clips);
   await expect(panel.getByRole('list', { name: 'Clips' }).getByRole('listitem')).toHaveCount(clips.length);
   const page = await context.newPage();
@@ -204,7 +196,7 @@ test('quick paste into text, email, textarea (replacing a selection), contentedi
   await page.keyboard.press('Enter');
   await expect(page.locator('#notes')).toHaveValue('Dear team, the Q3 report thanks.');
   // Ctrl+Z undoes the paste (it went through the page's undo history).
-  await page.keyboard.press('Control+Z');
+  await page.keyboard.press('ControlOrMeta+Z');
   await expect(page.locator('#notes')).toHaveValue('Dear team, PLACEHOLDER thanks.');
 
   // Contenteditable, by mouse.
@@ -221,6 +213,23 @@ test('quick paste into text, email, textarea (replacing a selection), contentedi
   await page.keyboard.press('ArrowDown'); // the name, not the newer email
   await page.keyboard.press('Enter');
   await expect(page.locator('#state')).toHaveText('state=Alex Morgan');
+});
+
+test('quick paste: keys pressed right after opening count, even before the list shows', async ({ context, extensionId }) => {
+  const { page, open } = await setupQuickPaste(context, extensionId, ['Alex Morgan', 'the Q3 report']);
+  const run = async (keys: string[], expected: string) => {
+    await page.locator('#name').fill('');
+    await page.locator('#name').click();
+    await open();
+    for (const key of keys) await page.keyboard.press(key);
+    await expect(page.locator('#name')).toHaveValue(expected);
+    await expect(page.getByRole('dialog', { name: 'Quick paste' })).toHaveCount(0);
+  };
+  for (let i = 0; i < 3; i++) {
+    await run(['Enter'], 'the Q3 report');
+    await run(['a', 'l', 'e', 'x', 'Enter'], 'Alex Morgan');
+    await run(['Tab', 'u', 'p', 'p', 'Enter'], 'THE Q3 REPORT');
+  }
 });
 
 test('quick paste: Esc, click outside, no matches, page shortcuts, opening twice, used count', async ({
@@ -269,7 +278,7 @@ test('quick paste with no text field (or inside a frame) copies instead and says
   await pageFocused();
   await open();
   await page.keyboard.press('Enter');
-  await expect(page.getByText('Copied. Click where you want it and press Ctrl+V.')).toBeVisible();
+  await expect(page.getByText(/^Copied\. Click where you want it and press (Ctrl|Cmd)\+V\.$/)).toBeVisible();
   // (Read it from the extension: a web page would need permission. Retry until the panel has focus.)
   await panel.bringToFront();
   await expect
@@ -277,12 +286,19 @@ test('quick paste with no text field (or inside a frame) copies instead and says
     .toBe('Alex Morgan');
   await page.bringToFront();
 
+  // A read-only field isn't changed: it copies instead.
+  await page.locator('#locked').focus();
+  await open();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText(/^Copied\. Click where you want it and press (Ctrl|Cmd)\+V\.$/)).toBeVisible();
+  await expect(page.locator('#locked')).toHaveValue('locked');
+
   // Focus inside an iframe: the box can't reach it, so it copies.
   await page.frameLocator('#frame').locator('#inner').click();
   await pageFocused();
   await open();
   await page.keyboard.press('Enter');
-  await expect(page.getByText('Copied. Click where you want it and press Ctrl+V.')).toBeVisible();
+  await expect(page.getByText(/^Copied\. Click where you want it and press (Ctrl|Cmd)\+V\.$/)).toBeVisible();
   // The new note replaced the first one instead of stacking on top of it.
   await expect(page.locator('#clipboard-quick-paste-toast')).toHaveCount(1);
 });
@@ -311,8 +327,6 @@ test('quick paste: Tab for Paste as, filter options, Esc back to clips; images a
   await page.keyboard.press('Tab');
   await expect(page.getByText('Paste as', { exact: true })).toBeVisible();
   await expect(page.getByRole('combobox')).toHaveAttribute('placeholder', 'Filter options');
-  // No built-in AI in this browser: only the plain options.
-  await expect(page.getByRole('option', { name: 'Summarize' })).toHaveCount(0);
   await page.keyboard.type('bul');
   await expect(page.getByRole('option')).toHaveCount(1);
   // Esc goes back to the clip list, not out.
@@ -356,8 +370,8 @@ async function openDetail(panel: Page, name: RegExp) {
 }
 const clipboardText = (panel: Page) => panel.evaluate(() => navigator.clipboard.readText());
 
-test('Paste as in the panel: every plain option, Markdown only for formatted clips', async ({ context, extensionId }) => {
-  const panel = await openPanel(context, extensionId, { smartModel: false });
+test('Paste as in the panel: every option, Markdown only for formatted clips', async ({ context, extensionId }) => {
+  const panel = await openPanel(context, extensionId);
   await pasteIntoPanel(panel, 'Book the hotel. Buy train tickets. Pack light.');
   // A formatted clip (copied from a page with HTML).
   await panel.evaluate(() => {
@@ -389,69 +403,4 @@ test('Paste as in the panel: every plain option, Markdown only for formatted cli
   await openDetail(panel, /Lemon pasta/);
   await panel.getByRole('button', { name: 'Markdown' }).click();
   await expect.poll(() => clipboardText(panel)).toBe('## Lemon pasta\n\nUse **fresh** lemons.');
-});
-
-test("Paste as with Chrome's built-in AI: preview, try again, copy, save as clip, translate, failure", async ({
-  context,
-  extensionId,
-}) => {
-  await mockChromeAI(context);
-  const panel = await openPanel(context, extensionId, { smartModel: false });
-  await pasteIntoPanel(panel, 'Need the report by Friday. Send the numbers ASAP.');
-  await openDetail(panel, /Need the report/);
-  await expect(panel.getByText('Blue options use AI on this device. Nothing is uploaded.')).toBeVisible();
-
-  // Preview first; the clip itself is unchanged.
-  await panel.getByRole('button', { name: 'Friendlier' }).click();
-  await expect(panel.getByText('Writing on this device…')).toBeVisible();
-  const preview = panel.getByText('Hi! Need the report by Friday. Send the numbers ASAP. Thanks so much!');
-  await expect(preview).toBeVisible();
-  await expect(panel.getByText('Your original clip is unchanged.')).toBeVisible();
-  await expect(panel.getByRole('button', { name: 'Friendlier' })).toHaveAttribute('aria-pressed', 'true');
-
-  await panel.getByRole('button', { name: 'Copy this version' }).click();
-  await expect.poll(() => clipboardText(panel)).toBe('Hi! Need the report by Friday. Send the numbers ASAP. Thanks so much!');
-
-  const calls = () => panel.evaluate(() => (window as unknown as { __aiCalls: unknown[] }).__aiCalls.length);
-  const before = await calls();
-  await panel.getByRole('button', { name: 'Try again' }).click();
-  await expect(preview).toBeVisible();
-  expect(await calls()).toBe(before + 1);
-
-  // Summarize swaps the preview.
-  await panel.getByRole('button', { name: 'Summarize' }).click();
-  await expect(panel.getByText('Summary of Need the report')).toBeVisible();
-
-  // Translate, then change language.
-  await panel.getByRole('button', { name: 'Translate' }).click();
-  await expect(panel.getByText(/^\[\w+\] Need the report/)).toBeVisible();
-  await panel.getByLabel('Language').selectOption('fr');
-  await expect(panel.getByText('[French] Need the report by Friday. Send the numbers ASAP.')).toBeVisible();
-  await expect(panel.getByRole('heading', { name: 'Translate to French' })).toBeVisible();
-
-  // Save as clip: a new clip appears; the original stays.
-  await panel.getByRole('button', { name: 'Save as clip' }).click();
-  await expect(panel.getByRole('status')).toContainText('Saved as a new clip');
-  await panel.getByRole('button', { name: 'Back' }).click();
-  const list = panel.getByRole('list', { name: 'Clips' });
-  await expect(list.getByRole('listitem')).toHaveCount(2);
-  await expect(list).toContainText('[French] Need the report');
-
-  // When the model errors, say so instead of showing nothing.
-  await openDetail(panel, /^Need the report/);
-  await panel.evaluate(() => ((window as unknown as { __ai: string }).__ai = 'fail'));
-  await panel.getByRole('button', { name: 'Shorter' }).click();
-  await expect(panel.getByText("Couldn't write that on this device. Try again in a moment.")).toBeVisible();
-});
-
-test('Paste as without built-in AI shows only plain options and how to get more', async ({ context, extensionId }) => {
-  await mockChromeAI(context, 'unavailable');
-  const panel = await openPanel(context, extensionId, { smartModel: false });
-  await pasteIntoPanel(panel, 'Need the report by Friday.');
-  await openDetail(panel, /Need the report/);
-  await expect(panel.getByRole('button', { name: 'Bullet list' })).toBeVisible();
-  for (const name of ['Summarize', 'Friendlier', 'Translate']) await expect(panel.getByRole('button', { name })).toHaveCount(0);
-  await expect(
-    panel.getByText("Summarize, rewrite and translate with Chrome's built-in AI: turn it on in Settings."),
-  ).toBeVisible();
 });

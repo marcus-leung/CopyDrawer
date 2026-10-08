@@ -1,13 +1,14 @@
 /**
  * Export and import: one JSON file with clips, images and collections, so
- * people can move their history or keep a copy. Search vectors are left out
- * (they're rebuilt on this device after import).
+ * people can move their history or keep a copy.
  */
-import { db as defaultDb, type Clip, type ClipDatabase, type Collection } from './db';
+import { db as defaultDb, type Clip, type ClipDatabase, type ClipKind, type Collection } from './db';
 import { blobToDataUrl, dataUrlToBlob } from './images';
-import { enforceLimit } from './clips';
+import { enforceLimit, hashText, makeTitle } from './clips';
 
-interface ExportedClip extends Omit<Clip, 'embedding' | 'embeddingModel' | 'image'> {
+const KINDS: ClipKind[] = ['text', 'link', 'image', 'code'];
+
+interface ExportedClip extends Omit<Clip, 'image'> {
   image?: Omit<NonNullable<Clip['image']>, 'thumb'> & { thumb: string; data?: string };
 }
 
@@ -22,7 +23,7 @@ interface BackupFile {
 export async function exportBackup(db: ClipDatabase = defaultDb): Promise<BackupFile> {
   const [clips, collections] = await Promise.all([db.clips.orderBy('createdAt').reverse().toArray(), db.collections.toArray()]);
   const out: ExportedClip[] = [];
-  for (const { embedding: _e, embeddingModel: _m, image, ...rest } of clips) {
+  for (const { image, ...rest } of clips) {
     if (!image) {
       out.push(rest);
       continue;
@@ -58,24 +59,39 @@ export async function importBackup(file: unknown, db: ClipDatabase = defaultDb):
         idMap.set(c.id, id);
       }
     }
+    const now = Date.now();
     for (const c of data.clips!) {
-      if (!c || typeof c.text !== 'string' || typeof c.hash !== 'string' || !c.kind) continue;
-      if (await db.clips.where('hash').equals(c.hash).first()) continue;
-      const id = (await db.clips.get(c.id)) ? crypto.randomUUID() : c.id || crypto.randomUUID();
+      if (!c || typeof c.text !== 'string' || !KINDS.includes(c.kind)) continue;
+      const isImage = c.kind === 'image';
+      // Text hashes are recomputed so a hand-edited file can't sneak in duplicates.
+      const hash = isImage ? c.hash : hashText(c.text);
+      if (typeof hash !== 'string' || (isImage && !c.image?.data)) continue;
+      if (await db.clips.where('hash').equals(hash).first()) continue;
+      let image: Clip['image'];
+      let blob: Blob | undefined;
+      if (isImage) {
+        try {
+          const { data: fileData, thumb, ...meta } = c.image!;
+          blob = dataUrlToBlob(fileData!);
+          image = { ...meta, imageId: crypto.randomUUID(), thumb: dataUrlToBlob(thumb) };
+        } catch {
+          continue; // damaged image data
+        }
+      }
+      const id = typeof c.id === 'string' && c.id && !(await db.clips.get(c.id)) ? c.id : crypto.randomUUID();
       const clip: Clip = {
         ...c,
         id,
+        hash,
+        title: typeof c.title === 'string' && c.title.trim() ? c.title : makeTitle(c.text, c.kind),
+        createdAt: Number.isFinite(c.createdAt) ? Math.min(c.createdAt, now) : now,
+        lastUsedAt: Number.isFinite(c.lastUsedAt) ? c.lastUsedAt : 0,
+        useCount: Number.isFinite(c.useCount) ? c.useCount : 0,
         pinned: c.pinned === 1 ? 1 : 0,
         collectionId: c.collectionId ? idMap.get(c.collectionId) : undefined,
-        image: undefined,
+        image,
       };
-      if (c.image) {
-        if (!c.image.data) continue; // an image without its file can't be used
-        const imageId = crypto.randomUUID();
-        await db.images.put({ id: imageId, blob: dataUrlToBlob(c.image.data) });
-        const { data: _d, thumb, ...meta } = c.image;
-        clip.image = { ...meta, imageId, thumb: dataUrlToBlob(thumb) };
-      }
+      if (image) await db.images.put({ id: image.imageId, blob: blob! });
       await db.clips.add(clip);
       added++;
     }

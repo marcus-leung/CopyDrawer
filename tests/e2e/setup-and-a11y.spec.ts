@@ -24,16 +24,16 @@ test('onboarding: three steps, then the panel', async ({ context, extensionId })
   // The e2e build already has all-sites access, so turning on auto-save goes straight through.
   await page.getByRole('button', { name: 'Turn on auto-save' }).click();
   await expect(page.getByText('Step 3 of 3')).toBeVisible();
-  await expect(page.getByText('Auto-sorting into collections and search by description.')).toBeVisible();
-  await axe(page, 'ai step');
-  await page.getByRole('button', { name: /^Finish/ }).click();
+  await expect(page.getByRole('heading', { name: 'Two shortcuts to know' })).toBeVisible();
+  await axe(page, 'shortcuts step');
+  await page.getByRole('button', { name: 'Finish' }).click();
   await expect(page.getByRole('heading', { name: "You're all set" })).toBeVisible();
   await page.getByRole('button', { name: 'Open the side panel' }).click();
   await expect(page.getByRole('heading', { name: 'Your clips' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Copy anything to start' })).toBeVisible();
 });
 
-test('notices, export and import, Pro waitlist, accessibility', async ({ context, extensionId }) => {
+test('notices, export and import, inline confirms, accessibility', async ({ context, extensionId }) => {
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
   await axe(page, 'empty home');
@@ -57,17 +57,22 @@ test('notices, export and import, Pro waitlist, accessibility', async ({ context
   await axe(page, 'settings');
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export' }).click()]);
   const file = await download.path();
-  page.once('dialog', (d) => void d.accept());
+  // Delete all asks in place: Esc cancels, then confirm.
   await page.getByRole('button', { name: 'Delete all' }).click();
+  const confirmBox = page.getByRole('alertdialog', { name: /Delete all clips, including pinned ones/ });
+  await expect(confirmBox).toBeVisible();
+  await axe(page, 'delete all confirm');
+  await page.keyboard.press('Escape');
+  await expect(confirmBox).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Delete all' })).toBeFocused();
+  await page.getByRole('button', { name: 'Delete all' }).click();
+  await confirmBox.getByRole('button', { name: 'Delete all clips' }).click();
   await expect(page.getByRole('status')).toContainText('All clips deleted');
   await page.locator('input[type=file]').setInputFiles(file);
   await expect(page.getByRole('status')).toContainText('Imported 3 clips');
 
-  // Pro waitlist.
-  await page.getByRole('button', { name: /Pro is coming/ }).click();
-  await expect(page.getByRole('heading', { name: 'Pro is coming' })).toBeVisible();
-  await axe(page, 'pro');
-  await page.getByRole('button', { name: 'Back' }).click();
+  // Nothing about AI, Pro or features that aren't here yet.
+  await expect(page.getByText(/\bAI\b|\bPro\b|waitlist|coming soon/i)).toHaveCount(0);
 
   // Pausing shows the paused notice; Resume clears it.
   await page.evaluate(async () => {

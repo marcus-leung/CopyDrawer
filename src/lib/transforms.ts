@@ -1,15 +1,10 @@
 /**
- * "Paste as": ways to reshape a clip before pasting. The plain ones run
- * anywhere (side panel, service worker, quick-paste box); the AI ones need
- * Chrome's built-in model and show a preview first.
+ * "Paste as": ways to reshape a clip before pasting. They run anywhere (side
+ * panel, service worker, quick-paste box).
  */
-import { session } from './ai/nano';
+export type Transform = 'asis' | 'plain' | 'markdown' | 'bullets' | 'checklist' | 'oneline' | 'upper' | 'lower' | 'title';
 
-export type PlainTransform = 'asis' | 'plain' | 'markdown' | 'bullets' | 'checklist' | 'oneline' | 'upper' | 'lower' | 'title';
-export type AiTransform = 'summarize' | 'friendly' | 'formal' | 'shorter' | 'grammar' | 'translate';
-export type Transform = PlainTransform | AiTransform;
-
-export const PLAIN_TRANSFORMS: { id: PlainTransform; label: string }[] = [
+export const TRANSFORMS: { id: Transform; label: string }[] = [
   { id: 'asis', label: 'Paste as is' },
   { id: 'plain', label: 'Plain text' },
   { id: 'markdown', label: 'Markdown' },
@@ -20,19 +15,6 @@ export const PLAIN_TRANSFORMS: { id: PlainTransform; label: string }[] = [
   { id: 'lower', label: 'lowercase' },
   { id: 'title', label: 'Title Case' },
 ];
-
-export const AI_TRANSFORMS: { id: AiTransform; label: string }[] = [
-  { id: 'summarize', label: 'Summarize' },
-  { id: 'friendly', label: 'Friendlier' },
-  { id: 'formal', label: 'More formal' },
-  { id: 'shorter', label: 'Shorter' },
-  { id: 'grammar', label: 'Fix grammar' },
-  { id: 'translate', label: 'Translate' },
-];
-
-export function isAiTransform(t: Transform): t is AiTransform {
-  return AI_TRANSFORMS.some((a) => a.id === t);
-}
 
 const BULLET = /^\s*(?:[-*•–·]|\d+[.)]|\[[ xX]?\])\s+/;
 
@@ -120,8 +102,8 @@ export function htmlToMarkdown(html: string): string {
     .trim();
 }
 
-/** Applies a plain transform. Never fails. */
-export function applyPlain(t: PlainTransform, text: string, html?: string): string {
+/** Applies a transform. Never fails. */
+export function applyTransform(t: Transform, text: string, html?: string): string {
   switch (t) {
     case 'asis':
     case 'plain':
@@ -144,51 +126,5 @@ export function applyPlain(t: PlainTransform, text: string, html?: string): stri
       return text.toLowerCase();
     case 'title':
       return titleCase(text);
-  }
-}
-
-export function languageName(code: string, inLocale = 'en'): string {
-  try {
-    return new Intl.DisplayNames([inLocale], { type: 'language' }).of(code) ?? code;
-  } catch {
-    return code;
-  }
-}
-
-function aiInstruction(t: AiTransform, lang: string): string {
-  switch (t) {
-    case 'summarize':
-      return 'Summarize the text in one to three short sentences.';
-    case 'friendly':
-      return 'Rewrite the text in a warmer, friendlier tone. Keep the meaning and facts.';
-    case 'formal':
-      return 'Rewrite the text in a polite, professional tone. Keep the meaning and facts.';
-    case 'shorter':
-      return 'Rewrite the text to be about half as long. Keep the key facts.';
-    case 'grammar':
-      return 'Fix spelling, grammar and punctuation. Change nothing else.';
-    case 'translate':
-      return `Translate the text into ${languageName(lang)}.`;
-  }
-}
-
-/**
- * Runs an AI transform with Chrome's built-in model. Returns null when it's not
- * available on this device.
- */
-export async function applyAi(
-  t: AiTransform,
-  text: string,
-  opts: { lang?: string; signal?: AbortSignal } = {},
-): Promise<string | null> {
-  const lang = opts.lang ?? 'en';
-  const system = `You reshape text a person is about to paste. ${aiInstruction(t, lang)} Reply with only the result, no preamble, no quotes.`;
-  const s = await session(system);
-  if (!s) return null;
-  try {
-    const out = await s.prompt(text.slice(0, 4000), { signal: opts.signal });
-    return out.trim() || null;
-  } finally {
-    s.destroy();
   }
 }

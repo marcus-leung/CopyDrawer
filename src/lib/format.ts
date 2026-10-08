@@ -25,3 +25,8 @@ export function hostOf(url?: string): string | undefined {
     return undefined;
   }
 }
+
+/** "Ctrl+V", or "Cmd+V" on a Mac. */
+export function modKey(key: string, platform = navigator.platform): string {
+  return `${/^Mac/.test(platform) ? 'Cmd' : 'Ctrl'}+${key}`;
+}

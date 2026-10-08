@@ -2,30 +2,31 @@ import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft } from 'lucide-react';
 import { db } from '@/lib/db';
-import { MAX_CLIPS, clearAll, deleteOlderThan } from '@/lib/clips';
+import { MAX_CLIPS, clearAll, countOlderThan, deleteOlderThan } from '@/lib/clips';
 import { isPaused, PAUSE_MS, updateSettings, type Settings } from '@/lib/settings';
 import { disableAutosave, enableAutosave } from '@/lib/autosave';
 import { BUILT_IN_BLOCKED, normalizeSite } from '@/lib/exclusions';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { Button, IconButton } from '@/components/ui';
-import { AiSection } from './AiSection';
+import { InlineConfirm } from '@/components/InlineConfirm';
 import { BackupError, exportBackup, importBackup } from '@/lib/backup';
 
 const selectClass = 'h-9 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink';
 
-export function SettingsView({
-  onBack,
-  notify,
-  onPro,
-}: {
-  onBack: () => void;
-  notify: (message: string) => void;
-  onPro: () => void;
-}) {
+export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (message: string) => void }) {
   const settings = useSettings();
   const now = useNowUntil(settings?.pausedUntil ?? 0);
   const count = useLiveQuery(() => db.clips.count(), [], 0);
   const [site, setSite] = useState('');
+  /** Auto-delete waiting for the user to confirm, with how many clips it would delete now. */
+  const [pendingRetention, setPendingRetention] = useState<{ days: Settings['retentionDays']; old: number } | null>(null);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+
+  async function changeRetention(days: Settings['retentionDays']) {
+    const old = await countOlderThan(days);
+    if (old) setPendingRetention({ days, old });
+    else await change({ retentionDays: days });
+  }
 
   async function change(patch: Partial<Settings>) {
     await updateSettings(patch);
@@ -77,7 +78,7 @@ export function SettingsView({
   }
 
   async function deleteEverything() {
-    if (!confirm('Delete all clips, including pinned ones? This cannot be undone.')) return;
+    setConfirmDeleteAll(false);
     await clearAll();
     notify('All clips deleted');
   }
@@ -180,8 +181,8 @@ export function SettingsView({
             </label>
             <select
               id="retention"
-              value={settings.retentionDays}
-              onChange={(e) => void change({ retentionDays: Number(e.target.value) as Settings['retentionDays'] })}
+              value={pendingRetention?.days ?? settings.retentionDays}
+              onChange={(e) => void changeRetention(Number(e.target.value) as Settings['retentionDays'])}
               className={selectClass}
             >
               <option value={0}>Never</option>
@@ -189,9 +190,21 @@ export function SettingsView({
               <option value={90}>After 90 days</option>
             </select>
           </div>
+          {pendingRetention && (
+            <div className="mt-2">
+              <InlineConfirm
+                message={`Delete ${pendingRetention.old === 1 ? '1 clip' : `${pendingRetention.old.toLocaleString()} clips`} older than ${pendingRetention.days} days now? Pinned clips are kept. This also applies on your other computers through Chrome sync, and can't be undone.`}
+                confirmLabel="Delete and turn on"
+                onConfirm={() => {
+                  const { days } = pendingRetention;
+                  setPendingRetention(null);
+                  void change({ retentionDays: days });
+                }}
+                onCancel={() => setPendingRetention(null)}
+              />
+            </div>
+          )}
         </Section>
-
-        <AiSection settings={settings} onChange={(patch) => void change(patch)} notify={notify} />
 
         <Section id="s-look" title="Appearance">
           <div className="flex min-h-11 items-center justify-between gap-3">
@@ -224,24 +237,10 @@ export function SettingsView({
           </button>
         </Section>
 
-        <Section id="s-pro" title="Pro">
-          <button
-            type="button"
-            onClick={onPro}
-            className="flex w-full cursor-pointer items-center justify-between rounded-2xl bg-ai-bg px-4 py-3.5 text-left text-ai-fg"
-          >
-            <span className="text-sm">
-              <b className="block">Pro is coming</b>
-              Sync, unlimited history, AI on any computer
-            </span>
-            <span aria-hidden>›</span>
-          </button>
-        </Section>
-
         <Section id="s-data" title="Your data">
           <p className="mb-3 text-[13px] leading-[19px] text-text-2">
-            Clips are stored only on this computer. Nothing is uploaded. Your settings (theme, blocked sites, auto-delete, AI)
-            follow you to other computers through Chrome sync, if it's on.
+            Clips are stored only on this computer. Nothing is uploaded. Your settings (theme, blocked sites, auto-delete) follow
+            you to other computers through Chrome sync, if it's on.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => void exportAll()}>
@@ -259,10 +258,20 @@ export function SettingsView({
                 }}
               />
             </label>
-            <Button size="sm" variant="danger" onClick={() => void deleteEverything()}>
+            <Button size="sm" variant="danger" aria-expanded={confirmDeleteAll} onClick={() => setConfirmDeleteAll(true)}>
               Delete all
             </Button>
           </div>
+          {confirmDeleteAll && (
+            <div className="mt-3">
+              <InlineConfirm
+                message="Delete all clips, including pinned ones? This can't be undone."
+                confirmLabel="Delete all clips"
+                onConfirm={() => void deleteEverything()}
+                onCancel={() => setConfirmDeleteAll(false)}
+              />
+            </div>
+          )}
         </Section>
       </main>
     </>

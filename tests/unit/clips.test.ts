@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import Dexie from 'dexie';
 import { ClipDatabase } from '@/lib/db';
 import {
   deleteClip,
@@ -159,22 +160,55 @@ describe('backup', () => {
     expect(await (await other.images.get(img.image!.imageId))!.blob.text()).toBe('png-bytes');
     await expect(importBackup({ nope: 1 }, other)).rejects.toThrow("isn't a Clipboard export");
   });
+
+  it('skips broken clips one by one and repairs missing or odd fields', async () => {
+    const { importBackup } = await import('@/lib/backup');
+    const now = Date.now();
+    const file = {
+      app: 'clipboard-extension',
+      version: 1,
+      clips: [
+        null,
+        { id: 'ghost', kind: 'image', text: '', hash: 'img:ghost', title: 'no file' },
+        {
+          id: 'bad-img',
+          kind: 'image',
+          text: '',
+          hash: 'img:bad',
+          title: 'bad data',
+          image: { imageId: 'x', mime: 'image/png', width: 1, height: 1, bytes: 1, thumb: 'data:,@@@', data: 'data:,@@@' },
+        },
+        { id: 'weird-kind', kind: 'video', text: 'a video?', hash: 'h1' },
+        { kind: 'text', text: 'no id, no dates', hash: 'wrong' },
+        { id: 'future', kind: 'text', text: 'from the future', hash: 'h2', title: 'future', createdAt: now + 1e12 },
+      ],
+    };
+    expect(await importBackup(file, db)).toBe(2);
+    const clips = await db.clips.toArray();
+    expect(clips.map((c) => c.text).sort()).toEqual(['from the future', 'no id, no dates']);
+    const plain = clips.find((c) => c.text === 'no id, no dates')!;
+    expect(plain.id).toBeTruthy();
+    expect(plain.title).toBe('no id, no dates');
+    expect(plain.hash).toBe(hashText('no id, no dates'));
+    expect(plain.useCount).toBe(0);
+    expect(plain.createdAt).toBeGreaterThanOrEqual(now);
+    expect(clips.find((c) => c.text === 'from the future')!.createdAt).toBeLessThanOrEqual(Date.now());
+    expect(await listClips(db)).toHaveLength(2);
+  });
 });
 
 describe('editClip', () => {
   it('edits text and title, re-sorts, and keeps user choices', async () => {
     const { editClip } = await import('@/lib/clips');
     const c = (await saveClip({ text: 'just a note', html: '<b>just</b> a note' }, db))!;
-    await db.clips.update(c.id, { embedding: new Float32Array(2), embeddingModel: 'hash-v1' });
 
-    // New text: new title, type, hash; formatting and vector dropped; sorted by the rules.
+    // New text: new title, type, hash; formatting dropped; sorted by the rules.
     expect(await editClip(c.id, { text: 'SELECT id FROM orders WHERE total > 10' }, db)).toBe(true);
     let e = (await db.clips.get(c.id))!;
     expect(e).toMatchObject({
       kind: 'code',
       title: 'SELECT id FROM orders WHERE total > 10',
       html: undefined,
-      embeddingModel: undefined,
     });
     expect(e.hash).toBe(hashText('SELECT id FROM orders WHERE total > 10'));
     expect((await db.collections.get(e.collectionId!))?.name).toBe('Code');
@@ -195,7 +229,7 @@ describe('editClip', () => {
     const { editClip } = await import('@/lib/clips');
     const { createCollection, moveClip } = await import('@/lib/collections');
     const c = (await saveClip({ text: 'note' }, db))!;
-    const mine = await createCollection('Mine', db);
+    const mine = await createCollection('Mine', undefined, db);
     await moveClip(c.id, mine.id, db);
     await editClip(c.id, { text: 'SELECT id FROM orders WHERE total > 10' }, db);
     expect((await db.clips.get(c.id))!.collectionId).toBe(mine.id);
@@ -218,9 +252,47 @@ describe('settings sync', () => {
       theme: 'dark',
       retentionDays: 30,
       blockedSites: ['a.com'],
-      smartModel: false,
     });
     expect(validSynced({ theme: 'neon', retentionDays: 7 })).toEqual({});
     expect(validSynced(null)).toEqual({});
+  });
+});
+
+describe('database upgrade', () => {
+  it('drops search vectors and AI titles saved by earlier versions', async () => {
+    const name = `test-${crypto.randomUUID()}`;
+    const old = new Dexie(name);
+    old.version(3).stores({
+      clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId, embeddingModel',
+      images: 'id',
+      collections: 'id, &key, order',
+    });
+    await old
+      .table('clips')
+      .add({ id: 'a', createdAt: 1, text: 'hi', titleSource: 'ai', embedding: new Float32Array(3), embeddingModel: 'm' });
+    old.close();
+
+    const upgraded = new ClipDatabase(name);
+    const clip = (await upgraded.clips.get('a')) as unknown as Record<string, unknown>;
+    expect(clip.text).toBe('hi');
+    expect(clip.titleSource).toBe('heuristic');
+    expect('embedding' in clip || 'embeddingModel' in clip).toBe(false);
+  });
+});
+
+describe('images and colors strip order', () => {
+  it('moves a clip before another and keeps new clips first', async () => {
+    const { moveInStrip, stripRank } = await import('@/lib/clips');
+    for (const t of ['#111111', '#222222', '#333333']) await saveClip({ text: t }, db);
+    const order = async () => (await db.clips.toArray()).sort((a, b) => stripRank(b) - stripRank(a)).map((c) => c.text);
+    expect(await order()).toEqual(['#333333', '#222222', '#111111']);
+
+    const strip = (await db.clips.toArray()).sort((a, b) => stripRank(b) - stripRank(a));
+    const oldest = strip.find((c) => c.text === '#111111')!;
+    await moveInStrip(oldest.id, strip[0]!.id, strip, db);
+    expect(await order()).toEqual(['#111111', '#333333', '#222222']);
+
+    await saveClip({ text: '#444444' }, db);
+    expect((await order())[0]).toBe('#444444');
   });
 });

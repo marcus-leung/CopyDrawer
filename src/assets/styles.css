@@ -28,8 +28,8 @@
   --warning-bg: #fff4d6;
   --warning-fg: #6b4a00;
   --warning-border: #f2d27a;
-  --ai-bg: #e6eefc;
-  --ai-fg: #173d8f;
+  --info-bg: #e6eefc;
+  --info-fg: #173d8f;
   color-scheme: light;
 }
 
@@ -51,8 +51,8 @@
   --warning-bg: #3a2f12;
   --warning-fg: #f2d27a;
   --warning-border: #6b5520;
-  --ai-bg: #1e2c4d;
-  --ai-fg: #9dbbff;
+  --info-bg: #1e2c4d;
+  --info-fg: #9dbbff;
   color-scheme: dark;
 }
 
@@ -74,8 +74,8 @@
   --color-warning-bg: var(--warning-bg);
   --color-warning-fg: var(--warning-fg);
   --color-warning-line: var(--warning-border);
-  --color-ai-bg: var(--ai-bg);
-  --color-ai-fg: var(--ai-fg);
+  --color-info-bg: var(--info-bg);
+  --color-info-fg: var(--info-fg);
   --font-sans: 'Instrument Sans', system-ui, sans-serif;
   --font-display: 'Bricolage Grotesque', 'Instrument Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;

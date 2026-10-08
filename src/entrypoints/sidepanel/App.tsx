@@ -9,11 +9,12 @@ import { ImageError, saveImageClip } from '@/lib/images';
 import { isPaused, PAUSE_MS, updateSettings } from '@/lib/settings';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { useTheme } from '@/lib/useTheme';
-import { useIndexer } from '@/lib/useIndexer';
 import { useSearch } from '@/lib/useSearch';
 import { useOpenClipRequests } from '@/lib/openClip';
-import { listCollections, moveClip, promptNewCollection } from '@/lib/collections';
+import { modKey } from '@/lib/format';
+import { listCollections, moveClip } from '@/lib/collections';
 import { CollectionTile } from '@/components/CollectionTile';
+import { NewCollectionForm } from '@/components/NewCollectionForm';
 import { ImageStrip } from '@/components/ImageStrip';
 import { ClipRow } from '@/components/ClipRow';
 import { Button, IconButton, SearchField } from '@/components/ui';
@@ -27,14 +28,9 @@ import { Onboarding } from './Onboarding';
 import { EmptyState } from './EmptyState';
 import { usePanelInput } from './usePanelInput';
 import { HomeNotice } from './HomeNotice';
-import { ProWaitlist } from './ProWaitlist';
 
 type View =
-  | { name: 'home' }
-  | { name: 'detail'; id: string; from?: View }
-  | { name: 'settings' }
-  | { name: 'collection'; id: string }
-  | { name: 'pro'; from?: View };
+  { name: 'home' } | { name: 'detail'; id: string; from?: View } | { name: 'settings' } | { name: 'collection'; id: string };
 
 export function App() {
   useTheme();
@@ -52,11 +48,11 @@ export function App() {
   const [filters, setFilters] = useState<SearchFilters>(NO_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [creating, setCreating] = useState(false);
   const clips = useLiveQuery(() => listClips(), [], undefined);
   const summaries = useLiveQuery(() => listCollections(), [], undefined);
   // Every collection a clip is in has clips, so the (non-empty) summaries cover them all.
   const collectionsById = useMemo(() => new Map(summaries?.map((s) => [s.collection.id, s.collection])), [summaries]);
-  const modelState = useIndexer(settings?.smartModel);
 
   const notify = useCallback((message: string, onUndo?: () => void) => setToast({ id: Date.now(), message, onUndo }), []);
 
@@ -86,18 +82,25 @@ export function App() {
   const saveContents = useCallback(
     async (contents: ClipboardContents & { images?: File[] }) => {
       const images = contents.images?.length ? contents.images : contents.image ? [contents.image] : [];
-      try {
-        if (images.length) {
-          for (const file of images) {
+      if (images.length) {
+        let saved = 0;
+        let error: string | undefined;
+        for (const file of images) {
+          try {
             await saveImageClip({ blob: file, fileName: file instanceof File ? file.name : undefined });
+            saved++;
+          } catch (e) {
+            error = e instanceof ImageError ? e.message : "Couldn't save that image.";
           }
-          notify(images.length === 1 ? 'Image saved' : `${images.length} images saved`);
-          return;
         }
+        notify(error ?? (saved === 1 ? 'Image saved' : `${saved} images saved`));
+        return;
+      }
+      try {
         const clip = await saveClip({ text: contents.text, html: contents.html });
         notify(clip ? 'Saved' : 'Nothing to save');
-      } catch (e) {
-        notify(e instanceof ImageError ? e.message : "Couldn't save that.");
+      } catch {
+        notify("Couldn't save that.");
       }
     },
     [notify],
@@ -112,7 +115,7 @@ export function App() {
       }
       await saveContents(contents);
     } catch {
-      notify('Chrome blocked reading the clipboard. Paste here with Ctrl+V instead.');
+      notify(`Chrome blocked reading the clipboard. Paste here with ${modKey('V')} instead.`);
     }
   }, [notify, saveContents]);
 
@@ -121,19 +124,13 @@ export function App() {
   const { searching, filtering, results: current } = useSearch(query, filters, clips);
   // Stays open while you change filters, even back to "Any".
   const showFilters = filtersOpen || filtering || query.trim() !== '';
-  const visible = useMemo(() => (searching ? (current ?? []).map((r) => r.clip) : (clips ?? [])), [searching, current, clips]);
-  const meaningCount = current?.filter((r) => r.match === 'meaning').length ?? 0;
+  const visible = searching ? (current ?? []) : (clips ?? []);
   const sites = useMemo(() => topSites(clips ?? []), [clips]);
   const paused = settings ? isPaused(settings, now) : false;
   const sortedToday = useMemo(() => {
     const midnight = new Date(now).setHours(0, 0, 0, 0);
     return (clips ?? []).filter((c) => c.collectionId && c.createdAt >= midnight).length;
   }, [clips, now]);
-
-  async function newCollection() {
-    const created = await promptNewCollection();
-    if (created) setView({ name: 'collection', id: created.id });
-  }
 
   const shell = (children: React.ReactNode) => (
     <div className="relative flex h-screen flex-col overflow-hidden bg-bg text-ink">
@@ -173,18 +170,7 @@ export function App() {
   }
 
   if (view.name === 'settings') {
-    return shell(
-      <SettingsView
-        onBack={() => setView({ name: 'home' })}
-        notify={notify}
-        onPro={() => setView({ name: 'pro', from: { name: 'settings' } })}
-      />,
-    );
-  }
-
-  if (view.name === 'pro') {
-    const back = view.from ?? { name: 'home' as const };
-    return shell(<ProWaitlist onBack={() => setView(back)} />);
+    return shell(<SettingsView onBack={() => setView({ name: 'home' })} notify={notify} />);
   }
 
   return shell(
@@ -234,13 +220,7 @@ export function App() {
       </div>
 
       {settings && clips && (
-        <HomeNotice
-          settings={settings}
-          now={now}
-          count={clips.length}
-          onCleanUp={() => setView({ name: 'settings' })}
-          onPro={() => setView({ name: 'pro' })}
-        />
+        <HomeNotice settings={settings} now={now} count={clips.length} onCleanUp={() => setView({ name: 'settings' })} />
       )}
 
       <main className="min-h-0 flex-1 overflow-y-auto px-[18px]">
@@ -252,21 +232,34 @@ export function App() {
           </p>
         ) : (
           <>
-            {!searching && summaries && summaries.length > 0 && (
+            {!searching && summaries && (
               <section aria-labelledby="collections-title" className="pb-4">
                 <div className="flex items-center justify-between pb-2">
                   <h2 id="collections-title" className="font-display text-[17px] font-semibold">
-                    Smart collections
+                    Collections
                   </h2>
                   <button
                     type="button"
-                    onClick={() => void newCollection()}
+                    aria-expanded={creating}
+                    aria-label="New collection"
+                    onClick={() => setCreating(!creating)}
                     className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-full px-2 text-[13px] font-semibold text-text-2 hover:bg-surface"
                   >
                     <Plus size={14} aria-hidden />
                     New
                   </button>
                 </div>
+                {creating && (
+                  <div className="pb-2.5">
+                    <NewCollectionForm
+                      onCancel={() => setCreating(false)}
+                      onCreated={(c) => {
+                        setCreating(false);
+                        notify(`Created ${c.name}`);
+                      }}
+                    />
+                  </div>
+                )}
                 <ul className="grid grid-cols-2 gap-2.5" aria-label="Collections">
                   {summaries.map((s) => (
                     <CollectionTile
@@ -310,7 +303,6 @@ export function App() {
             {searching && (
               <p className="pb-1 text-[13px] text-text-2" aria-live="polite">
                 {visible.length} {visible.length === 1 ? 'clip matches' : 'clips match'}
-                {meaningCount > 0 && `, ${meaningCount} by meaning`}
               </p>
             )}
             <ul aria-label="Clips">
@@ -329,11 +321,7 @@ export function App() {
       </main>
 
       <footer className="flex items-center justify-between gap-3 border-t border-line px-[18px] pt-2.5 pb-4">
-        <span className="text-[13px] text-text-2">
-          {modelState.status === 'loading'
-            ? `Getting the AI ready${modelState.progress ? ` (${Math.round(modelState.progress)}%)` : ''}…`
-            : 'Private: stored and sorted on this device'}
-        </span>
+        <span className="text-[13px] text-text-2">Private: stored and sorted on this device</span>
         {settings?.autoSave && !paused ? (
           <Button variant="outline" size="sm" onClick={() => void updateSettings({ pausedUntil: Date.now() + PAUSE_MS })}>
             Pause
@@ -351,7 +339,7 @@ export function App() {
 
 function DropOverlay() {
   return (
-    <div className="pointer-events-none absolute inset-3.5 z-30 flex flex-col items-center justify-center gap-3 rounded-[22px] border-[3px] border-dashed border-link bg-ai-bg/95 p-6 text-center text-ai-fg">
+    <div className="pointer-events-none absolute inset-3.5 z-30 flex flex-col items-center justify-center gap-3 rounded-[22px] border-[3px] border-dashed border-link bg-info-bg/95 p-6 text-center text-info-fg">
       <ImagePlus size={36} aria-hidden />
       <p className="font-display text-2xl font-extrabold">Drop to save</p>
       <p className="text-sm">Images (PNG, JPG, GIF, WebP up to 20 MB) or text</p>

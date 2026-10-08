@@ -48,7 +48,7 @@ test('right-click "Save image" and "Screenshot an area" save images with a page 
   // Screenshot: start the tool, then drag on the page.
   await page.bringToFront();
   const done = panel.evaluate((id) => chrome.runtime.sendMessage({ type: 'e2e-menu', action: 'screenshot', tabId: id }), tabId);
-  await page.waitForTimeout(300);
+  await page.locator('#__clipboard_ext_shot__').waitFor({ state: 'attached' });
   await page.mouse.move(10, 10);
   await page.mouse.down();
   await page.mouse.move(110, 80, { steps: 5 });

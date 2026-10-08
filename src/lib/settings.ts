@@ -12,8 +12,6 @@ export interface Settings {
   pausedUntil: number;
   blockedSites: string[];
   saveInIncognito: boolean;
-  /** On-device model for sorting and search by meaning (downloads ~25 MB once). */
-  smartModel: boolean;
   dismissedTips: string[];
   onboarded: boolean;
 }
@@ -25,7 +23,6 @@ const DEFAULT_SETTINGS: Settings = {
   pausedUntil: 0,
   blockedSites: [],
   saveInIncognito: false,
-  smartModel: true,
   dismissedTips: [],
   onboarded: false,
 };
@@ -50,7 +47,7 @@ export async function updateSettings(patch: Partial<Settings>): Promise<Settings
 // ---------- Sync between computers (chrome.storage.sync) ----------
 
 /** Settings that follow the user to other computers. Auto-save, pause and tips stay per computer. */
-const SYNCED_KEYS = ['retentionDays', 'theme', 'blockedSites', 'saveInIncognito', 'smartModel'] as const;
+const SYNCED_KEYS = ['retentionDays', 'theme', 'blockedSites', 'saveInIncognito'] as const;
 type SyncedKey = (typeof SYNCED_KEYS)[number];
 type SyncedSettings = Pick<Settings, SyncedKey> & { updatedAt: number };
 
@@ -71,7 +68,6 @@ export function validSynced(remote: unknown): Partial<Pick<Settings, SyncedKey>>
   if (Array.isArray(r.blockedSites))
     out.blockedSites = r.blockedSites.filter((x): x is string => typeof x === 'string').slice(0, 500);
   if (typeof r.saveInIncognito === 'boolean') out.saveInIncognito = r.saveInIncognito;
-  if (typeof r.smartModel === 'boolean') out.smartModel = r.smartModel;
   return out;
 }
 

@@ -1,4 +1,4 @@
-import { test as base, chromium, type BrowserContext } from '@playwright/test';
+import { test as base, chromium, expect as baseExpect, type BrowserContext, type Page } from '@playwright/test';
 import path from 'node:path';
 import fs from 'node:fs';
 
@@ -13,10 +13,13 @@ export const test = base.extend<{ context: BrowserContext; extensionId: string }
       executablePath: fs.existsSync(localChromium) ? localChromium : undefined,
       args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
     });
-    // No real network for the AI model: tests stay fast and the same everywhere.
-    // Tests that need the model serve the stand-in with stubModel(), which takes precedence.
-    await context.route('https://huggingface.co/**', (route) => route.abort());
+    // The extension shows everything inside the panel: a browser dialog (alert, confirm, prompt) is a bug.
+    const dialogs: string[] = [];
+    const watch = (page: Page) => page.on('dialog', (d) => void (dialogs.push(`${d.type()}: ${d.message()}`), d.dismiss()));
+    context.pages().forEach(watch);
+    context.on('page', watch);
     await use(context);
+    baseExpect(dialogs, 'browser dialogs shown').toEqual([]);
     await context.close();
   },
   extensionId: async ({ context }, use) => {

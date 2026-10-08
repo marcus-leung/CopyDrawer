@@ -1,6 +1,6 @@
 # Privacy policy
 
-_Last updated: 6 October 2026_
+_Last updated: 8 October 2026_
 
 Clipboard is a browser extension that keeps what you copy and sorts it into collections. It is built so that **your clips never leave your computer**.
 
@@ -8,7 +8,6 @@ Clipboard is a browser extension that keeps what you copy and sorts it into coll
 
 - **Clips you save:** text, links, images and the page they came from (address and title). They are stored in your browser's local storage (IndexedDB) on this computer only.
 - **Settings:** your choices (auto-save, blocked sites, theme, and so on), stored locally.
-- **Search data:** short number lists ("vectors") made from your clips so you can search by meaning. Made and stored on this computer.
 
 There is no account, and no server stores your clips.
 
@@ -19,10 +18,8 @@ There is no account, and no server stores your clips.
 
 ## Network requests
 
-- **AI model download:** the first time the side panel opens with "Sort and search by meaning" on, the extension downloads a small open-source language model (about 25 MB, all-MiniLM-L6-v2) from Hugging Face (huggingface.co). This is a plain file download: **no clip content is sent**. Hugging Face's own privacy policy applies to that request. You can turn this off in Settings, On-device AI.
-- **Chrome's built-in AI** (titles, rewriting, summaries, translation) runs on your computer through Chrome. If you choose to download it, Chrome downloads the model; the extension sends nothing.
+- **The extension makes no network requests of its own.** Nothing you copy is sent anywhere.
 - **Links you open** from the extension (for example "Track package" or "Open address in Maps") open that website in a new tab, like any link.
-- **Pro waitlist:** if you click "Email me when it's ready", a form opens in a new tab. Anything you enter there goes to that form's provider, and only what you type.
 
 The extension does not use analytics, ads or trackers, and does not sell or share data.
 

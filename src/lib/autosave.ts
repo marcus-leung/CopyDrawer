@@ -1,7 +1,16 @@
 import { getSettings, updateSettings } from './settings';
 
-const AUTOSAVE_SCRIPT_ID = 'autosave';
 const ALL_SITES = { origins: ['<all_urls>'] };
+const AUTOSAVE_SCRIPT = {
+  id: 'autosave',
+  js: ['content-scripts/autosave.js'],
+  matches: ['<all_urls>'],
+  allFrames: true,
+  // Also about:blank and srcdoc frames, where many rich-text editors live.
+  matchOriginAsFallback: true,
+  runAt: 'document_start' as const,
+  persistAcrossSessions: true,
+};
 
 async function hasAllSitesAccess(): Promise<boolean> {
   try {
@@ -15,20 +24,13 @@ async function hasAllSitesAccess(): Promise<boolean> {
 export async function syncAutosaveRegistration(): Promise<boolean> {
   const [settings, granted] = await Promise.all([getSettings(), hasAllSitesAccess()]);
   const shouldRun = settings.autoSave && granted;
-  const existing = await browser.scripting.getRegisteredContentScripts({ ids: [AUTOSAVE_SCRIPT_ID] });
-  if (shouldRun && existing.length === 0) {
-    await browser.scripting.registerContentScripts([
-      {
-        id: AUTOSAVE_SCRIPT_ID,
-        js: ['content-scripts/autosave.js'],
-        matches: ['<all_urls>'],
-        allFrames: true,
-        runAt: 'document_start',
-        persistAcrossSessions: true,
-      },
-    ]);
-  } else if (!shouldRun && existing.length > 0) {
-    await browser.scripting.unregisterContentScripts({ ids: [AUTOSAVE_SCRIPT_ID] });
+  const existing = await browser.scripting.getRegisteredContentScripts({ ids: [AUTOSAVE_SCRIPT.id] });
+  if (shouldRun) {
+    // Updating keeps a registration from an earlier version in step with these options.
+    if (existing.length) await browser.scripting.updateContentScripts([AUTOSAVE_SCRIPT]);
+    else await browser.scripting.registerContentScripts([AUTOSAVE_SCRIPT]);
+  } else if (existing.length) {
+    await browser.scripting.unregisterContentScripts({ ids: [AUTOSAVE_SCRIPT.id] });
   }
   return shouldRun;
 }

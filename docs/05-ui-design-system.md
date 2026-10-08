@@ -10,7 +10,7 @@ _Process: Research → **Design** → Plan → Build. Source of truth for how th
 
 ## 1. Principles
 
-1. **Organization first.** Home leads with AI-sorted collections, so users see the product's point in one glance.
+1. **Organization first.** Home leads with collections, so users see the product's point in one glance.
 2. **One main action per screen.** A single dark primary button; everything else is quiet grey.
 3. **Private and plain.** Say what stays on the device. No hype, no jargon.
 4. **Keyboard-friendly.** Every main action has a shortcut; show key hints where they help.
@@ -37,7 +37,7 @@ _Process: Research → **Design** → Plan → Build. Source of truth for how th
 | `--link` | `#2457C5` | `#9DBBFF` | Links (hover `#173D8F` / `#C6D7FF`) |
 | `--focus` | `#2457C5` | `#9DBBFF` | 2px focus ring, 2px offset |
 | `--danger` | `#B42318` | `#FF8A80` | Delete |
-| `--success-bg` / `--success-fg` | `#DDF3EC` / `#0B5C4A` | `#163A33` / `#5FD6B5` | "AI ready", saved checks |
+| `--success-bg` / `--success-fg` | `#DDF3EC` / `#0B5C4A` | `#163A33` / `#5FD6B5` | Saved checks |
 | `--warning-bg` / `--warning-fg` | `#FFF4D6` / `#6B4A00` (border `#F2D27A`) | `#3A2F12` / `#F2D27A` | Paused notice |
 | `--scrim` | `rgba(27,29,42,0.25–0.45)` | `rgba(0,0,0,0.5)` | Behind overlays and sheets |
 
@@ -56,9 +56,9 @@ Each collection has an **accent** (folder tab, dots, top border), a **tint** (ti
 | Personal | `#5B6170` grey | `#F1F2F6` | `#3E4357` | `#A3A8BC` | `#232636` |
 
 Rules:
-- Colors are assigned by the AI when a collection forms; users can change them. New collections take the next unused color, then repeat.
+- Sorted collections get the color of their category; collections users make take the next unused preset, then repeat. Users can change any collection's color.
+- **Custom colors:** besides the 7 presets, a rainbow bar picks any hue (stored as `hue:<0-359>`). The app derives the five shades from the hue with fixed lightness steps (accent L34, tint L93, text L22; dark accent L68, dark tint L20), so text stays ≥ 4.5:1 on its tint and the tab ≥ 3:1 on the page for every hue, in light and dark. A unit test checks all 360 hues.
 - Never rely on hue alone: collections also show their name, and the accents differ in lightness.
-- Blue (`#2457C5`) doubles as the **AI color**: AI-powered options use the blue tint (e.g. "Summarize", "Translate" in Paste as).
 
 ---
 
@@ -68,7 +68,7 @@ Rules:
 |---|---|---|---|
 | Screen title ("Your clips") | Bricolage Grotesque | 800 | 26px / 1.15 (22px on sub-screens) |
 | Onboarding headline | Bricolage Grotesque | 800 | 30–32px / 34–36px |
-| Section heading ("Smart collections") | Bricolage Grotesque | 600 | 17px |
+| Section heading ("Collections") | Bricolage Grotesque | 600 | 17px |
 | Body / clip text | Instrument Sans | 400–600 | 14–15px / 20–23px |
 | Labels, buttons | Instrument Sans | 600 | 13–15px |
 | Meta (source, time) | Instrument Sans | 400 | 12–13px |
@@ -116,19 +116,22 @@ Rules:
 | **Primary button** | `--ink` fill, `--on-ink` text, 600, height 48–52 (full width at the bottom of a screen) or 36 (inline). One per screen. |
 | **Secondary button** | `--surface` fill, `--ink` text, same sizes. |
 | **Outline button** | 1.5px `--ink` border, transparent, used for Pause. |
-| **AI option button** | Collection-blue tint `#E6EEFC`, text `#173D8F`. |
 | **Icon button** | 44 × 44, round, `--surface` or transparent, `aria-label` required, Lucide icon 18–20px, stroke 2. |
-| **Search field** | 44px tall, round, `--surface` fill, search icon, placeholder "Search or describe a clip". Active state: 2px `--link` border. |
+| **Search field** | 44px tall, round, `--surface` fill, search icon, placeholder "Search your clips". Active state: 2px `--link` border. |
 | **Folder tile** | Tab (accent) above a tinted body with a 3px accent top border; name 15px/600 + count line 13px. 2-column grid, 10px gap. Compact variant: 4 tiles in one row. |
 | **Clip row** | Collection dot (8–10px) · title (14px/600, one line, ellipsis) · meta (12px, `--text-3`) · one action on the right (Paste). Row min-height 48–64px, divider `--border`. |
 | **Clip card** (selected / expanded) | 2px `--ink` or accent border, radius 16, padding 14, actions inside. |
 | **Chip / filter** | 32px tall, round. Off: 1px `--border-strong` on white. On: `--ink` fill, white text, `aria-pressed`. |
 | **Segmented control** | `--surface` track with 4px padding; selected segment white + elevation 1. |
 | **Toggle** | Native checkbox with `role="switch"`, accent `--ink`, label on the left, row ≥ 44px. |
-| **Notice** | Radius 16, padding 14×16, tinted by meaning (warning, info blue, neutral grey, AI violet), title 14/600 + one sentence + up to two buttons. One at a time, under search. |
+| **Notice** | Radius 16, padding 14×16, tinted by meaning (warning, info blue, neutral grey), title 14/600 + one sentence + up to two buttons. One at a time, under search. |
+| **Inline confirm** | Replaces browser dialogs. A `--surface` box with a `--danger`-tinted border, shown in place under the control that asked: one sentence, a danger outline button naming the action ("Delete collection") and Cancel. Focus moves to Cancel; Esc cancels; focus returns to the trigger. `role="alertdialog"`. |
+| **New collection form** | Inline, above the collection grid (or under the Collection select in clip detail): "Collection name" field (focused), color picker, Create (primary) and Cancel. Enter creates, Esc cancels, an empty name shows "Give the collection a name." |
+| **Color picker** | A row of 7 round preset swatches (28px, `role="radio"`, ring on the selected one) and a 12px rainbow bar (`<input type="range">` 0–359, labelled "Custom color", ring when a custom hue is chosen). |
 | **Toast** | Dark (`--ink`) bar for "Clip deleted · Undo"; white card with thumbnail for "Image saved, filed in Research · Open · Undo" (shown on the page, bottom right, 5s). |
 | **Sheet** | Bottom sheet over a scrim, radius 24 top corners, grab handle, close button. |
 | **Drop zone** | 3px dashed `--link`, blue-tint fill at 92%, centered illustration + "Drop to save N images". |
+| **Drag targets** | Images, colors and clip rows are draggable. Dropping on a folder tile or another strip tile shows a 2px `--ink` outline on the target. Internal drags never trigger the drop zone. |
 | **Key hint** | `<kbd>` pill: Enter paste · Tab paste as · Esc close. |
 | **Empty placeholder** | 2px dashed `--border-strong` tile where collections will appear. |
 | **Image placeholder** | Diagonal-stripe fill (`#F1F2F6` / `#E5E7EE`), used until thumbnails load. |
@@ -165,7 +168,8 @@ Full guidelines: [04-design-resources.md §7](04-design-resources.md). In short:
 ## 9. Voice and copy
 
 - Plain, active, short. Buttons say exactly what happens ("Copy for group chat", "Turn on auto-save").
-- Name things the way users think: "collections", "clips", "Paste as". Not "embeddings" or "categories".
+- Name things the way users think: "collections", "clips", "Paste as". Not "categories".
+- No pop-ups: never use browser dialogs (`alert`, `confirm`, `prompt`). Ask in place with an inline confirm or form.
 - Always say where data lives: "Private: stored and sorted on this device."
 - Errors explain and offer the fix; empty states invite action ("Copy anything to start").
 
@@ -188,11 +192,11 @@ Every screen and flow below is on the canvas; files are in [`docs/mockups/`](moc
 | # | Screen | File |
 |---|---|---|
 | Home | Folders home (chosen) · dark · compact · timeline variations | `Folders`, `FoldersDark`, `FoldersCompact`, `FoldersTimeline` |
-| 1.1–1.5 | Welcome · Turn on auto-save · AI setup · Empty home · First clip saved | `Welcome`, `Onboarding`, `AiSetup`, `EmptyHome`, `FirstClip` |
+| 1.1–1.5 | Welcome · Turn on auto-save · Empty home · First clip saved | `Welcome`, `Onboarding`, `EmptyHome`, `FirstClip` |
 | 2.1–2.5 | Right-click save image · Screenshot an area · Image saved toast · Drop images in · Image detail | `ContextMenu`, `Screenshot`, `SavedToast`, `DropZone`, `ImageDetail` |
-| 3.1–3.6 | Search results · Quick-paste box · Clip detail · Paste as AI preview · Emoji and symbols · Toolbar popup | `Search`, `Palette`, `ClipDetail`, `PastePreview`, `EmojiBoard`, `ToolbarPopup` |
-| 4.1–4.2 | Inside a collection · Research stack | `Collection`, `Research` |
-| 5.1–5.4 | Settings · Blocked sites · Notices · Pro waitlist | `Settings`, `BlockedSites`, `Notices`, `ProWaitlist` |
-| 6.1–6.3 | Trip collection · Dates and places in a clip · Share the plan | `Trip`, `PlaceDetail`, `TripShare` |
-| Flows 1–5 | First run · Saving an image · Find and paste · Research to summary · Planning a trip | `FlowFirstRun`, `FlowImages`, `FlowPaste`, `FlowResearch`, `FlowTravel` |
+| 3.1–3.6 | Search results · Quick-paste box · Clip detail · Emoji and symbols · Toolbar popup | `Search`, `Palette`, `ClipDetail`, `EmojiBoard`, `ToolbarPopup` |
+| 4.1 | Inside a collection | `Collection` |
+| 5.1–5.3 | Settings · Blocked sites · Notices | `Settings`, `BlockedSites`, `Notices` |
+| 6.1–6.2 | Trip collection · Dates and places in a clip | `Trip`, `PlaceDetail` |
+| Flows | First run · Saving an image · Find and paste · Planning a trip | `FlowFirstRun`, `FlowImages`, `FlowPaste`, `FlowTravel` |
 | Explorations | A Index Card · B Highlighter (not chosen) | `Main`, `Highlighter` |

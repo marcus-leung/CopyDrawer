@@ -3,6 +3,7 @@ import type { Clip, Collection } from '@/lib/db';
 import { colorOf } from '@/lib/collections';
 import { hostOf, shortTime } from '@/lib/format';
 import { useObjectUrl } from '@/lib/useObjectUrl';
+import { useDragOut } from '@/lib/useDragOut';
 
 /** Drag data type for moving a clip onto a collection (the panel's drop-to-save ignores it). */
 export const CLIP_DRAG_TYPE = 'application/x-clipboard-clip';
@@ -23,14 +24,18 @@ export function ClipRow({
   const host = hostOf(clip.source?.url);
   const from = host ? `from ${host}` : 'saved by hand';
   const meta = [collection?.name, from, shortTime(clip.createdAt)].filter(Boolean).join(', ');
+  const dragOut = useDragOut(clip);
   return (
     <li className="flex min-h-14 items-center gap-3 border-b border-line">
       <button
         type="button"
         draggable
+        onPointerEnter={() => void dragOut.prepare()}
+        onFocus={() => void dragOut.prepare()}
         onDragStart={(e) => {
           e.dataTransfer.setData(CLIP_DRAG_TYPE, clip.id);
-          e.dataTransfer.effectAllowed = 'move';
+          dragOut.setData(e.dataTransfer);
+          e.dataTransfer.effectAllowed = 'copyMove';
         }}
         onClick={() => onOpen(clip)}
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-2.5 text-left"

@@ -1,6 +1,5 @@
 /**
- * Rule-based first pass for smart collections. Fast, offline, deterministic.
- * The embedding model (when available) refines clips these rules don't catch.
+ * Rule-based sorting into collections. Fast, offline, deterministic.
  */
 import type { Clip } from './db';
 import { hostOf } from './format';
