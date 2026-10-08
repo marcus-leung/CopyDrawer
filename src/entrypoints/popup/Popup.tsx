@@ -8,12 +8,12 @@ import { copyClipToClipboard } from '@/lib/clipboard';
 import { shortTime } from '@/lib/format';
 import { disableAutosave, enableAutosave } from '@/lib/autosave';
 import { useSettings } from '@/lib/useSettings';
-import { useTheme } from '@/lib/useTheme';
+import { useAppearance } from '@/lib/useAppearance';
 import { useObjectUrl } from '@/lib/useObjectUrl';
 
 /** Toolbar popup: recent clips, click to copy. */
 export function Popup() {
-  useTheme();
+  useAppearance();
   const settings = useSettings();
   const clips = useLiveQuery(async () => (await listClips()).slice(0, 8), []);
   const collections = useLiveQuery(async () => new Map((await db.collections.toArray()).map((c) => [c.id, c] as const)), []);
@@ -70,21 +70,26 @@ export function Popup() {
           ))}
         </ul>
       )}
-      <footer className="mt-1 flex items-center justify-between border-t border-line px-4 py-2.5 text-[13px] text-text-2">
-        <span role="status">{status ?? 'Click a clip to copy it'}</span>
-        {settings && (
-          <label className="flex cursor-pointer items-center gap-2">
-            Auto-save
+      <p role="status" className="px-4 pt-1.5 pb-2.5 text-[13px] text-text-2">
+        {status ?? 'Click a clip to copy it'}
+      </p>
+      {settings && (
+        <footer className="border-t border-line px-4 py-2.5">
+          <label className="flex cursor-pointer items-center justify-between gap-3 text-[13px]">
+            <span>
+              <span className="block font-semibold">Save what I copy</span>
+              <span className="block text-xs text-text-3">On: everything you copy on websites is saved. Off: save by hand.</span>
+            </span>
             <input
               type="checkbox"
               role="switch"
               checked={settings.autoSave}
               onChange={(e) => void (e.target.checked ? enableAutosave() : disableAutosave())}
-              className="size-4 accent-[var(--color-ink)]"
+              className="size-4 shrink-0 accent-[var(--color-ink)]"
             />
           </label>
-        )}
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }

@@ -222,6 +222,37 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
               <option value="dark">Dark</option>
             </select>
           </div>
+          <div className="flex min-h-11 items-center justify-between gap-3">
+            <label htmlFor="font" className="text-sm">
+              Font
+            </label>
+            <select
+              id="font"
+              value={settings.font}
+              onChange={(e) => void change({ font: e.target.value as Settings['font'] })}
+              className={selectClass}
+            >
+              <option value="default">Default</option>
+              <option value="system">System</option>
+              <option value="mono">Monospace</option>
+            </select>
+          </div>
+          <div className="flex min-h-11 items-center justify-between gap-3">
+            <label htmlFor="text-size" className="text-sm">
+              Text size
+            </label>
+            <select
+              id="text-size"
+              value={settings.textSize}
+              onChange={(e) => void change({ textSize: Number(e.target.value) as Settings['textSize'] })}
+              className={selectClass}
+            >
+              <option value={90}>Small</option>
+              <option value={100}>Default</option>
+              <option value={115}>Large</option>
+              <option value={130}>Larger</option>
+            </select>
+          </div>
         </Section>
 
         <Section id="s-keys" title="Shortcuts">

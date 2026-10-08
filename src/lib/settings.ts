@@ -1,11 +1,22 @@
 import { storage } from '#imports';
 
 export type ThemePref = 'system' | 'light' | 'dark';
+export type FontPref = 'default' | 'system' | 'mono';
+export type TextSize = 90 | 100 | 115 | 130;
+export const TEXT_SIZES: TextSize[] = [90, 100, 115, 130];
+/** Font stacks for the non-default fonts (the default comes from the stylesheet). */
+export const FONT_STACKS: Record<Exclude<FontPref, 'default'>, string> = {
+  system: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  mono: '"JetBrains Mono", ui-monospace, monospace',
+};
 
 export interface Settings {
   /** Delete unpinned clips older than this many days. 0 = never. */
   retentionDays: 0 | 30 | 90;
   theme: ThemePref;
+  font: FontPref;
+  /** Percent; scales the whole interface. */
+  textSize: TextSize;
   /** Also needs the all-sites permission. */
   autoSave: boolean;
   /** Time (ms) auto-save resumes. 0 = not paused. */
@@ -19,6 +30,8 @@ export interface Settings {
 const DEFAULT_SETTINGS: Settings = {
   retentionDays: 0,
   theme: 'system',
+  font: 'default',
+  textSize: 100,
   autoSave: false,
   pausedUntil: 0,
   blockedSites: [],
@@ -47,7 +60,7 @@ export async function updateSettings(patch: Partial<Settings>): Promise<Settings
 // ---------- Sync between computers (chrome.storage.sync) ----------
 
 /** Settings that follow the user to other computers. Auto-save, pause and tips stay per computer. */
-const SYNCED_KEYS = ['retentionDays', 'theme', 'blockedSites', 'saveInIncognito'] as const;
+const SYNCED_KEYS = ['retentionDays', 'theme', 'font', 'textSize', 'blockedSites', 'saveInIncognito'] as const;
 type SyncedKey = (typeof SYNCED_KEYS)[number];
 type SyncedSettings = Pick<Settings, SyncedKey> & { updatedAt: number };
 
@@ -65,6 +78,8 @@ export function validSynced(remote: unknown): Partial<Pick<Settings, SyncedKey>>
   const out: Partial<Pick<Settings, SyncedKey>> = {};
   if (r.retentionDays === 0 || r.retentionDays === 30 || r.retentionDays === 90) out.retentionDays = r.retentionDays;
   if (r.theme === 'system' || r.theme === 'light' || r.theme === 'dark') out.theme = r.theme;
+  if (r.font === 'default' || r.font === 'system' || r.font === 'mono') out.font = r.font;
+  if (TEXT_SIZES.includes(r.textSize as TextSize)) out.textSize = r.textSize as TextSize;
   if (Array.isArray(r.blockedSites))
     out.blockedSites = r.blockedSites.filter((x): x is string => typeof x === 'string').slice(0, 500);
   if (typeof r.saveInIncognito === 'boolean') out.saveInIncognito = r.saveInIncognito;

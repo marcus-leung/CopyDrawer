@@ -6,7 +6,7 @@
 import { TRANSFORMS, type Transform } from '@/lib/transforms';
 import type { QuickClip } from '@/lib/quickpaste';
 import { modKey } from '@/lib/format';
-import { getSettings } from '@/lib/settings';
+import { FONT_STACKS, getSettings } from '@/lib/settings';
 
 declare global {
   interface Window {
@@ -140,6 +140,8 @@ function open() {
   box.setAttribute('aria-label', 'Quick paste');
   void getSettings().then((s) => {
     if (s.theme !== 'system') box.dataset.theme = s.theme;
+    if (s.font !== 'default') box.style.fontFamily = FONT_STACKS[s.font];
+    if (s.textSize !== 100) box.style.zoom = String(s.textSize / 100);
   });
   const head = el('div', 'head');
   const input = el('input');

@@ -1,10 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@/assets/styles.css';
-import { applyCachedTheme } from '@/lib/useTheme';
+import { applyCachedAppearance } from '@/lib/useAppearance';
 import { Popup } from './Popup';
 
-applyCachedTheme();
+applyCachedAppearance();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

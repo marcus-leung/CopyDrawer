@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react';
-import { createCollection, nextColor } from '@/lib/collections';
+import { createCollection, MAX_COLLECTION_NAME, nextColor } from '@/lib/collections';
 import type { Collection } from '@/lib/db';
 import { ColorPicker } from './ColorPicker';
 import { Button } from './ui';
@@ -37,7 +37,7 @@ export function NewCollectionForm({ onCreated, onCancel }: { onCreated: (c: Coll
         id={id}
         autoFocus
         value={name}
-        maxLength={60}
+        maxLength={MAX_COLLECTION_NAME}
         onChange={(e) => {
           setName(e.target.value);
           setError(false);

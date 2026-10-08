@@ -440,4 +440,21 @@ test('quick paste follows the theme chosen in Settings, not only the system', as
   await page.locator('#name').click();
   await open();
   await boxBg().toBe('rgb(27, 29, 39)');
+  await page.keyboard.press('Escape');
+
+  // Font and text size from Settings too.
+  await panel.evaluate(async () => {
+    const { settings } = await chrome.storage.local.get('settings');
+    await chrome.storage.local.set({ settings: { ...(settings ?? {}), font: 'mono', textSize: 115 } });
+  });
+  await page.locator('#name').click();
+  await open();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const box = document.getElementById('clipboard-quick-paste')!.shadowRoot!.querySelector('.box') as HTMLElement;
+        return [getComputedStyle(box).fontFamily.includes('JetBrains Mono'), box.style.zoom];
+      }),
+    )
+    .toEqual([true, '1.15']);
 });

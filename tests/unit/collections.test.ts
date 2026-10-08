@@ -136,3 +136,24 @@ describe('collection colors', () => {
     expect(colorOf({ color: 'hue:200' }).accent).toMatch(/^#[0-9a-f]{6}$/);
   });
 });
+
+describe('collection names', () => {
+  it('are capped at 100 characters when created, renamed or imported', async () => {
+    const { importBackup } = await import('@/lib/backup');
+    const long = 'x'.repeat(150);
+    const c = await createCollection(`  ${long}  `, undefined, db);
+    expect(c.name).toHaveLength(100);
+    await renameCollection(c.id, `${'y'.repeat(150)}`, db);
+    expect((await db.collections.get(c.id))!.name).toBe('y'.repeat(100));
+    await importBackup(
+      {
+        app: 'clipboard-extension',
+        version: 1,
+        collections: [{ id: 'k', key: 'manual:k', name: long, color: 'blue', kind: 'manual', order: 0, createdAt: 1 }],
+        clips: [],
+      },
+      db,
+    );
+    expect((await db.collections.where('key').equals('manual:k').first())!.name).toHaveLength(100);
+  });
+});

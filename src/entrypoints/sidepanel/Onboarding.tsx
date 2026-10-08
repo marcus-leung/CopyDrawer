@@ -23,7 +23,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="flex min-h-screen justify-center overflow-y-auto bg-bg px-5 py-10 text-ink">
+    <div className="flex min-h-full justify-center overflow-y-auto bg-bg px-5 py-10 text-ink">
       <main className="w-full max-w-[420px]">
         {!finished && (
           <p className="mb-6 text-[13px] font-semibold text-text-3" aria-live="polite">

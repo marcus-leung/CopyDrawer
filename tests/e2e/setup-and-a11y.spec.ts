@@ -106,3 +106,41 @@ test('dark mode applies before the first paint (no white flash)', async ({ conte
     await page.close();
   }
 });
+
+test('font and text size: Settings changes every page, and pages open with them', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  const html = page.locator('html');
+  const fontOf = (p: Page) => p.evaluate(() => getComputedStyle(document.body).fontFamily);
+  expect(await fontOf(page)).toContain('Instrument Sans');
+
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByLabel('Font').selectOption('mono');
+  await page.getByLabel('Text size').selectOption('130');
+  await expect(html).toHaveAttribute('data-font', 'mono');
+  await expect.poll(() => html.evaluate((el) => el.style.zoom)).toBe('1.3');
+  expect(await fontOf(page)).toContain('JetBrains Mono');
+  await axe(page, 'settings, monospace, larger');
+
+  // Opens with them already applied (no jump), here and in the popup.
+  await page.reload();
+  expect(await html.evaluate((el) => [el.dataset.font, el.style.zoom])).toEqual(['mono', '1.3']);
+  await expect(page.getByRole('heading', { name: 'Your clips' })).toBeVisible();
+  await axe(page, 'home, monospace, larger');
+  // The panel still fits the window: only its list scrolls, never the whole page.
+  expect(await page.evaluate(() => document.scrollingElement!.scrollHeight <= window.innerHeight)).toBe(true);
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect(popup.locator('html')).toHaveAttribute('data-font', 'mono');
+  expect(await fontOf(popup)).toContain('JetBrains Mono');
+
+  // Back to the defaults.
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByLabel('Font').selectOption('system');
+  await page.getByLabel('Text size').selectOption('100');
+  await expect(html).toHaveAttribute('data-font', 'system');
+  await expect.poll(() => html.evaluate((el) => el.style.zoom)).toBe('');
+  await page.getByLabel('Font').selectOption('default');
+  await expect(html).not.toHaveAttribute('data-font');
+  expect(await fontOf(page)).toContain('Instrument Sans');
+});

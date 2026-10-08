@@ -127,7 +127,7 @@ Clip {
   image?: { imageId, mime, width, height, bytes, thumb, srcUrl? }
 }
 Collection { id, key, name, color /* preset name or "hue:<0-359>" */, kind: 'smart'|'trip'|'manual', order }
-Settings   { retentionDays, theme, autoSave, pausedUntil, blockedSites, saveInIncognito }
+Settings   { retentionDays, theme, font: 'default'|'system'|'mono', textSize: 90|100|115|130, autoSave, pausedUntil, blockedSites, saveInIncognito }
 ```
 
 ### 6.2 Privacy & security design

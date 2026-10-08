@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
-import { deleteCollection, recolorCollection, renameCollection } from '@/lib/collections';
+import { deleteCollection, MAX_COLLECTION_NAME, recolorCollection, renameCollection } from '@/lib/collections';
 import { ClipRow } from '@/components/ClipRow';
 import { hostOf } from '@/lib/format';
 import { collectionVars } from '@/components/CollectionTile';
@@ -98,6 +98,7 @@ export function CollectionView({
                 id="collection-name"
                 name="name"
                 defaultValue={collection.name}
+                maxLength={MAX_COLLECTION_NAME}
                 autoFocus
                 onBlur={(e) => e.currentTarget.form?.requestSubmit()}
                 className="w-full rounded-lg border border-line-strong bg-bg px-2 py-1 font-display text-[24px] font-extrabold text-ink"

@@ -226,7 +226,8 @@ export async function moveInStrip(id: string, beforeId: string, strip: Clip[], d
   const at = rest.findIndex((c) => c.id === beforeId);
   if (id === beforeId || at < 0) return;
   const next = stripRank(rest[at]!);
-  const prev = at > 0 ? stripRank(rest[at - 1]!) : next + 2;
+  // To the front: half a millisecond ahead, so a clip saved later (whole-ms times) still comes first.
+  const prev = at > 0 ? stripRank(rest[at - 1]!) : next + 1;
   await db.clips.update(id, { stripRank: (prev + next) / 2 });
 }
 

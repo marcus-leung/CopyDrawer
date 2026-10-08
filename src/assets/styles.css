@@ -81,6 +81,13 @@
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
+/* The side panel fills its window by percentage, not vh: the text-size zoom would scale vh and overflow. */
+html.panel,
+html.panel body,
+html.panel #root {
+  height: 100%;
+}
+
 html,
 body {
   margin: 0;

@@ -242,6 +242,8 @@ describe('settings sync', () => {
     expect(
       validSynced({
         theme: 'dark',
+        font: 'mono',
+        textSize: 115,
         retentionDays: 30,
         blockedSites: ['a.com', 5],
         smartModel: false,
@@ -250,9 +252,12 @@ describe('settings sync', () => {
       }),
     ).toEqual({
       theme: 'dark',
+      font: 'mono',
+      textSize: 115,
       retentionDays: 30,
       blockedSites: ['a.com'],
     });
+    expect(validSynced({ font: 'comic', textSize: 200 })).toEqual({});
     expect(validSynced({ theme: 'neon', retentionDays: 7 })).toEqual({});
     expect(validSynced(null)).toEqual({});
   });

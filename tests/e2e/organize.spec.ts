@@ -120,6 +120,10 @@ test('collection view: sort, rename, color, delete (cancel and confirm)', async 
   await panel.getByLabel('Collection name').fill('Lisbon, October');
   await panel.getByText('Sorted here automatically.').click();
   await expect(panel.getByRole('heading', { name: 'Lisbon, October' })).toBeVisible();
+  // Names are capped at 100 characters.
+  await panel.getByRole('button', { name: 'Rename' }).click();
+  await expect(panel.getByLabel('Collection name')).toHaveAttribute('maxlength', '100');
+  await panel.getByLabel('Collection name').press('Escape');
   // An empty name is ignored.
   await panel.getByRole('button', { name: 'Rename' }).click();
   await panel.getByLabel('Collection name').fill('   ');
