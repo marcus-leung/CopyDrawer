@@ -25,7 +25,7 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 
 ## Features
 
-- **Save:** Alt+Shift+S or right-click → Save selection; right-click → Save image; Alt+Shift+X screenshot an area; paste or drop into the panel; optional **auto-save** of everything you copy (asks for site access only when you turn it on; skips password fields, banks, password managers and blocked sites; pause anytime).
+- **Save:** Alt+Shift+S or right-click → Save selection; right-click → Save image; Alt+Shift+X screenshot an area; paste or drop into the panel; **add a clip by hand** (+ on the home screen: type or paste, then Save); optional **auto-save** of everything you copy (asks for site access only when you turn it on, and granting that access is what turns it on; covers tabs that are already open; skips password fields, banks, password managers and blocked sites; pause anytime).
 - **Collections:** rules sort clips into Research, Links, Code, Shopping, Recipes, Personal, and trips named after the place ("Lisbon trip"). Make your own right in the panel, rename them, and pick any color (presets or a rainbow bar). Drag clips and images onto a collection to file them.
 - **Images:** save by paste, drop, right-click or screenshot. Drag images within the panel to reorder them or file them, or drag one out onto a page or the desktop.
 - **Find:** word search that forgives small typos, with type, site and date filters.

@@ -42,12 +42,12 @@ test('smart actions, images and colors strip, toolbar popup', async ({ context, 
   await panel.getByRole('button', { name: 'Copy RGB' }).click();
   expect(await panel.evaluate(() => navigator.clipboard.readText())).toBe('rgb(36, 87, 197)');
 
-  // Toolbar popup: recent clips, click to copy.
+  // Toolbar popup: recent clips; the copy icon copies, the row opens the clip in the panel.
   const popup = await context.newPage();
   await popup.goto(`${origin}/popup.html`);
   const recent = popup.getByRole('list', { name: 'Recent clips' });
-  await expect(recent.getByRole('button')).toHaveCount(3);
-  await expect(popup.getByRole('status')).toHaveText('Click a clip to copy it');
+  await expect(recent.getByRole('listitem')).toHaveCount(3);
+  await expect(popup.getByRole('status')).toHaveText('Click a clip to open it, or the copy icon to copy it');
   // The auto-save switch says what it does.
   const autosave = popup.getByRole('switch', { name: /^Save what I copy/ });
   await expect(autosave).not.toBeChecked();
@@ -58,6 +58,17 @@ test('smart actions, images and colors strip, toolbar popup', async ({ context, 
       popup.evaluate(async () => ((await chrome.storage.local.get('settings')).settings as { autoSave: boolean }).autoSave),
     )
     .toBe(true);
-  await recent.getByRole('button', { name: /1Z 999/ }).click();
+  const row = recent.getByRole('listitem').filter({ hasText: '1Z 999' });
+  await row.getByRole('button', { name: 'Copy 1Z 999 AA1 01 2345 6784' }).click();
   await expect(popup.getByRole('status')).toHaveText('Copied. Paste it anywhere.');
+
+  // Clicking the clip itself asks the side panel to show it (the popup closes as the panel opens).
+  const popup2 = await context.newPage();
+  await popup2.goto(`${origin}/popup.html`);
+  await popup2
+    .getByRole('list', { name: 'Recent clips' })
+    .getByRole('button', { name: /^1Z 999/ })
+    .click();
+  await panel.bringToFront();
+  await expect(panel.getByRole('heading', { name: '1Z 999 AA1 01 2345 6784' })).toBeVisible();
 });

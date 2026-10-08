@@ -89,3 +89,34 @@ test('auto-save keeps what you copy, skips passwords, pauses and blocks', async 
   await page.waitForTimeout(500);
   await expect(list.getByRole('listitem')).toHaveCount(2);
 });
+
+test('granting site access turns auto-save on, and tabs already open save without a reload', async ({ context, extensionId }) => {
+  await context.route('https://open.e2e.test/**', (route) => route.fulfill({ contentType: 'text/html', body: PAGE }));
+  // A page opened while auto-save is off.
+  const page = await context.newPage();
+  await page.goto('https://open.e2e.test/');
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  const settings = () =>
+    panel.evaluate(async () => (await chrome.storage.local.get('settings')).settings as { autoSave?: boolean } | undefined);
+  expect((await settings())?.autoSave ?? false).toBe(false);
+
+  // Chrome grants the access (the prompt that closes the toolbar popup): the background turns auto-save on.
+  await panel.evaluate(() => chrome.runtime.sendMessage({ type: 'e2e-permissions-added' }));
+  expect((await settings())?.autoSave).toBe(true);
+
+  // The tab that was already open saves what you copy, no reload.
+  await page.bringToFront();
+  await page.evaluate(() => {
+    const range = document.createRange();
+    range.selectNodeContents(document.getElementById('tip')!);
+    getSelection()!.removeAllRanges();
+    getSelection()!.addRange(range);
+    document.execCommand('copy');
+  });
+  await panel.bringToFront();
+  const list = panel.getByRole('list', { name: 'Clips' });
+  await expect(list.getByRole('listitem')).toHaveCount(1);
+  await expect(list).toContainText('Belém Tower opens at 10:00.');
+});

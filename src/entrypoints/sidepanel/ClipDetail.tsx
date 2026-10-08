@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronLeft, Pencil, Pin, PinOff, Trash2 } from 'lucide-react';
+import { ChevronLeft, Copy, Pencil, Pin, PinOff, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
 import { editClip, togglePin } from '@/lib/clips';
 import { moveClip } from '@/lib/collections';
@@ -110,6 +110,7 @@ export function ClipDetail({
 
       <div className="flex gap-2 px-[18px] pt-3 pb-[18px]">
         <Button variant="primary" size="lg" className="flex-1" onClick={() => onCopy(clip)}>
+          <Copy size={18} aria-hidden />
           {clip.kind === 'image' ? 'Copy image' : 'Copy'}
         </Button>
         {clip.kind === 'image' && <DownloadButton clip={clip} />}

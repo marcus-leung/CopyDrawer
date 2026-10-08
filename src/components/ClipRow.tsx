@@ -1,4 +1,5 @@
-import { Link2, Pin, Code2, Type } from 'lucide-react';
+import { Link2, Pin, Code2, Copy, Type } from 'lucide-react';
+import { IconButton } from './ui';
 import type { Clip, Collection } from '@/lib/db';
 import { colorOf } from '@/lib/collections';
 import { hostOf, shortTime } from '@/lib/format';
@@ -50,13 +51,13 @@ export function ClipRow({
           <span className="block truncate text-xs text-text-3">{meta.charAt(0).toUpperCase() + meta.slice(1)}</span>
         </span>
       </button>
-      <button
-        type="button"
+      <IconButton
+        label={clip.kind === 'image' ? 'Copy image' : 'Copy'}
+        className="size-10 bg-surface hover:opacity-90"
         onClick={() => onCopy(clip)}
-        className="h-9 shrink-0 cursor-pointer rounded-full bg-surface px-3 text-[13px] font-semibold text-ink hover:opacity-90"
       >
-        Copy
-      </button>
+        <Copy size={17} aria-hidden />
+      </IconButton>
     </li>
   );
 }

@@ -15,6 +15,7 @@ import { modKey } from '@/lib/format';
 import { listCollections, moveClip } from '@/lib/collections';
 import { CollectionTile } from '@/components/CollectionTile';
 import { NewCollectionForm } from '@/components/NewCollectionForm';
+import { AddClipForm } from '@/components/AddClipForm';
 import { ImageStrip } from '@/components/ImageStrip';
 import { ClipRow } from '@/components/ClipRow';
 import { Button, IconButton, SearchField } from '@/components/ui';
@@ -49,6 +50,7 @@ export function App() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [creating, setCreating] = useState(false);
+  const [adding, setAdding] = useState(false);
   const clips = useLiveQuery(() => listClips(), [], undefined);
   const summaries = useLiveQuery(() => listCollections(), [], undefined);
   // Every collection a clip is in has clips, so the (non-empty) summaries cover them all.
@@ -184,9 +186,14 @@ export function App() {
             </p>
           )}
         </div>
-        <IconButton label="Settings" className="bg-surface" onClick={() => setView({ name: 'settings' })}>
-          <MoreHorizontal size={20} aria-hidden />
-        </IconButton>
+        <div className="flex gap-2">
+          <IconButton label="Add a clip" aria-expanded={adding} className="bg-surface" onClick={() => setAdding(!adding)}>
+            <Plus size={20} aria-hidden />
+          </IconButton>
+          <IconButton label="Settings" className="bg-surface" onClick={() => setView({ name: 'settings' })}>
+            <MoreHorizontal size={20} aria-hidden />
+          </IconButton>
+        </div>
       </header>
 
       <div className="px-[18px] pb-3">
@@ -218,6 +225,18 @@ export function App() {
           </div>
         )}
       </div>
+
+      {adding && (
+        <div className="px-[18px] pb-3">
+          <AddClipForm
+            onCancel={() => setAdding(false)}
+            onSaved={() => {
+              setAdding(false);
+              notify('Saved');
+            }}
+          />
+        </div>
+      )}
 
       {settings && clips && (
         <HomeNotice settings={settings} now={now} count={clips.length} onCleanUp={() => setView({ name: 'settings' })} />
