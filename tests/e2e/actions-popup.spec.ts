@@ -2,6 +2,8 @@ import { test, expect } from './fixtures';
 
 test('smart actions, images and colors strip, toolbar popup', async ({ context, extensionId }) => {
   const origin = `chrome-extension://${extensionId}`;
+  // Stub the carrier page: if the real one fails to load, the tab shows an error page whose URL is hidden.
+  await context.route('https://www.ups.com/**', (route) => route.fulfill({ contentType: 'text/html', body: '<p>UPS</p>' }));
   const panel = await context.newPage();
   await panel.goto(`${origin}/sidepanel.html`);
   await expect(panel.getByText("Collections appear as you save. You don't need to make any.")).toBeVisible();
