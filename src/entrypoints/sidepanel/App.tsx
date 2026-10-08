@@ -8,7 +8,7 @@ import { copyClipToClipboard, readClipboard, type ClipboardContents } from '@/li
 import { ImageError, saveImageClip } from '@/lib/images';
 import { isPaused, PAUSE_MS, updateSettings } from '@/lib/settings';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
-import { useTheme } from '@/lib/useTheme';
+import { useAppearance } from '@/lib/useAppearance';
 import { useSearch } from '@/lib/useSearch';
 import { useOpenClipRequests } from '@/lib/openClip';
 import { modKey } from '@/lib/format';
@@ -33,7 +33,7 @@ type View =
   { name: 'home' } | { name: 'detail'; id: string; from?: View } | { name: 'settings' } | { name: 'collection'; id: string };
 
 export function App() {
-  useTheme();
+  useAppearance();
   const settings = useSettings();
   const now = useNowUntil(settings?.pausedUntil ?? 0);
   const [view, setView] = useState<View>(() => {
@@ -133,7 +133,7 @@ export function App() {
   }, [clips, now]);
 
   const shell = (children: React.ReactNode) => (
-    <div className="relative flex h-screen flex-col overflow-hidden bg-bg text-ink">
+    <div className="relative flex h-full flex-col overflow-hidden bg-bg text-ink">
       {children}
       {dragging && <DropOverlay />}
       <Toast toast={toast} onDone={() => setToast(null)} />

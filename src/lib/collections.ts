@@ -32,6 +32,13 @@ const CATEGORY_COLOR: Record<CategoryId, string> = {
 
 export const PRESET_COLORS = COLOR_ORDER;
 
+export const MAX_COLLECTION_NAME = 100;
+
+/** Trims a collection name and keeps it within the limit. */
+export function cleanName(name: string): string {
+  return name.trim().slice(0, MAX_COLLECTION_NAME).trim();
+}
+
 function hsl(h: number, s: number, l: number): string {
   const a = (s / 100) * Math.min(l / 100, 1 - l / 100);
   const f = (n: number) => {
@@ -154,7 +161,7 @@ export async function createCollection(name: string, color?: string, db: ClipDat
   return db.transaction('rw', db.collections, async () => {
     const id = crypto.randomUUID();
     return ensureCollection(db, `manual:${id}`, {
-      name: name.trim() || 'New collection',
+      name: cleanName(name) || 'New collection',
       color: color ?? (await nextColor(db)),
       kind: 'manual',
     });
@@ -162,7 +169,7 @@ export async function createCollection(name: string, color?: string, db: ClipDat
 }
 
 export async function renameCollection(id: string, name: string, db: ClipDatabase = defaultDb): Promise<void> {
-  if (name.trim()) await db.collections.update(id, { name: name.trim() });
+  if (cleanName(name)) await db.collections.update(id, { name: cleanName(name) });
 }
 
 export async function recolorCollection(id: string, color: string, db: ClipDatabase = defaultDb): Promise<void> {

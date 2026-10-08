@@ -77,6 +77,7 @@ Rules:
 | Key hints | inherit, in `<kbd>` | 600 | 11–13px, 1px `--border-strong`, radius 6px |
 
 - Fonts are **bundled locally** (Fontsource npm packages, SIL OFL), never loaded from Google's CDN (privacy, offline use, MV3).
+- **Users can change the font** in Settings → Appearance: Default (the table above), System (`system-ui`, e.g. SF Pro on a Mac) or Monospace (JetBrains Mono). The choice replaces both `--font-sans` and `--font-display`, so headings and body text match. Code clips stay in JetBrains Mono.
 - Sentence case everywhere. No all-caps labels.
 
 ---
@@ -126,8 +127,9 @@ Rules:
 | **Toggle** | Native checkbox with `role="switch"`, accent `--ink`, label on the left, row ≥ 44px. |
 | **Notice** | Radius 16, padding 14×16, tinted by meaning (warning, info blue, neutral grey), title 14/600 + one sentence + up to two buttons. One at a time, under search. |
 | **Inline confirm** | Replaces browser dialogs. A `--surface` box with a `--danger`-tinted border, shown in place under the control that asked: one sentence, a danger outline button naming the action ("Delete collection") and Cancel. Focus moves to Cancel; Esc cancels; focus returns to the trigger. `role="alertdialog"`. |
-| **New collection form** | Inline, above the collection grid (or under the Collection select in clip detail): "Collection name" field (focused), color picker, Create (primary) and Cancel. Enter creates, Esc cancels, an empty name shows "Give the collection a name." |
+| **New collection form** | Inline, above the collection grid (or under the Collection select in clip detail): "Collection name" field (focused, up to 100 characters; rename and import use the same cap), color picker, Create (primary) and Cancel. Enter creates, Esc cancels, an empty name shows "Give the collection a name." |
 | **Color picker** | A row of 7 round preset swatches (28px, `role="radio"`, ring on the selected one) and a 12px rainbow bar (`<input type="range">` 0–359, labelled "Custom color", ring when a custom hue is chosen). |
+| **Popup footer** | Two rows: the status hint ("Click a clip to copy it", then "Copied…"), then the auto-save switch labelled "Save what I copy" with the sub-line "On: everything you copy on websites is saved. Off: save by hand." |
 | **Toast** | Dark (`--ink`) bar for "Clip deleted · Undo"; white card with thumbnail for "Image saved, filed in Research · Open · Undo" (shown on the page, bottom right, 5s). |
 | **Sheet** | Bottom sheet over a scrim, radius 24 top corners, grab handle, close button. |
 | **Drop zone** | 3px dashed `--link`, blue-tint fill at 92%, centered illustration + "Drop to save N images". |
@@ -157,12 +159,14 @@ Full guidelines: [04-design-resources.md §7](04-design-resources.md). In short:
 
 ---
 
-## 8. Theme
+## 8. Theme and text
 
 - **Light is the default.** Dark follows the system setting (`prefers-color-scheme`), with an override in Settings (System / Light / Dark).
 - Every surface follows that choice: side panel, onboarding, toolbar popup and the quick-paste box. The last choice is cached so pages open in the right theme without a white flash. The in-page "Saved" card stays light.
 - Implement themes as CSS variables (the tokens above) under Tailwind v4 theme variables; components never use raw hex values.
 - Dark mode swaps the core tokens and uses the dark collection columns; layout and type stay the same (see mockup C1).
+- **Text size:** Small 90%, Default 100%, Large 115%, Larger 130%, in Settings → Appearance. Applied as CSS `zoom` on the page, so text, spacing and icons scale together and layouts keep their proportions (most sizes in this doc are px, which a root font size wouldn't scale). The side panel sizes itself by percentage, not `vh`, so the zoom never adds a page scrollbar.
+- Theme, font and text size apply to the side panel, onboarding, toolbar popup and quick-paste box, sync between computers with the other settings, and are cached so pages open with them already applied.
 
 ---
 
@@ -182,7 +186,7 @@ Full guidelines: [04-design-resources.md §7](04-design-resources.md). In short:
 - Visible focus ring on every interactive element; full keyboard path through panel, palette and sheets.
 - Real `<button>`, `<a>`, `<input>` + `<label>`; icon-only buttons have `aria-label`.
 - Collections are distinguishable by name, not color alone.
-- Respect reduced motion and system font size (use rem in the build).
+- Respect reduced motion. Text size steps up to 130% in Settings (see §8); every screen passes axe at that size.
 
 ---
 

@@ -47,6 +47,17 @@ test('smart actions, images and colors strip, toolbar popup', async ({ context, 
   await popup.goto(`${origin}/popup.html`);
   const recent = popup.getByRole('list', { name: 'Recent clips' });
   await expect(recent.getByRole('button')).toHaveCount(3);
+  await expect(popup.getByRole('status')).toHaveText('Click a clip to copy it');
+  // The auto-save switch says what it does.
+  const autosave = popup.getByRole('switch', { name: /^Save what I copy/ });
+  await expect(autosave).not.toBeChecked();
+  await autosave.click();
+  await expect(autosave).toBeChecked();
+  await expect
+    .poll(() =>
+      popup.evaluate(async () => ((await chrome.storage.local.get('settings')).settings as { autoSave: boolean }).autoSave),
+    )
+    .toBe(true);
   await recent.getByRole('button', { name: /1Z 999/ }).click();
   await expect(popup.getByRole('status')).toHaveText('Copied. Paste it anywhere.');
 });

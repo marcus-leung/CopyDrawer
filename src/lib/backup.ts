@@ -5,6 +5,7 @@
 import { db as defaultDb, type Clip, type ClipDatabase, type ClipKind, type Collection } from './db';
 import { blobToDataUrl, dataUrlToBlob } from './images';
 import { enforceLimit, hashText, makeTitle } from './clips';
+import { cleanName } from './collections';
 
 const KINDS: ClipKind[] = ['text', 'link', 'image', 'code'];
 
@@ -55,7 +56,7 @@ export async function importBackup(file: unknown, db: ClipDatabase = defaultDb):
       if (existing) idMap.set(c.id, existing.id);
       else {
         const id = (await db.collections.get(c.id)) ? crypto.randomUUID() : c.id;
-        await db.collections.add({ ...c, id, order: await db.collections.count() });
+        await db.collections.add({ ...c, id, name: cleanName(c.name) || 'Collection', order: await db.collections.count() });
         idMap.set(c.id, id);
       }
     }
