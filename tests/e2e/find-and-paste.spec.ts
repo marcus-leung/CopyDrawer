@@ -404,3 +404,40 @@ test('Paste as in the panel: every option, Markdown only for formatted clips', a
   await panel.getByRole('button', { name: 'Markdown' }).click();
   await expect.poll(() => clipboardText(panel)).toBe('## Lemon pasta\n\nUse **fresh** lemons.');
 });
+
+test('quick paste follows the theme chosen in Settings, not only the system', async ({ context, extensionId }) => {
+  const { panel, page, open } = await setupQuickPaste(context, extensionId, ['Alex Morgan']);
+  const setTheme = (theme: string) =>
+    panel.evaluate(async (theme) => {
+      const { settings } = await chrome.storage.local.get('settings');
+      await chrome.storage.local.set({ settings: { ...(settings ?? {}), theme } });
+    }, theme);
+  const boxBg = () =>
+    expect.poll(() =>
+      page.evaluate(() => {
+        const box = document.getElementById('clipboard-quick-paste')?.shadowRoot?.querySelector('.box');
+        return box ? getComputedStyle(box).backgroundColor : null;
+      }),
+    );
+
+  // Light system, Dark chosen: the box is dark.
+  await setTheme('dark');
+  await page.locator('#name').click();
+  await open();
+  await boxBg().toBe('rgb(27, 29, 39)');
+  await page.keyboard.press('Escape');
+
+  // Dark system, Light chosen: the box is light.
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await setTheme('light');
+  await page.locator('#name').click();
+  await open();
+  await boxBg().toBe('rgb(255, 255, 255)');
+  await page.keyboard.press('Escape');
+
+  // "Match system" follows the system.
+  await setTheme('system');
+  await page.locator('#name').click();
+  await open();
+  await boxBg().toBe('rgb(27, 29, 39)');
+});

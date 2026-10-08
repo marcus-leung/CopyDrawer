@@ -89,3 +89,20 @@ test('notices, export and import, inline confirms, accessibility', async ({ cont
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await axe(page, 'home dark');
 });
+
+test('dark mode applies before the first paint (no white flash)', async ({ context, extensionId }) => {
+  await context.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => {
+      (window as unknown as { themeAtLoad?: string }).themeAtLoad = document.documentElement.dataset.theme;
+    });
+  });
+  for (const path of ['sidepanel.html', 'popup.html']) {
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/${path}`);
+    await page.evaluate(async () => chrome.storage.local.set({ settings: { theme: 'dark', onboarded: true } }));
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.reload();
+    expect(await page.evaluate(() => (window as unknown as { themeAtLoad?: string }).themeAtLoad), path).toBe('dark');
+    await page.close();
+  }
+});

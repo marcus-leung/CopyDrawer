@@ -6,6 +6,7 @@
 import { TRANSFORMS, type Transform } from '@/lib/transforms';
 import type { QuickClip } from '@/lib/quickpaste';
 import { modKey } from '@/lib/format';
+import { getSettings } from '@/lib/settings';
 
 declare global {
   interface Window {
@@ -13,13 +14,18 @@ declare global {
   }
 }
 
+const DARK =
+  '--ink:#F4F5F8; --bg:#1B1D27; --surface:#262936; --line:#323646; --t3:#A3A8BC; --sel:#1E2C4D; --pill:#1E2C4D; --pillfg:#B9CCFF;';
+
+// Follows the theme chosen in Settings; until that's read, the system setting.
 const CSS = `
 :host { all: initial; }
 * { box-sizing: border-box; }
 .scrim { position: fixed; inset: 0; background: rgba(23,25,35,.28); z-index: 2147483647; display: flex; justify-content: center; align-items: flex-start; padding-top: 14vh; font: 14px/1.45 "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); }
 .box { --ink:#171923; --bg:#fff; --surface:#F1F2F6; --line:#E5E7EE; --t3:#6B7080; --sel:#E6EEFC; --pill:#E6EEFC; --pillfg:#173D8F;
   width: min(560px, 92vw); background: var(--bg); color: var(--ink); border-radius: 18px; box-shadow: 0 18px 48px rgba(23,25,35,.22), 0 2px 6px rgba(23,25,35,.08); overflow: hidden; }
-@media (prefers-color-scheme: dark) { .box { --ink:#F4F5F8; --bg:#1B1D27; --surface:#262936; --line:#323646; --t3:#A3A8BC; --sel:#1E2C4D; --pill:#1E2C4D; --pillfg:#B9CCFF; } }
+@media (prefers-color-scheme: dark) { .box:not([data-theme="light"]) { ${DARK} } }
+.box[data-theme="dark"] { ${DARK} }
 .head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
 .head input { flex: 1; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; padding: 6px 0; }
 .mode { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--pill); color: var(--pillfg); }
@@ -132,6 +138,9 @@ function open() {
   const box = el('div', 'box');
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-label', 'Quick paste');
+  void getSettings().then((s) => {
+    if (s.theme !== 'system') box.dataset.theme = s.theme;
+  });
   const head = el('div', 'head');
   const input = el('input');
   input.placeholder = 'Filter clips';

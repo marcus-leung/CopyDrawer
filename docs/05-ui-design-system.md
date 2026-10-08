@@ -160,6 +160,7 @@ Full guidelines: [04-design-resources.md §7](04-design-resources.md). In short:
 ## 8. Theme
 
 - **Light is the default.** Dark follows the system setting (`prefers-color-scheme`), with an override in Settings (System / Light / Dark).
+- Every surface follows that choice: side panel, onboarding, toolbar popup and the quick-paste box. The last choice is cached so pages open in the right theme without a white flash. The in-page "Saved" card stays light.
 - Implement themes as CSS variables (the tokens above) under Tailwind v4 theme variables; components never use raw hex values.
 - Dark mode swaps the core tokens and uses the dark collection columns; layout and type stay the same (see mockup C1).
 
