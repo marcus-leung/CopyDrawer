@@ -43,6 +43,8 @@ export interface Clip {
   /** Position in the "Images and colors" strip after the user reordered it (higher = earlier). */
   stripRank?: number;
   image?: ClipImage;
+  /** For images: the user's note. */
+  note?: string;
   /** Where the title came from: rules from the text, or the user. */
   titleSource?: 'heuristic' | 'user';
 }

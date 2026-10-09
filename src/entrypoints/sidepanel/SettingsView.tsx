@@ -8,6 +8,7 @@ import { disableAutosave, enableAutosave } from '@/lib/autosave';
 import { BUILT_IN_BLOCKED, normalizeSite } from '@/lib/exclusions';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { Button, IconButton } from '@/components/ui';
+import { ExpandButton } from '@/components/ExpandButton';
 import { InlineConfirm } from '@/components/InlineConfirm';
 import { BackupError, exportBackup, importBackup } from '@/lib/backup';
 
@@ -94,6 +95,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
           <ChevronLeft size={20} aria-hidden />
         </IconButton>
         <h1 className="font-display text-[22px] font-extrabold">Settings</h1>
+        <ExpandButton className="ml-auto" />
       </header>
 
       <main className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-[18px] pb-6">
@@ -251,6 +253,21 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
               <option value={100}>Default</option>
               <option value={115}>Large</option>
               <option value={130}>Larger</option>
+            </select>
+          </div>
+          <div className="flex min-h-11 items-center justify-between gap-3">
+            <label htmlFor="popup-size" className="text-sm">
+              Popup size
+            </label>
+            <select
+              id="popup-size"
+              value={settings.popupSize}
+              onChange={(e) => void change({ popupSize: e.target.value as Settings['popupSize'] })}
+              className={selectClass}
+            >
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
             </select>
           </div>
         </Section>

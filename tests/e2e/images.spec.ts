@@ -23,6 +23,21 @@ test('pasting an image saves it with a thumbnail and opens its detail', async ({
   await expect(page.getByRole('img', { name: 'chart.png' })).toBeVisible();
   await expect(page.getByText('PNG, 120 × 80')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Download' })).toHaveAttribute('download', 'chart.png');
+
+  // Add a note, see it, then clear it.
+  await page.getByRole('button', { name: 'Add a note' }).click();
+  const note = page.getByLabel('Note');
+  await expect(note).toBeFocused();
+  await note.fill('Q3 revenue, for the Monday deck');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('region', { name: 'Note' })).toHaveText('NoteQ3 revenue, for the Monday deck');
+  await expect(page.getByRole('button', { name: 'Add a note' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Edit' }).click();
+  await expect(page.getByLabel('Note')).toHaveValue('Q3 revenue, for the Monday deck');
+  await page.getByLabel('Note').fill('');
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('button', { name: 'Add a note' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Note' })).toHaveCount(0);
 });
 
 test("pasting files that aren't supported images says so; good files in the same paste are still saved", async ({

@@ -42,6 +42,7 @@ interface NewImage {
   srcUrl?: string;
   fileName?: string;
   alt?: string;
+  note?: string;
 }
 
 /** Saves an image clip; duplicates (same bytes) move to the top. */
@@ -51,13 +52,14 @@ export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultD
   if (blob.size > MAX_IMAGE_BYTES) throw new ImageError('Images up to 20 MB can be saved.');
 
   const hash = `img:${await sha256Hex(blob)}`;
+  const note = input.note?.trim() || undefined;
   const { thumb, width, height } = await makeThumbnail(blob);
   const now = saveTime();
 
   return db.transaction('rw', [db.clips, db.images, db.collections], async () => {
     const existing = await db.clips.where('hash').equals(hash).first();
     if (existing) {
-      const updated = { ...existing, createdAt: now, source: input.source ?? existing.source };
+      const updated = { ...existing, createdAt: now, source: input.source ?? existing.source, note: note ?? existing.note };
       await db.clips.put(updated);
       return updated;
     }
@@ -75,6 +77,7 @@ export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultD
       pinned: 0,
       hash,
       image: { imageId, mime: blob.type, width, height, bytes: blob.size, thumb, srcUrl: input.srcUrl },
+      note,
     };
     await db.clips.add(clip);
     const sorted = await autoAssign(clip, db);

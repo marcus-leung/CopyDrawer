@@ -244,6 +244,7 @@ describe('settings sync', () => {
         theme: 'dark',
         font: 'mono',
         textSize: 115,
+        popupSize: 'large',
         retentionDays: 30,
         blockedSites: ['a.com', 5],
         smartModel: false,
@@ -254,10 +255,11 @@ describe('settings sync', () => {
       theme: 'dark',
       font: 'mono',
       textSize: 115,
+      popupSize: 'large',
       retentionDays: 30,
       blockedSites: ['a.com'],
     });
-    expect(validSynced({ font: 'comic', textSize: 200 })).toEqual({});
+    expect(validSynced({ font: 'comic', textSize: 200, popupSize: 'huge' })).toEqual({});
     expect(validSynced({ theme: 'neon', retentionDays: 7 })).toEqual({});
     expect(validSynced(null)).toEqual({});
   });
@@ -299,5 +301,60 @@ describe('images and colors strip order', () => {
 
     await saveClip({ text: '#444444' }, db);
     expect((await order())[0]).toBe('#444444');
+  });
+});
+
+describe('image notes', () => {
+  const image = (id: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    createdAt: Date.now(),
+    lastUsedAt: 0,
+    useCount: 0,
+    kind: 'image' as const,
+    text: '',
+    title: `${id}.png`,
+    pinned: 0 as const,
+    hash: `img:${id}`,
+    ...extra,
+  });
+
+  it('sets, searches and clears a note on an image only', async () => {
+    const { editClip } = await import('@/lib/clips');
+    const { searchClips } = await import('@/lib/search');
+    await db.clips.add(image('chart'));
+    expect(await editClip('chart', { note: '  Q3 revenue slide for Monday  ' }, db)).toBe(true);
+    const clip = (await db.clips.get('chart'))!;
+    expect(clip.note).toBe('Q3 revenue slide for Monday');
+    expect(matchesQuery(clip, 'revenue monday')).toBe(true);
+    expect(searchClips('revenu', [clip], { kind: 'any', site: 'any', date: 'any' })).toHaveLength(1);
+
+    await editClip('chart', { note: '   ' }, db);
+    expect((await db.clips.get('chart'))!.note).toBeUndefined();
+
+    const text = (await saveClip({ text: 'plain text' }, db))!;
+    await editClip(text.id, { note: 'ignored' }, db);
+    expect((await db.clips.get(text.id))!.note).toBeUndefined();
+  });
+
+  it('imports a note only when it is text on an image', async () => {
+    const { importBackup } = await import('@/lib/backup');
+    const png = 'data:image/png;base64,iVBORw0KGgo=';
+    const img = { mime: 'image/png', width: 1, height: 1, bytes: 8, thumb: png, data: png };
+    await importBackup(
+      {
+        app: 'clipboard-extension',
+        version: 1,
+        clips: [
+          image('kept', { note: 'Logo idea', image: img }),
+          image('odd', { note: 42, image: img, hash: 'img:odd' }),
+          { kind: 'text', text: 'a text clip', hash: 'x', note: 'not for text' },
+        ],
+      },
+      db,
+    );
+    const byId = async (id: string) => (await db.clips.get(id))?.note;
+    expect(await byId('kept')).toBe('Logo idea');
+    expect(await byId('odd')).toBeUndefined();
+    expect((await db.clips.toArray()).find((c) => c.kind === 'text')!.note).toBeUndefined();
   });
 });

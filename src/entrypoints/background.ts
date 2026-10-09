@@ -4,7 +4,7 @@ import { colorOf } from '@/lib/collections';
 import { hostOf } from '@/lib/format';
 import { applyTransform, type Transform } from '@/lib/transforms';
 import type { QuickClip } from '@/lib/quickpaste';
-import { OPEN_CLIP_KEY } from '@/lib/openClip';
+import { requestView } from '@/lib/openView';
 import { getSettings, isPaused, pullSyncedSettings, syncedSettingsItem, updateSettings } from '@/lib/settings';
 import { isBlocked } from '@/lib/exclusions';
 import { onPermissionsAdded, syncAutosaveRegistration } from '@/lib/autosave';
@@ -140,18 +140,26 @@ async function blockSiteOf(tab?: Browser.tabs.Tab) {
   await flashBadge('off', '#555A6E');
 }
 
-async function handleAutosave(msg: { text: string; html?: string; title?: string }, sender: Browser.runtime.MessageSender) {
+/** Whether a copy reported by the auto-save script should be kept; if so, the page's URL. */
+async function autosaveAllowed(sender: Browser.runtime.MessageSender): Promise<{ url?: string } | null> {
   const s = await getSettings();
-  if (!s.autoSave || isPaused(s)) return;
+  if (!s.autoSave || isPaused(s)) return null;
   const tab = sender.tab;
   // A blank or srcdoc frame (an editor inside the page) belongs to the page around it.
   const url = hostOf(sender.url) ? sender.url : tab?.url;
-  if (isBlocked(url, s.blockedSites) || isBlocked(tab?.url, s.blockedSites)) return;
-  if (tab?.incognito && !s.saveInIncognito) return;
+  if (isBlocked(url, s.blockedSites) || isBlocked(tab?.url, s.blockedSites)) return null;
+  if (tab?.incognito && !s.saveInIncognito) return null;
+  return { url };
+}
+
+async function handleAutosave(msg: { text: string; html?: string; title?: string }, sender: Browser.runtime.MessageSender) {
+  const allowed = await autosaveAllowed(sender);
+  if (!allowed) return;
+  const tab = sender.tab;
   const clip = await saveClip({
     text: msg.text,
     html: msg.html,
-    source: { url: tab?.url ?? url, title: tab?.title ?? msg.title, favicon: tab?.favIconUrl },
+    source: { url: tab?.url ?? allowed.url, title: tab?.title ?? msg.title, favicon: tab?.favIconUrl },
   });
   if (clip) await badgeOk();
 }
@@ -175,7 +183,7 @@ function createMenus() {
  * Chrome won't (it only allows that right after a click).
  */
 async function openClip(clipId: string, tab: Browser.tabs.Tab | undefined) {
-  await browser.storage.session.set({ [OPEN_CLIP_KEY]: { clipId, at: Date.now() } });
+  await requestView({ view: { name: 'detail', id: clipId } });
   try {
     if (tab?.id == null) throw new Error('no tab');
     await browser.sidePanel.open({ tabId: tab.id });
@@ -264,7 +272,7 @@ export default defineBackground(() => {
   browser.permissions.onRemoved.addListener(() => void syncAutosaveRegistration());
   browser.permissions.onAdded.addListener((added) => void onPermissionsAdded(added));
 
-  // The toolbar button opens the popup (recent clips); the popup opens the panel.
+  // The toolbar button opens the popup (the full app), which can expand into the panel.
   browser.sidePanel?.setPanelBehavior({ openPanelOnActionClick: false }).catch(() => {});
 
   browser.contextMenus.onClicked.addListener((info, tab) => {
@@ -291,6 +299,9 @@ export default defineBackground(() => {
     switch (msg.type) {
       case 'autosave-copy':
         void handleAutosave(msg, sender);
+        return;
+      case 'autosave-image':
+        void autosaveAllowed(sender).then((ok) => ok && saveImageFromUrl(msg.srcUrl, sender.tab));
         return;
       case 'autosave-sync':
         void syncAutosaveRegistration().then(sendResponse);

@@ -91,6 +91,7 @@ export async function importBackup(file: unknown, db: ClipDatabase = defaultDb):
         pinned: c.pinned === 1 ? 1 : 0,
         collectionId: c.collectionId ? idMap.get(c.collectionId) : undefined,
         image,
+        note: isImage && typeof c.note === 'string' && c.note.trim() ? c.note : undefined,
       };
       if (image) await db.images.put({ id: image.imageId, blob: blob! });
       await db.clips.add(clip);

@@ -7,6 +7,7 @@ import { ClipRow } from '@/components/ClipRow';
 import { hostOf } from '@/lib/format';
 import { collectionVars } from '@/components/CollectionTile';
 import { IconButton } from '@/components/ui';
+import { ExpandButton } from '@/components/ExpandButton';
 import { ColorPicker } from '@/components/ColorPicker';
 import { InlineConfirm } from '@/components/InlineConfirm';
 
@@ -56,7 +57,8 @@ export function CollectionView({
           <IconButton label="Back to home" onClick={onBack}>
             <ChevronLeft size={20} aria-hidden />
           </IconButton>
-          <div className="flex gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <ExpandButton className="size-9! bg-bg/70" iconSize={16} />
             <button
               type="button"
               onClick={() => setEditing(true)}
@@ -74,7 +76,7 @@ export function CollectionView({
             </button>
             <IconButton
               label="Delete collection"
-              className="size-9 bg-bg/70 text-danger"
+              className="size-9! bg-bg/70 text-danger"
               onClick={() => setPanel(panel === 'delete' ? null : 'delete')}
             >
               <Trash2 size={16} aria-hidden />

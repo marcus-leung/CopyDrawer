@@ -140,6 +140,7 @@ export function matchesQuery(clip: Clip, query: string): boolean {
   const hay = [
     clip.text,
     clip.title,
+    clip.note,
     clip.source?.title,
     clip.source?.url,
     clip.kind === 'image' ? 'image picture photo screenshot' : '',
@@ -174,6 +175,8 @@ export async function restoreClip(deleted: DeletedClip, db: ClipDatabase = defau
 interface ClipEdit {
   text?: string;
   title?: string;
+  /** Images only. Empty removes the note. */
+  note?: string;
 }
 
 /**
@@ -209,6 +212,7 @@ export async function editClip(id: string, edit: ClipEdit, db: ClipDatabase = de
       if (!title)
         next = { ...next, title: clip.kind === 'image' ? clip.title : makeTitle(next.text, next.kind), titleSource: 'heuristic' };
     }
+    if (edit.note !== undefined && clip.kind === 'image') next = { ...next, note: edit.note.trim() || undefined };
     await db.clips.put(next);
     if (!next.collectionLocked && !next.collectionId) await autoAssign(next, db);
     return true;

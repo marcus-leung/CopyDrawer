@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { FONT_STACKS, getSettings, settingsItem, validSynced, type Settings } from './settings';
 
-type Appearance = Pick<Settings, 'theme' | 'font' | 'textSize'>;
+type Appearance = Pick<Settings, 'theme' | 'font' | 'textSize' | 'popupSize'>;
 
-const DEFAULT: Appearance = { theme: 'system', font: 'default', textSize: 100 };
+const DEFAULT: Appearance = { theme: 'system', font: 'default', textSize: 100, popupSize: 'medium' };
 const CACHE_KEY = 'appearance';
 
 function apply(a: Appearance) {
@@ -21,6 +21,8 @@ function apply(a: Appearance) {
   }
   // zoom scales text, spacing and icons together, so layouts keep their proportions.
   root.style.zoom = a.textSize === 100 ? '' : String(a.textSize / 100);
+  root.style.setProperty('--text-zoom', String(a.textSize / 100));
+  root.dataset.popupSize = a.popupSize;
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(a));
   } catch {
@@ -46,8 +48,8 @@ export function useAppearance() {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const onMedia = () => apply(current);
     const set = (s: Settings | null) => {
-      const { theme, font, textSize } = { ...DEFAULT, ...validSynced(s) };
-      current = { theme, font, textSize };
+      const { theme, font, textSize, popupSize } = { ...DEFAULT, ...validSynced(s) };
+      current = { theme, font, textSize, popupSize };
       apply(current);
     };
     void getSettings().then(set);
