@@ -65,7 +65,7 @@ const WORD = /[\p{L}\p{N}]+/gu;
 export function matchesWithTypos(clip: Clip, query: string): boolean {
   const words = query.toLowerCase().match(WORD) ?? [];
   if (!words.length) return false;
-  const hay = `${clip.title}\n${clip.text.slice(0, 5000)}\n${clip.source?.title ?? ''}`.toLowerCase();
+  const hay = `${clip.title}\n${clip.text.slice(0, 5000)}\n${clip.note ?? ''}\n${clip.source?.title ?? ''}`.toLowerCase();
   const hayWords = new Set(hay.match(WORD) ?? []);
   return words.every((w) => {
     if (hay.includes(w)) return true;

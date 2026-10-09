@@ -88,6 +88,25 @@ html.panel #root {
   height: 100%;
 }
 
+/* Chrome caps popups at 600px tall; dividing by the zoom keeps larger text inside that. */
+html.popup {
+  --popup-w: 400px;
+  --popup-h: 600px;
+  width: var(--popup-w);
+  height: calc(var(--popup-h) / var(--text-zoom, 1));
+}
+html.popup[data-popup-size='small'] {
+  --popup-w: 360px;
+  --popup-h: 480px;
+}
+html.popup[data-popup-size='large'] {
+  --popup-w: 520px;
+}
+html.popup body,
+html.popup #root {
+  height: 100%;
+}
+
 html,
 body {
   margin: 0;

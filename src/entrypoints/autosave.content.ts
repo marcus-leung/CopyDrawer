@@ -1,6 +1,6 @@
 /**
- * Auto-save: notices copy/cut on web pages and sends the copied text to the
- * background. Registered at runtime only after the user grants all-sites
+ * Auto-save: notices copy/cut on web pages and sends the copied text (or a
+ * selected image) to the background. Registered at runtime only after the user grants all-sites
  * access, so it's not in the manifest.
  */
 declare global {
@@ -32,15 +32,20 @@ export default defineContentScript({
         text = selectedText(target);
         html = text ? selectedHtml() : '';
       }
-      if (!text.trim()) return;
+      const srcUrl = text.trim() ? undefined : selectedImage(target);
+      if (!text.trim() && !srcUrl) return;
 
       void browser.runtime
-        .sendMessage({
-          type: 'autosave-copy',
-          text: text.slice(0, 200_000),
-          html: html.slice(0, 400_000) || undefined,
-          title: document.title,
-        })
+        .sendMessage(
+          srcUrl
+            ? { type: 'autosave-image', srcUrl }
+            : {
+                type: 'autosave-copy',
+                text: text.slice(0, 200_000),
+                html: html.slice(0, 400_000) || undefined,
+                title: document.title,
+              },
+        )
         .catch(() => {
           // Extension was reloaded or updated; ignore.
         });
@@ -59,6 +64,17 @@ function selectedText(target: EventTarget | null): string {
     }
   }
   return window.getSelection()?.toString() ?? '';
+}
+
+/** The image being copied: the copied element itself, or the first image in the selection. */
+function selectedImage(target: EventTarget | null): string | undefined {
+  if (target instanceof HTMLImageElement) return target.currentSrc || target.src;
+  const sel = window.getSelection();
+  for (let i = 0; sel && i < sel.rangeCount; i++) {
+    const img = sel.getRangeAt(i).cloneContents().querySelector('img');
+    if (img?.src) return img.src;
+  }
+  return undefined;
 }
 
 function selectedHtml(): string {

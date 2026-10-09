@@ -44,11 +44,14 @@ test('add a clip by hand: type or paste, save, cancel, empty refused', async ({ 
   await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
   const add = page.getByRole('button', { name: 'Add a clip' });
   const form = page.getByRole('form', { name: 'Add a clip' });
-  const box = form.getByLabel('Clip');
+  const box = form.getByLabel('New clip');
 
   // Esc cancels without saving.
   await add.click();
   await expect(box).toBeFocused();
+  // It opens above the search bar.
+  const search = page.getByRole('searchbox', { name: 'Search your clips' });
+  expect((await form.boundingBox())!.y).toBeLessThan((await search.boundingBox())!.y);
   await box.fill('never mind');
   await box.press('Escape');
   await expect(form).toHaveCount(0);
@@ -75,4 +78,33 @@ test('add a clip by hand: type or paste, save, cancel, empty refused', async ({ 
   await expect(list.getByRole('listitem')).toHaveCount(1);
   await expect(list).toContainText('Recipes');
   expect((await readClips(page))[0]!.text).toBe('2 cups flour, 1 tbsp sugar.\nPreheat the oven to 200C.');
+
+  // Pasting an image shows it in the box; it can be removed, and Save keeps it as an image clip.
+  await add.click();
+  const pasteImage = () =>
+    page.evaluate(async () => {
+      const canvas = new OffscreenCanvas(40, 30);
+      canvas.getContext('2d')!.fillRect(0, 0, 40, 30);
+      const data = new DataTransfer();
+      data.items.add(new File([await canvas.convertToBlob({ type: 'image/png' })], 'pasted.png', { type: 'image/png' }));
+      document.activeElement!.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true }));
+    });
+  await pasteImage();
+  await pasteImage();
+  const previews = form.getByRole('list', { name: 'Images to save' }).getByRole('listitem');
+  await expect(previews).toHaveCount(2);
+  await form.getByRole('button', { name: 'Remove image 2' }).click();
+  await expect(previews).toHaveCount(1);
+  await expect(list.getByRole('listitem')).toHaveCount(1);
+  // Text typed with an image is its note, not a clip of its own.
+  await expect(box).toHaveAttribute('placeholder', 'Add a note (optional)');
+  await box.fill('Logo for the bake sale');
+  await form.getByRole('button', { name: 'Save' }).click();
+  await expect(form).toHaveCount(0);
+  await expect(list.getByRole('listitem')).toHaveCount(2);
+  const imageRow = list.getByRole('listitem').filter({ hasText: 'pasted.png' });
+  await expect(imageRow).toContainText('Logo for the bake sale');
+  await search.fill('bake sale');
+  await expect(list.getByRole('listitem')).toHaveCount(1);
+  await expect(list).toContainText('pasted.png');
 });

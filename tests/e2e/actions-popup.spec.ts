@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures';
 
-test('smart actions, images and colors strip, toolbar popup', async ({ context, extensionId }) => {
+test('smart actions, images and colors strip, toolbar popup expands to the panel', async ({ context, extensionId }) => {
   const origin = `chrome-extension://${extensionId}`;
   // Stub the carrier page: if the real one fails to load, the tab shows an error page whose URL is hidden.
   await context.route('https://www.ups.com/**', (route) => route.fulfill({ contentType: 'text/html', body: '<p>UPS</p>' }));
@@ -42,33 +42,28 @@ test('smart actions, images and colors strip, toolbar popup', async ({ context, 
   await panel.getByRole('button', { name: 'Copy RGB' }).click();
   expect(await panel.evaluate(() => navigator.clipboard.readText())).toBe('rgb(36, 87, 197)');
 
-  // Toolbar popup: recent clips; the copy icon copies, the row opens the clip in the panel.
+  // Toolbar popup: the full app. Expanding hands the current screen and search to the side panel.
+  await panel.getByRole('button', { name: 'Back' }).click();
   const popup = await context.newPage();
   await popup.goto(`${origin}/popup.html`);
-  const recent = popup.getByRole('list', { name: 'Recent clips' });
-  await expect(recent.getByRole('listitem')).toHaveCount(3);
-  await expect(popup.getByRole('status')).toHaveText('Click a clip to open it, or the copy icon to copy it');
-  // The auto-save switch says what it does.
-  const autosave = popup.getByRole('switch', { name: /^Save what I copy/ });
-  await expect(autosave).not.toBeChecked();
-  await autosave.click();
-  await expect(autosave).toBeChecked();
-  await expect
-    .poll(() =>
-      popup.evaluate(async () => ((await chrome.storage.local.get('settings')).settings as { autoSave: boolean }).autoSave),
-    )
-    .toBe(true);
-  const row = recent.getByRole('listitem').filter({ hasText: '1Z 999' });
-  await row.getByRole('button', { name: 'Copy 1Z 999 AA1 01 2345 6784' }).click();
-  await expect(popup.getByRole('status')).toHaveText('Copied. Paste it anywhere.');
+  await expect(popup.getByRole('heading', { name: 'Your clips' })).toBeVisible();
+  await expect(popup.getByRole('list', { name: 'Clips' }).getByRole('listitem')).toHaveCount(3);
+  await popup.getByLabel('Search your clips').fill('lamp');
+  await popup.getByRole('button', { name: 'Open in side panel' }).click();
+  await panel.bringToFront();
+  await expect(panel.getByLabel('Search your clips')).toHaveValue('lamp');
+  await expect(list.getByRole('listitem')).toHaveCount(1);
 
-  // Clicking the clip itself asks the side panel to show it (the popup closes as the panel opens).
   const popup2 = await context.newPage();
   await popup2.goto(`${origin}/popup.html`);
   await popup2
-    .getByRole('list', { name: 'Recent clips' })
+    .getByRole('list', { name: 'Clips' })
     .getByRole('button', { name: /^1Z 999/ })
     .click();
+  await expect(popup2.getByRole('heading', { name: '1Z 999 AA1 01 2345 6784' })).toBeVisible();
+  await popup2.getByRole('button', { name: 'Open in side panel' }).click();
   await panel.bringToFront();
   await expect(panel.getByRole('heading', { name: '1Z 999 AA1 01 2345 6784' })).toBeVisible();
+  // The side panel itself has no expand button.
+  await expect(panel.getByRole('button', { name: 'Open in side panel' })).toHaveCount(0);
 });

@@ -133,6 +133,18 @@ test('font and text size: Settings changes every page, and pages open with them'
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(popup.locator('html')).toHaveAttribute('data-font', 'mono');
   expect(await fontOf(popup)).toContain('JetBrains Mono');
+  // Popup size presets; the height stays inside Chrome's popup limit at any text size.
+  await popup.setViewportSize({ width: 800, height: 600 });
+  const popupSize = async () => {
+    const box = (await popup.locator('html').boundingBox())!;
+    return [Math.round(box.width), Math.round(box.height)];
+  };
+  expect(await popupSize()).toEqual([520, 600]);
+  await popup.getByRole('button', { name: 'Settings' }).click();
+  await popup.getByLabel('Popup size').selectOption('small');
+  await expect.poll(popupSize).toEqual([468, 480]);
+  await popup.getByLabel('Popup size').selectOption('medium');
+  await page.bringToFront();
 
   // Back to the defaults.
   await page.getByRole('button', { name: 'Settings' }).click();

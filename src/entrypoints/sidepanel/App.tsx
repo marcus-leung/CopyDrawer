@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ClipboardPaste, ImagePlus, MoreHorizontal, Plus, SlidersHorizontal } from 'lucide-react';
 import type { Clip } from '@/lib/db';
@@ -10,7 +10,7 @@ import { isPaused, PAUSE_MS, updateSettings } from '@/lib/settings';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { useAppearance } from '@/lib/useAppearance';
 import { useSearch } from '@/lib/useSearch';
-import { useOpenClipRequests } from '@/lib/openClip';
+import { requestView, useOpenViewRequests, type OpenViewRequest, type View } from '@/lib/openView';
 import { modKey } from '@/lib/format';
 import { listCollections, moveClip } from '@/lib/collections';
 import { CollectionTile } from '@/components/CollectionTile';
@@ -20,6 +20,7 @@ import { ImageStrip } from '@/components/ImageStrip';
 import { ClipRow } from '@/components/ClipRow';
 import { Button, IconButton, SearchField } from '@/components/ui';
 import { Notice } from '@/components/Notice';
+import { ExpandButton, ExpandContext } from '@/components/ExpandButton';
 import { Toast, type ToastState } from '@/components/Toast';
 import { ClipDetail } from './ClipDetail';
 import { SettingsView } from './SettingsView';
@@ -30,10 +31,8 @@ import { EmptyState } from './EmptyState';
 import { usePanelInput } from './usePanelInput';
 import { HomeNotice } from './HomeNotice';
 
-type View =
-  { name: 'home' } | { name: 'detail'; id: string; from?: View } | { name: 'settings' } | { name: 'collection'; id: string };
-
-export function App() {
+/** The same app runs in the side panel and in the toolbar popup. */
+export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   useAppearance();
   const settings = useSettings();
   const now = useNowUntil(settings?.pausedUntil ?? 0);
@@ -44,11 +43,19 @@ export function App() {
   });
   const [onboarding, setOnboarding] = useState(() => new URLSearchParams(location.search).has('onboarding'));
 
-  useOpenClipRequests(useCallback((id: string) => setView({ name: 'detail', id }), []));
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(NO_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
+  useOpenViewRequests(
+    useCallback((req: OpenViewRequest) => {
+      setView(req.view);
+      setQuery(req.query ?? '');
+      setFilters(req.filters ?? NO_FILTERS);
+      setFiltersOpen(false);
+    }, []),
+    surface === 'panel',
+  );
   const [creating, setCreating] = useState(false);
   const [adding, setAdding] = useState(false);
   const clips = useLiveQuery(() => listClips(), [], undefined);
@@ -57,6 +64,21 @@ export function App() {
   const collectionsById = useMemo(() => new Map(summaries?.map((s) => [s.collection.id, s.collection])), [summaries]);
 
   const notify = useCallback((message: string, onUndo?: () => void) => setToast({ id: Date.now(), message, onUndo }), []);
+
+  // Looked up ahead of time: Chrome only opens the side panel straight from a click.
+  const [windowId, setWindowId] = useState<number>();
+  useEffect(() => {
+    if (surface === 'popup') void browser.windows.getCurrent().then((w) => setWindowId(w.id));
+  }, [surface]);
+
+  const expand = useCallback(() => {
+    if (windowId == null) return;
+    void requestView({ view, query, filters });
+    void browser.sidePanel
+      .open({ windowId })
+      .then(() => window.close())
+      .catch(() => notify("Couldn't open the panel. Try again."));
+  }, [windowId, view, query, filters, notify]);
 
   const copy = useCallback(
     async (clip: Clip) => {
@@ -135,11 +157,13 @@ export function App() {
   }, [clips, now]);
 
   const shell = (children: React.ReactNode) => (
-    <div className="relative flex h-full flex-col overflow-hidden bg-bg text-ink">
-      {children}
-      {dragging && <DropOverlay />}
-      <Toast toast={toast} onDone={() => setToast(null)} />
-    </div>
+    <ExpandContext value={surface === 'popup' ? expand : null}>
+      <div className="relative flex h-full flex-col overflow-hidden bg-bg text-ink">
+        {children}
+        {dragging && <DropOverlay />}
+        <Toast toast={toast} onDone={() => setToast(null)} />
+      </div>
+    </ExpandContext>
   );
 
   if (onboarding) {
@@ -187,6 +211,7 @@ export function App() {
           )}
         </div>
         <div className="flex gap-2">
+          <ExpandButton className="bg-surface" />
           <IconButton label="Add a clip" aria-expanded={adding} className="bg-surface" onClick={() => setAdding(!adding)}>
             <Plus size={20} aria-hidden />
           </IconButton>
@@ -195,6 +220,18 @@ export function App() {
           </IconButton>
         </div>
       </header>
+
+      {adding && (
+        <div className="px-[18px] pb-3">
+          <AddClipForm
+            onCancel={() => setAdding(false)}
+            onSaved={() => {
+              setAdding(false);
+              notify('Saved');
+            }}
+          />
+        </div>
+      )}
 
       <div className="px-[18px] pb-3">
         <div className="flex items-center gap-2">
@@ -225,18 +262,6 @@ export function App() {
           </div>
         )}
       </div>
-
-      {adding && (
-        <div className="px-[18px] pb-3">
-          <AddClipForm
-            onCancel={() => setAdding(false)}
-            onSaved={() => {
-              setAdding(false);
-              notify('Saved');
-            }}
-          />
-        </div>
-      )}
 
       {settings && clips && (
         <HomeNotice settings={settings} now={now} count={clips.length} onCleanUp={() => setView({ name: 'settings' })} />

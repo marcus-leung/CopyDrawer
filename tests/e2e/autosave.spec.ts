@@ -74,6 +74,28 @@ test('auto-save keeps what you copy, skips passwords, pauses and blocks', async 
   await expect(list).toContainText(/from guide\.e2e\.test/i);
   await expect(panel.getByText('hunter2-secret')).toHaveCount(0);
 
+  // Selecting an image and pressing Ctrl/Cmd+C saves the image.
+  const imagePage = await context.newPage();
+  await imagePage.goto('https://guide.e2e.test/');
+  await imagePage.evaluate(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 60;
+    canvas.height = 40;
+    canvas.getContext('2d')!.fillRect(0, 0, 60, 40);
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    document.body.append(img);
+    const range = document.createRange();
+    range.selectNode(img);
+    getSelection()!.removeAllRanges();
+    getSelection()!.addRange(range);
+    document.execCommand('copy');
+  });
+  await imagePage.waitForTimeout(300);
+  await imagePage.close();
+  await expect(list.getByRole('listitem')).toHaveCount(3);
+  await expect(panel.getByRole('list', { name: 'Images and colors' }).getByRole('button')).toHaveCount(1);
+
   // Pause stops saving.
   await panel.getByRole('button', { name: 'Pause' }).click();
   await expect(panel.getByText('Auto-save is paused')).toBeVisible();
@@ -87,7 +109,7 @@ test('auto-save keeps what you copy, skips passwords, pauses and blocks', async 
     document.execCommand('copy');
   });
   await page.waitForTimeout(500);
-  await expect(list.getByRole('listitem')).toHaveCount(2);
+  await expect(list.getByRole('listitem')).toHaveCount(3);
 });
 
 test('granting site access turns auto-save on, and tabs already open save without a reload', async ({ context, extensionId }) => {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronLeft, Copy, Pencil, Pin, PinOff, Trash2 } from 'lucide-react';
+import { ChevronLeft, Copy, Pencil, Pin, PinOff, StickyNote, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
 import { editClip, togglePin } from '@/lib/clips';
 import { moveClip } from '@/lib/collections';
@@ -9,6 +9,7 @@ import { hostOf } from '@/lib/format';
 import { formatBytes } from '@/lib/images';
 import { useObjectUrl } from '@/lib/useObjectUrl';
 import { Button, IconButton } from '@/components/ui';
+import { ExpandButton } from '@/components/ExpandButton';
 import { PasteAs } from './PasteAs';
 import { SmartActions } from '@/components/SmartActions';
 import { CodeView } from '@/components/CodeView';
@@ -57,6 +58,7 @@ export function ClipDetail({
           <ChevronLeft size={20} aria-hidden />
         </IconButton>
         <div className="flex gap-1.5">
+          <ExpandButton className="bg-surface" />
           <IconButton label="Edit" className="bg-surface" onClick={() => setEditing(true)}>
             <Pencil size={18} aria-hidden />
           </IconButton>
@@ -91,6 +93,20 @@ export function ClipDetail({
             </>
           )}
         </p>
+        {clip.kind === 'image' &&
+          (clip.note ? (
+            <section aria-labelledby="note-title" className="mt-3 rounded-2xl bg-surface p-3.5">
+              <h2 id="note-title" className="text-[13px] font-semibold text-text-2">
+                Note
+              </h2>
+              <p className="mt-1 text-sm break-words whitespace-pre-wrap">{clip.note}</p>
+            </section>
+          ) : (
+            <Button size="sm" variant="outline" className="mt-3" onClick={() => setEditing(true)}>
+              <StickyNote size={16} aria-hidden />
+              Add a note
+            </Button>
+          ))}
         <MoveTo clip={clip} />
         {clip.kind !== 'image' && (
           <pre
@@ -193,10 +209,11 @@ function MoveTo({ clip }: { clip: Clip }) {
   );
 }
 
-/** Edit the saved copy's title and text. */
+/** Edit the saved copy's title and text, or an image's note. */
 function EditClip({ clip, onDone }: { clip: Clip; onDone: (saved: boolean) => void }) {
   const [title, setTitle] = useState(clip.title);
   const [text, setText] = useState(clip.text);
+  const [note, setNote] = useState(clip.note ?? '');
   const [error, setError] = useState<string | null>(null);
   const isImage = clip.kind === 'image';
 
@@ -205,7 +222,7 @@ function EditClip({ clip, onDone }: { clip: Clip; onDone: (saved: boolean) => vo
       setError("The clip can't be empty. Delete it instead if you don't need it.");
       return;
     }
-    await editClip(clip.id, { title, ...(isImage ? {} : { text }) });
+    await editClip(clip.id, { title, ...(isImage ? { note } : { text }) });
     onDone(true);
   }
 
@@ -237,6 +254,18 @@ function EditClip({ clip, onDone }: { clip: Clip; onDone: (saved: boolean) => vo
             className="h-11 rounded-xl border border-line-strong bg-bg px-3 text-sm font-normal text-ink"
           />
         </label>
+        {isImage && (
+          <label className="flex min-h-0 flex-1 flex-col gap-1.5 text-[13px] font-semibold text-text-2">
+            Note
+            <textarea
+              value={note}
+              autoFocus
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Anything to remember about this image"
+              className="min-h-32 flex-1 resize-none rounded-xl border border-line-strong bg-bg p-3 text-sm leading-[21px] font-normal text-ink placeholder:text-text-3"
+            />
+          </label>
+        )}
         {!isImage && (
           <label className="flex min-h-0 flex-1 flex-col gap-1.5 text-[13px] font-semibold text-text-2">
             Text

@@ -48,6 +48,7 @@ export function ClipRow({
             {clip.pinned === 1 && <Pin size={12} className="shrink-0 text-text-3" aria-label="Pinned" />}
             <span className="truncate">{clip.title}</span>
           </span>
+          {clip.note && <span className="block truncate text-xs text-text-2">{clip.note}</span>}
           <span className="block truncate text-xs text-text-3">{meta.charAt(0).toUpperCase() + meta.slice(1)}</span>
         </span>
       </button>
