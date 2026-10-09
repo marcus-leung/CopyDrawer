@@ -11,6 +11,8 @@ export const test = base.extend<{ context: BrowserContext; extensionId: string }
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
       executablePath: fs.existsSync(localChromium) ? localChromium : undefined,
+      // Headless Chrome on macOS closes tabs the extension opens.
+      headless: process.platform !== 'darwin',
       args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
     });
     // The extension shows everything inside the panel: a browser dialog (alert, confirm, prompt) is a bug.

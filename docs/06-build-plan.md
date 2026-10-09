@@ -28,8 +28,8 @@ Assumptions: solo developer, ~20 h/week, AI coding help. Chrome + Edge only. Eng
 | Animation | CSS + **Motion** (`LazyMotion`) in the panel; CSS only in the page overlay | Approved in doc 04 |
 | Icons / fonts | **Lucide** (+ lucide-animated later) · **Fontsource** Bricolage Grotesque, Instrument Sans, JetBrains Mono | Bundled locally |
 | Storage | **IndexedDB via Dexie** (clips, images, collections) · **OPFS** for image files · `chrome.storage.local` for settings · `chrome.storage.sync` for settings sync | Local-first |
-| Tests | **Vitest** (logic) · **Playwright** with the unpacked extension (e2e) | Chromium is available in CI |
-| Tooling | pnpm, ESLint, Prettier, GitHub Actions | Standard |
+| Tests | **Vitest** (logic) · **Playwright** with the unpacked extension (e2e) | Run locally before every push (`pnpm check`) |
+| Tooling | pnpm, oxlint, Prettier | Standard |
 
 ---
 
@@ -84,7 +84,7 @@ Settings { autoSave, blockedSites[], retentionDays, theme, analytics, shortcutsS
 
 | # | Task | Done when |
 |---|---|---|
-| B1 | Scaffold WXT + React + TS + Tailwind v4, lint/format, GPL-3.0 `LICENSE`, `THIRD_PARTY_NOTICES` | `pnpm dev` loads the extension; CI runs lint + build |
+| B1 | Scaffold WXT + React + TS + Tailwind v4, lint/format, GPL-3.0 `LICENSE`, `THIRD_PARTY_NOTICES` | `pnpm dev` loads the extension; lint + build pass |
 | B2 | Design tokens + fonts + base components (button, icon button, search field, clip row, toast) | Matches doc 05 light theme |
 | B3 | Dexie schema + clip repository (add, list, search, pin, delete, limit enforcement) | Vitest covers add/limit/delete |
 | B4 | Service worker: context menu "Save selection", command Alt+Shift+S, message router | Selected text appears in DB with source |
@@ -92,7 +92,7 @@ Settings { autoSave, blockedSites[], retentionDays, theme, analytics, shortcutsS
 | B6 | Copy back to clipboard, pin, delete + Undo | Works from the panel |
 | B7 | Keyword search | Filters as you type |
 | B8 | Minimal settings | Limit, delete all, shortcuts link |
-| B9 | Playwright e2e + release zip + unlisted submission | CI green; zip uploaded |
+| B9 | Playwright e2e + release zip + unlisted submission | `pnpm check` passes; zip uploaded |
 
 ---
 
@@ -164,7 +164,7 @@ Built on top of v0.1, in this order. Each week ends with a usable build.
 ## 7. Engineering practices
 
 - **Branches:** `main` is releasable; feature branches + PRs; tag releases `v0.1.0`, `v1.0.0`.
-- **CI (GitHub Actions):** lint, typecheck, Vitest, build, Playwright (headless Chromium with the unpacked extension), upload zip artifact.
+- **Local checks, no CI:** `pnpm check` runs typecheck, lint, format check, Vitest, build, the manifest check and Playwright (Chromium with the unpacked extension; headed on macOS). It must pass before every push. `pnpm zip` makes the store zip.
 - **Security:** no remote code; no `eval`; all assets bundled; pinned dependencies; dependency review on upgrades; 2FA on store accounts; clip content never logged or sent anywhere.
 - **Performance budgets:** side panel JS < 250 KB gzipped at first load; overlay < 30 KB.
 - **Accessibility:** keyboard path for every flow; contrast per doc 05; reduced motion.
