@@ -50,7 +50,7 @@ Problem: auto-capturing copies on every site needs `<all_urls>` content scripts 
 | **Default (install)** | `storage`, `unlimitedStorage`, `sidePanel`, `contextMenus`, `activeTab`, `scripting`, `clipboardRead`, `clipboardWrite`, `alarms` | Shortcut / context menu "Save selection" or "Save image"; paste or drop into panel; "Grab clipboard" button; `activeTab` grants the current page on a user gesture |
 | **Auto-capture (opt-in)** | `optional_host_permissions: ["<all_urls>"]`, requested at runtime with a clear explainer. Onboarding step 2 offers "Turn on auto-save" | Content script listens to copy/cut on all sites (including blank and srcdoc editor frames); pause toggle; per-site blocklist; off in incognito by default |
 
-Why: a lighter install warning, a likely smoother first review, and a trust story ("we only read pages if you turn it on"), while most users still end up with auto-capture through onboarding. The production build must not list `<all_urls>` in `host_permissions`; CI checks this.
+Why: a lighter install warning, a likely smoother first review, and a trust story ("we only read pages if you turn it on"), while most users still end up with auto-capture through onboarding. The production build must not list `<all_urls>` in `host_permissions`; `pnpm check` checks this before every push.
 
 Always excluded (hardcoded + user list): `chrome://` pages, the Web Store, and a small seed list of password-manager and banking domains (cheap safety net; full secret detection is out of scope for MVP).
 

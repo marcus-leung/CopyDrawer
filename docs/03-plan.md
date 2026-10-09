@@ -128,15 +128,15 @@ The extension has no analytics, so these come from the store dashboard, beta fee
 |---|---|---|---|---|
 | **0. Research** | done | Understand market, constraints | [01-research.md](01-research.md) | ✅ |
 | **1. Design** | 1–2 | Lock decisions | Name · design system (colors, type, components) · **unlisted test submission** (with optional all-sites permission) | ✅ Decisions locked, name chosen, design system done ([05](05-ui-design-system.md)). Unlisted test submission not yet made |
-| **2. MVP build** | 3–7 | Free core | See [06-build-plan.md](06-build-plan.md) | ✅ v1.0 candidate built on `main` with unit + Playwright e2e tests in CI |
+| **2. MVP build** | 3–7 | Free core | See [06-build-plan.md](06-build-plan.md) | ✅ v1.0 candidate built on `main` with unit + Playwright e2e tests, run locally before every push |
 | **3. Private beta** | 8–9 | Real-world feedback | Unlisted listing · 30–50 testers · bug fixes · onboarding tuning | Activation ≥ 40% in beta; no P0 bugs; listing approved |
 | **4. Public launch v1.0** | 10 | Distribution | Listed on Chrome + Edge · launch campaign (§3.3) | Live; launch posts out |
 | **5. Growth + Safari** | 11–16 | Second launch moment, retention, new platform | Paste stack · Product Hunt launch · SEO articles · **Safari build** (popup/tab UI) via Mac App Store | KPIs tracked weekly; Safari approved |
 | **6. Expansion** | 17+ | Depth | Shareable boards · phone handoff · desktop companion · secret detection (Guard) | Driven by user feedback |
 
 ### 4.1 Engineering practices
-- TypeScript strict, oxlint/Prettier, Vitest unit tests, Playwright e2e against the loaded extension (Chromium is available in CI).
-- CI on GitHub Actions: lint, test, build, manifest check (all-sites access stays optional), e2e, zip artifact; release tags → manual upload to the store (automate with the Chrome Web Store API later).
+- TypeScript strict, oxlint/Prettier, Vitest unit tests, Playwright e2e against the loaded extension (run locally with `pnpm check` before every push).
+- No CI: `pnpm check` runs lint, typecheck, format check, unit tests, build, manifest check (all-sites access stays optional) and e2e locally before every push; `pnpm zip` → manual upload to the store (automate with the Chrome Web Store API later).
 - Security: 2FA everywhere, dependency review, no remote code, Chrome's default strict CSP, signed tags.
 - Versioning: semver; a changelog visible in the extension ("What's new").
 
