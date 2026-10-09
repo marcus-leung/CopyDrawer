@@ -130,7 +130,7 @@ export function classifyByRules(clip: Pick<Clip, 'kind' | 'text' | 'title' | 'so
   const urls = urlsOf(clip);
   const fromDomain = (cat: CategoryId) => urls.some((u) => domainMatches(u, DOMAINS[cat]));
 
-  if (clip.kind === 'code') return 'code';
+  if (clip.kind === 'code' || clip.kind === 'json') return 'code';
   if (fromDomain('travel') || (RE.travelWords.test(text) && (RE.flight.test(text) || RE.price.test(text)))) return 'travel';
   if (fromDomain('recipes') || (RE.recipeWords.test(text) && /\b(cup|tbsp|tsp|preheat|ingredients)\b/i.test(text)))
     return 'recipes';

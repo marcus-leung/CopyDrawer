@@ -2,7 +2,6 @@ import { deleteClip, deleteOlderThan, listClips, markUsed, saveClip } from '@/li
 import { db } from '@/lib/db';
 import { colorOf } from '@/lib/collections';
 import { hostOf } from '@/lib/format';
-import { applyTransform, type Transform } from '@/lib/transforms';
 import type { QuickClip } from '@/lib/quickpaste';
 import { requestView } from '@/lib/openView';
 import { getSettings, isPaused, pullSyncedSettings, syncedSettingsItem, updateSettings } from '@/lib/settings';
@@ -233,12 +232,6 @@ async function quickPasteClips(): Promise<{ clips: QuickClip[] }> {
   };
 }
 
-async function quickPasteTransform(id: string, transform: Transform): Promise<string | null> {
-  const clip = await db.clips.get(id);
-  if (!clip) return null;
-  return applyTransform(transform, clip.text, clip.html);
-}
-
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener((details) => {
     createMenus();
@@ -314,9 +307,6 @@ export default defineBackground(() => {
         return;
       case 'qp-clips':
         void quickPasteClips().then(sendResponse);
-        return true;
-      case 'qp-transform':
-        void quickPasteTransform(msg.id, msg.transform).then(sendResponse, () => sendResponse(null));
         return true;
       case 'qp-used':
         void markUsed(msg.id);

@@ -2,12 +2,11 @@
  * Export and import: one JSON file with clips, images and collections, so
  * people can move their history or keep a copy.
  */
-import { db as defaultDb, type Clip, type ClipDatabase, type ClipKind, type Collection } from './db';
+import { db as defaultDb, type Clip, type ClipDatabase, type Collection } from './db';
+import { CLIP_KINDS, detectKind } from './kinds';
 import { blobToDataUrl, dataUrlToBlob } from './images';
 import { enforceLimit, hashText, makeTitle } from './clips';
 import { cleanName } from './collections';
-
-const KINDS: ClipKind[] = ['text', 'link', 'image', 'code'];
 
 interface ExportedClip extends Omit<Clip, 'image'> {
   image?: Omit<NonNullable<Clip['image']>, 'thumb'> & { thumb: string; data?: string };
@@ -62,7 +61,7 @@ export async function importBackup(file: unknown, db: ClipDatabase = defaultDb):
     }
     const now = Date.now();
     for (const c of data.clips!) {
-      if (!c || typeof c.text !== 'string' || !KINDS.includes(c.kind)) continue;
+      if (!c || typeof c.text !== 'string' || !CLIP_KINDS.includes(c.kind)) continue;
       const isImage = c.kind === 'image';
       // Text hashes are recomputed so a hand-edited file can't sneak in duplicates.
       const hash = isImage ? c.hash : hashText(c.text);
@@ -84,6 +83,8 @@ export async function importBackup(file: unknown, db: ClipDatabase = defaultDb):
         ...c,
         id,
         hash,
+        // Types are re-detected, so older exports get the newer types too.
+        kind: isImage ? 'image' : detectKind(c.text),
         title: typeof c.title === 'string' && c.title.trim() ? c.title : makeTitle(c.text, c.kind),
         createdAt: Number.isFinite(c.createdAt) ? Math.min(c.createdAt, now) : now,
         lastUsedAt: Number.isFinite(c.lastUsedAt) ? c.lastUsedAt : 0,

@@ -3,7 +3,7 @@
  * and paste it into the field you were typing in. Injected on demand with
  * activeTab, so it needs no site access.
  */
-import { TRANSFORMS, type Transform } from '@/lib/transforms';
+import { TRANSFORMS } from '@/lib/transforms';
 import type { QuickClip } from '@/lib/quickpaste';
 import { modKey } from '@/lib/format';
 import { FONT_STACKS, getSettings } from '@/lib/settings';
@@ -174,17 +174,9 @@ function open() {
     document.removeEventListener('keydown', trap, true);
   };
 
-  const finish = async (clip: QuickClip, transform: Transform = 'asis') => {
-    let text = clip.text;
-    if (transform !== 'asis') {
-      mode.textContent = 'Writing…';
-      const res = (await browser.runtime.sendMessage({ type: 'qp-transform', id: clip.id, transform })) as string | null;
-      if (res == null) {
-        mode.textContent = "Couldn't do that here";
-        return;
-      }
-      text = res;
-    }
+  // Fields here take text only, so "Paste as is" and "Plain text" paste the same.
+  const finish = async (clip: QuickClip) => {
+    const text = clip.text;
     close();
     void browser.runtime.sendMessage({ type: 'qp-used', id: clip.id });
     if (!insertAt(target, text)) {
@@ -213,7 +205,7 @@ function open() {
         li.append(el('span', 'title', o.label));
         li.onmousedown = (e) => {
           e.preventDefault();
-          void finish(pasteAs!, o.id);
+          void finish(pasteAs!);
         };
         list.append(li);
       });
@@ -285,7 +277,7 @@ function open() {
       if (pasteAs) {
         const opt = list.querySelectorAll('li')[selected]?.textContent;
         const o = options.find((x) => x.label === opt);
-        if (o) void finish(pasteAs, o.id);
+        if (o) void finish(pasteAs);
       } else if (shown[selected]) void finish(shown[selected]!);
     } else return false;
     return true;

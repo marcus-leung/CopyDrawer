@@ -316,8 +316,18 @@ export function findFlight(text: string): string | null {
   return flighty ? `${m[1]} ${m[2]}` : null;
 }
 
-const EMAIL = /^[\w.+-]+@[\w-]+(?:\.[\w-]+)+$/;
-const PHONE = /^\+?[\d\s().-]{7,20}$/;
+export const EMAIL = /^[\w.+-]+@[\w-]+(?:\.[\w-]+)+$/;
+export const PHONE = /^\+?[\d\s().-]{7,20}$/;
+
+/** "$1,299.00" → "1299.00": the number without currency, separators or units. */
+export function plainNumber(text: string): string {
+  const t = text.trim().replace(/−/g, '-');
+  const sign = t.startsWith('-') ? '-' : '';
+  const body = t.replace(/[^\d.,]/g, '');
+  // A comma followed by exactly two digits at the end is a decimal comma ("12,50").
+  const normalized = /,\d{1,2}$/.test(body) && !body.includes('.') ? body.replace(/,(?=\d{1,2}$)/, '.') : body;
+  return sign + normalized.replace(/[, ]/g, '');
+}
 
 // ---------- All actions for a clip ----------
 
@@ -372,6 +382,12 @@ export function detectActions(clip: { kind: string; text: string }, now = new Da
     }
   }
   if (clip.kind === 'code') return out;
+
+  if (clip.kind === 'number') {
+    const n = plainNumber(text);
+    if (n !== text) out.actions.push({ kind: 'copy', label: 'Copy number only', text: n });
+    return out;
+  }
 
   const tracking = findTracking(text);
   if (tracking) {

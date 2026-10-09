@@ -228,7 +228,7 @@ test('quick paste: keys pressed right after opening count, even before the list 
   for (let i = 0; i < 3; i++) {
     await run(['Enter'], 'the Q3 report');
     await run(['a', 'l', 'e', 'x', 'Enter'], 'Alex Morgan');
-    await run(['Tab', 'u', 'p', 'p', 'Enter'], 'THE Q3 REPORT');
+    await run(['Tab', 'p', 'l', 'a', 'Enter'], 'the Q3 report');
   }
 });
 
@@ -327,27 +327,16 @@ test('quick paste: Tab for Paste as, filter options, Esc back to clips; images a
   await page.keyboard.press('Tab');
   await expect(page.getByText('Paste as', { exact: true })).toBeVisible();
   await expect(page.getByRole('combobox')).toHaveAttribute('placeholder', 'Filter options');
-  await page.keyboard.type('bul');
+  await expect(page.getByRole('option')).toHaveText(['Paste as is', 'Plain text']);
+  await page.keyboard.type('pla');
   await expect(page.getByRole('option')).toHaveCount(1);
   // Esc goes back to the clip list, not out.
   await page.keyboard.press('Escape');
   await expect(page.getByRole('combobox')).toHaveAttribute('placeholder', 'Filter clips');
   await page.keyboard.press('Tab');
-  await page.keyboard.type('bul');
+  await page.keyboard.type('pla');
   await page.keyboard.press('Enter');
-  await expect(page.locator('#notes')).toHaveValue('- eggs\n- milk\n- bread\n- butter');
-
-  for (const [option, expected] of [
-    ['UPPERCASE', 'EGGS, MILK, BREAD, BUTTER'],
-    ['Checklist', '- [ ] eggs\n- [ ] milk\n- [ ] bread\n- [ ] butter'],
-  ] as const) {
-    await page.locator('#notes').fill('');
-    await page.locator('#notes').click();
-    await open();
-    await page.keyboard.press('Tab');
-    await page.getByRole('option', { name: option }).click();
-    await expect(page.locator('#notes')).toHaveValue(expected);
-  }
+  await expect(page.locator('#notes')).toHaveValue('eggs, milk, bread, butter');
 });
 
 test('quick paste on a page that blocks extensions fails quietly', async ({ context, extensionId }) => {
@@ -370,39 +359,29 @@ async function openDetail(panel: Page, name: RegExp) {
 }
 const clipboardText = (panel: Page) => panel.evaluate(() => navigator.clipboard.readText());
 
-test('Paste as in the panel: every option, Markdown only for formatted clips', async ({ context, extensionId }) => {
+test('Paste as in the panel: as is keeps formatting, plain text drops it', async ({ context, extensionId }) => {
   const panel = await openPanel(context, extensionId);
-  await pasteIntoPanel(panel, 'Book the hotel. Buy train tickets. Pack light.');
-  // A formatted clip (copied from a page with HTML).
   await panel.evaluate(() => {
     const data = new DataTransfer();
     data.setData('text/plain', 'Lemon pasta. Use fresh lemons.');
     data.setData('text/html', '<h2>Lemon pasta</h2><p>Use <b>fresh</b> lemons.</p>');
     window.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true }));
   });
+  await openDetail(panel, /Lemon pasta/);
+  const options = panel.getByRole('region', { name: 'Paste as' }).getByRole('button');
+  await expect(options).toHaveText(['Paste as is', 'Plain text']);
 
-  await openDetail(panel, /Book the hotel/);
-  await expect(panel.getByRole('button', { name: 'Markdown' })).toHaveCount(0);
-  const cases: [string, string][] = [
-    ['Plain text', 'Book the hotel. Buy train tickets. Pack light.'],
-    ['Bullet list', '- Book the hotel.\n- Buy train tickets.\n- Pack light.'],
-    ['Checklist', '- [ ] Book the hotel.\n- [ ] Buy train tickets.\n- [ ] Pack light.'],
-    ['One line', 'Book the hotel. Buy train tickets. Pack light.'],
-    ['UPPERCASE', 'BOOK THE HOTEL. BUY TRAIN TICKETS. PACK LIGHT.'],
-    ['lowercase', 'book the hotel. buy train tickets. pack light.'],
-    ['Title Case', 'Book the Hotel. Buy Train Tickets. Pack Light.'],
-  ];
-  for (const [label, expected] of cases) {
-    await panel.getByRole('button', { name: label, exact: true }).click();
-    await expect.poll(() => clipboardText(panel)).toBe(expected);
-  }
+  const clipboardHtml = () =>
+    panel.evaluate(async () => {
+      const [item] = await navigator.clipboard.read();
+      return item!.types.includes('text/html') ? await (await item!.getType('text/html')).text() : null;
+    });
   await panel.getByRole('button', { name: 'Paste as is' }).click();
   await expect(panel.getByRole('status')).toContainText('Copied. Paste it anywhere.');
-  await panel.getByRole('button', { name: 'Back' }).click();
-
-  await openDetail(panel, /Lemon pasta/);
-  await panel.getByRole('button', { name: 'Markdown' }).click();
-  await expect.poll(() => clipboardText(panel)).toBe('## Lemon pasta\n\nUse **fresh** lemons.');
+  await expect.poll(clipboardHtml).toContain('<b>fresh</b>');
+  await panel.getByRole('button', { name: 'Plain text', exact: true }).click();
+  await expect.poll(() => clipboardText(panel)).toBe('Lemon pasta. Use fresh lemons.');
+  await expect.poll(clipboardHtml).toBeNull();
 });
 
 test('quick paste follows the theme chosen in Settings, not only the system', async ({ context, extensionId }) => {

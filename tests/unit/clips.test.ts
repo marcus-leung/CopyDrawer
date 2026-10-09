@@ -326,7 +326,7 @@ describe('image notes', () => {
     const clip = (await db.clips.get('chart'))!;
     expect(clip.note).toBe('Q3 revenue slide for Monday');
     expect(matchesQuery(clip, 'revenue monday')).toBe(true);
-    expect(searchClips('revenu', [clip], { kind: 'any', site: 'any', date: 'any' })).toHaveLength(1);
+    expect(searchClips('revenu', [clip], { kind: 'any', site: 'any', date: 'any', sort: 'newest' })).toHaveLength(1);
 
     await editClip('chart', { note: '   ' }, db);
     expect((await db.clips.get('chart'))!.note).toBeUndefined();

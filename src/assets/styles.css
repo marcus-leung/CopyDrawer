@@ -117,9 +117,23 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-:focus-visible {
-  outline: 2px solid var(--link);
-  outline-offset: 2px;
+/* In the base layer so utilities like outline-none still win (the search pill shows focus itself). */
+@layer base {
+  /* Keyboard focus only, in a quiet grey; mouse clicks never leave a ring. */
+  :focus-visible {
+    outline: 2px solid var(--text-3);
+    outline-offset: 2px;
+  }
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  button,
+  summary,
+  [role='button'] {
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 kbd {

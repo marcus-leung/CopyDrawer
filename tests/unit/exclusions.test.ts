@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isBlocked, isBuiltInBlocked, normalizeSite } from '@/lib/exclusions';
+import { BUILT_IN_BLOCKED, isBlocked, isBuiltInBlocked, normalizeSite } from '@/lib/exclusions';
 
 describe('blocked sites', () => {
   it('never auto-saves on non-web pages', () => {
@@ -12,6 +12,21 @@ describe('blocked sites', () => {
     expect(isBlocked('https://my.1password.com/vaults', [])).toBe(true);
     expect(isBuiltInBlocked('https://www.paypal.com/myaccount')).toBe(true);
     expect(isBuiltInBlocked('https://notpaypal.com')).toBe(false);
+  });
+
+  it('covers sign-in, banks, crypto, tax and health portals, each listed once as a plain host', () => {
+    for (const url of [
+      'https://login.microsoftonline.com/common/oauth2',
+      'https://secure.chase.com/web/auth',
+      'https://www.coinbase.com/home',
+      'https://sa.www4.irs.gov/ola',
+      'https://mychart.com/login',
+      'https://online.hsbc.co.uk',
+    ])
+      expect(isBuiltInBlocked(url)).toBe(true);
+    expect(isBuiltInBlocked('https://www.google.com/search?q=chase')).toBe(false);
+    expect(new Set(BUILT_IN_BLOCKED).size).toBe(BUILT_IN_BLOCKED.length);
+    for (const site of BUILT_IN_BLOCKED) expect(normalizeSite(site)).toBe(site);
   });
 
   it('blocks user sites', () => {
