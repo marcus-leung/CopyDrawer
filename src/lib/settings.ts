@@ -95,8 +95,9 @@ export function validSynced(remote: unknown): Partial<Pick<Settings, SyncedKey>>
 async function pushSyncedSettings(s: Settings): Promise<void> {
   const updatedAt = Date.now();
   try {
-    await syncedSettingsItem.setValue({ ...pickSynced(s), updatedAt });
+    // Mark it as ours first: the background watches sync and would otherwise take this write for another computer's.
     await syncedAtItem.setValue(updatedAt);
+    await syncedSettingsItem.setValue({ ...pickSynced(s), updatedAt });
   } catch (e) {
     // Sync quota or sync turned off: settings still work on this computer.
     console.warn('Settings not synced', e);

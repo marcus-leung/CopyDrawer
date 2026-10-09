@@ -3,7 +3,7 @@
  * "Saved" card, end to end in Chromium with the real extension.
  */
 import { test, expect } from './fixtures';
-import { pasteIntoPanel, readClips } from './helpers';
+import { dragAndDrop, pasteIntoPanel, readClips } from './helpers';
 
 test('edit a clip: text, title, cancel, empty text refused', async ({ context, extensionId }) => {
   const panel = await context.newPage();
@@ -58,7 +58,7 @@ test('drag a clip onto a collection tile to move it', async ({ context, extensio
   await expect(tiles.getByRole('button')).toHaveCount(2);
   const list = panel.getByRole('list', { name: 'Clips' });
 
-  await list.getByRole('button', { name: /Plain note/ }).dragTo(tiles.getByRole('button', { name: /Recipes/ }));
+  await dragAndDrop(panel, list.getByRole('button', { name: /Plain note/ }), tiles.getByRole('button', { name: /Recipes/ }));
   await expect(panel.getByRole('status')).toContainText('Moved to Recipes');
   await expect(list.getByRole('listitem').filter({ hasText: 'Plain note' })).toContainText('Recipes');
   await expect(tiles.getByRole('button', { name: /Recipes/ })).toContainText('2 clips');

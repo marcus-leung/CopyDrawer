@@ -1,5 +1,6 @@
+import { ChevronDown } from 'lucide-react';
 import { CLIP_KINDS, KIND_LABEL } from '@/lib/kinds';
-import type { DateFilter, SearchFilters, SortOrder } from '@/lib/search';
+import { NO_FILTERS, type DateFilter, type SearchFilters, type SortOrder } from '@/lib/search';
 
 const KINDS = [{ id: 'any', label: 'Any type' }, ...CLIP_KINDS.map((k) => ({ id: k, label: KIND_LABEL[k][1] }))];
 const SORTS: { id: SortOrder; label: string }[] = [
@@ -15,7 +16,7 @@ const DATES: { id: DateFilter; label: string }[] = [
   { id: 'month', label: 'This month' },
 ];
 
-function Chip({
+function Field({
   label,
   value,
   active,
@@ -28,17 +29,30 @@ function Chip({
   onChange: (v: string) => void;
   children: React.ReactNode;
 }) {
+  const id = `filter-${label.toLowerCase()}`;
   return (
-    <select
-      aria-label={label}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`h-8 max-w-[9.5rem] shrink-0 cursor-pointer appearance-none rounded-full px-3 text-[13px] font-semibold ${
-        active ? 'bg-ink text-on-ink' : 'border border-line-strong bg-bg text-ink'
-      }`}
-    >
-      {children}
-    </select>
+    <div className="flex min-w-0 flex-col gap-1">
+      <label htmlFor={id} className="px-1 text-[11px] font-semibold tracking-wide text-text-3 uppercase">
+        {label}
+      </label>
+      <div className="relative">
+        <select
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`h-10 w-full cursor-pointer appearance-none truncate rounded-xl bg-surface pr-8 pl-3 text-[13px] text-ink ${
+            active ? 'font-semibold shadow-[inset_0_0_0_1.5px_var(--color-ink)]' : ''
+          }`}
+        >
+          {children}
+        </select>
+        <ChevronDown
+          size={16}
+          className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-text-3"
+          aria-hidden
+        />
+      </div>
+    </div>
   );
 }
 
@@ -51,52 +65,69 @@ export function FilterBar({
   sites: string[];
   onChange: (f: SearchFilters) => void;
 }) {
+  const changed = (Object.keys(NO_FILTERS) as (keyof SearchFilters)[]).some((k) => filters[k] !== NO_FILTERS[k]);
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Filters">
-      <Chip
-        label="Sort"
-        value={filters.sort}
-        active={filters.sort !== 'newest'}
-        onChange={(v) => onChange({ ...filters, sort: v as SortOrder })}
-      >
-        {SORTS.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.label}
-          </option>
-        ))}
-      </Chip>
-      <Chip
-        label="Type"
-        value={filters.kind}
-        active={filters.kind !== 'any'}
-        onChange={(v) => onChange({ ...filters, kind: v as SearchFilters['kind'] })}
-      >
-        {KINDS.map((k) => (
-          <option key={k.id} value={k.id}>
-            {k.label}
-          </option>
-        ))}
-      </Chip>
-      <Chip label="Site" value={filters.site} active={filters.site !== 'any'} onChange={(v) => onChange({ ...filters, site: v })}>
-        <option value="any">Any site</option>
-        {sites.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
-      </Chip>
-      <Chip
-        label="Date"
-        value={filters.date}
-        active={filters.date !== 'any'}
-        onChange={(v) => onChange({ ...filters, date: v as DateFilter })}
-      >
-        {DATES.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.label}
-          </option>
-        ))}
-      </Chip>
+    <div role="group" aria-label="Filters">
+      <div className="grid grid-cols-2 gap-x-2 gap-y-2.5">
+        <Field
+          label="Sort"
+          value={filters.sort}
+          active={filters.sort !== 'newest'}
+          onChange={(v) => onChange({ ...filters, sort: v as SortOrder })}
+        >
+          {SORTS.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </Field>
+        <Field
+          label="Type"
+          value={filters.kind}
+          active={filters.kind !== 'any'}
+          onChange={(v) => onChange({ ...filters, kind: v as SearchFilters['kind'] })}
+        >
+          {KINDS.map((k) => (
+            <option key={k.id} value={k.id}>
+              {k.label}
+            </option>
+          ))}
+        </Field>
+        <Field
+          label="Site"
+          value={filters.site}
+          active={filters.site !== 'any'}
+          onChange={(v) => onChange({ ...filters, site: v })}
+        >
+          <option value="any">Any site</option>
+          {sites.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </Field>
+        <Field
+          label="Date"
+          value={filters.date}
+          active={filters.date !== 'any'}
+          onChange={(v) => onChange({ ...filters, date: v as DateFilter })}
+        >
+          {DATES.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.label}
+            </option>
+          ))}
+        </Field>
+      </div>
+      {changed && (
+        <button
+          type="button"
+          onClick={() => onChange(NO_FILTERS)}
+          className="mt-2 cursor-pointer px-1 text-[13px] font-semibold text-link hover:text-link-hover"
+        >
+          Reset
+        </button>
+      )}
     </div>
   );
 }

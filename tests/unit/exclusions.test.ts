@@ -22,11 +22,22 @@ describe('blocked sites', () => {
       'https://sa.www4.irs.gov/ola',
       'https://mychart.com/login',
       'https://online.hsbc.co.uk',
+      'https://www.irs.gov/payments',
+      'https://www.gov.uk/x',
+      'https://www.cra-arc.gc.ca',
+      'https://mail.google.com/mail/u/0',
+      'https://www.experian.com',
     ])
       expect(isBuiltInBlocked(url)).toBe(true);
-    expect(isBuiltInBlocked('https://www.google.com/search?q=chase')).toBe(false);
+    for (const url of [
+      'https://www.google.com/search?q=chase',
+      'https://govtech.com',
+      'https://gov.example.com',
+      'https://docs.google.com',
+    ])
+      expect(isBuiltInBlocked(url)).toBe(false);
     expect(new Set(BUILT_IN_BLOCKED).size).toBe(BUILT_IN_BLOCKED.length);
-    for (const site of BUILT_IN_BLOCKED) expect(normalizeSite(site)).toBe(site);
+    for (const site of BUILT_IN_BLOCKED) expect(site).toMatch(/^[a-z0-9-]+(\.[a-z0-9-]+)*$/);
   });
 
   it('blocks user sites', () => {
