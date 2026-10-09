@@ -41,8 +41,17 @@ export function showSavedToast(args: { title: string; detail: string; clipId: st
   (root.querySelector('.detail') as HTMLElement).textContent = args.detail;
   if (args.thumbUrl) (root.querySelector('.thumb') as HTMLElement).style.backgroundImage = `url("${args.thumbUrl}")`;
   const remove = () => host.remove();
-  // `chrome` exists in the isolated world executeScript runs in.
-  const send = (msg: object) => void (globalThis as unknown as { chrome: typeof browser }).chrome.runtime.sendMessage(msg);
+  // `chrome` exists in the isolated world executeScript runs in. After the extension is
+  // reloaded it can't be reached: sendMessage then throws, so guard and catch both ways.
+  const send = (msg: object) => {
+    const runtime = (globalThis as unknown as { chrome: typeof browser }).chrome.runtime;
+    if (!runtime?.id) return;
+    try {
+      void runtime.sendMessage(msg).catch(() => {});
+    } catch {
+      // Extension reloaded; nothing to tell.
+    }
+  };
   root.querySelector('.undo')!.addEventListener('click', () => {
     send({ type: 'undo-save', clipId: args.clipId });
     remove();

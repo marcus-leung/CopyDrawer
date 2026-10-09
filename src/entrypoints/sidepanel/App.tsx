@@ -259,7 +259,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
           )}
         </div>
         {showFilters && clips && clips.length > 0 && (
-          <div className="pt-2.5">
+          <div className="mt-3 border-b border-line pb-3">
             <FilterBar filters={filters} sites={sites} onChange={setFilters} />
           </div>
         )}

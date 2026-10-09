@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { dragAndDrop } from './helpers';
 
 test('pasting an image saves it with a thumbnail and opens its detail', async ({ context, extensionId }) => {
   const page = await context.newPage();
@@ -94,14 +95,32 @@ test('drag images in the panel: onto a collection, reorder the strip, and out to
   await expect.poll(names).toEqual(['blue.png', 'red.png']);
 
   // Reorder: drop red on blue puts red first, and the order stays after a reload.
-  await strip.getByRole('button', { name: 'red.png' }).dragTo(strip.getByRole('button', { name: 'blue.png' }));
+  await dragAndDrop(page, strip.getByRole('button', { name: 'red.png' }), strip.getByRole('button', { name: 'blue.png' }));
   await expect.poll(names).toEqual(['red.png', 'blue.png']);
+  // The list shows the change before it's saved; wait for the save before reloading.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<boolean>((resolve) => {
+            const req = indexedDB.open('clipboard');
+            req.onsuccess = () => {
+              const all = req.result.transaction('clips').objectStore('clips').getAll();
+              all.onsuccess = () =>
+                resolve(
+                  all.result.some((c: { title: string; stripRank?: number }) => c.title === 'red.png' && c.stripRank != null),
+                );
+            };
+          }),
+      ),
+    )
+    .toBe(true);
   await page.reload();
   await expect.poll(names).toEqual(['red.png', 'blue.png']);
 
   // Onto a collection: the image is filed there.
   const tiles = page.getByRole('list', { name: 'Collections' });
-  await strip.getByRole('button', { name: 'blue.png' }).dragTo(tiles.getByRole('button', { name: /Recipes/ }));
+  await dragAndDrop(page, strip.getByRole('button', { name: 'blue.png' }), tiles.getByRole('button', { name: /Recipes/ }));
   await expect(page.getByRole('status')).toHaveText('Moved to Recipes');
   await expect(tiles.getByRole('button', { name: /Recipes/ })).toContainText('2 clips');
   // Internal drags never save a copy.

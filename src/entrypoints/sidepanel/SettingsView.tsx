@@ -279,7 +279,8 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
           )}
           <details className="mt-3 text-[13px] text-text-2">
             <summary className="cursor-pointer font-semibold text-link">
-              Always blocked: {BUILT_IN_BLOCKED.length} password manager, bank, sign-in, payment, tax and health sites
+              Always blocked: {BUILT_IN_BLOCKED.length} password manager, bank, government, sign-in, email, payment, tax and
+              health sites
             </summary>
             <p className="mt-2 leading-5">{BUILT_IN_BLOCKED.join(', ')}</p>
           </details>

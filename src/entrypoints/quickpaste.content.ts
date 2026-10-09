@@ -6,6 +6,7 @@
 import { TRANSFORMS } from '@/lib/transforms';
 import type { QuickClip } from '@/lib/quickpaste';
 import { modKey } from '@/lib/format';
+import { safeSend } from '@/lib/safeSend';
 import { FONT_STACKS, getSettings } from '@/lib/settings';
 
 declare global {
@@ -178,7 +179,7 @@ function open() {
   const finish = async (clip: QuickClip) => {
     const text = clip.text;
     close();
-    void browser.runtime.sendMessage({ type: 'qp-used', id: clip.id });
+    void safeSend({ type: 'qp-used', id: clip.id });
     if (!insertAt(target, text)) {
       try {
         await navigator.clipboard.writeText(text);
@@ -305,7 +306,7 @@ function open() {
   document.documentElement.append(host);
   input.focus();
   render();
-  void browser.runtime.sendMessage({ type: 'qp-clips' }).then((res: { clips: QuickClip[] }) => {
+  void safeSend<{ clips: QuickClip[] }>({ type: 'qp-clips' }).then((res) => {
     clips = res?.clips ?? [];
     loaded = true;
     render();

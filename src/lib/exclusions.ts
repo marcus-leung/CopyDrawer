@@ -1,6 +1,10 @@
 import { hostOf } from './format';
 
-/** Sites where nothing is ever saved: private accounts and money. Users add their own in Settings. */
+/**
+ * Sites where nothing is ever saved: private accounts, money and government.
+ * Each entry also covers its subdomains, so "gov" means every *.gov site.
+ * Users add their own in Settings.
+ */
 export const BUILT_IN_BLOCKED = [
   // Password managers
   '1password.com',
@@ -15,6 +19,14 @@ export const BUILT_IN_BLOCKED = [
   'enpass.io',
   'vault.zoho.com',
   'proton.me',
+  // Email and private messages
+  'mail.google.com',
+  'outlook.live.com',
+  'outlook.office.com',
+  'mail.yahoo.com',
+  'web.whatsapp.com',
+  'messages.google.com',
+  'web.telegram.org',
   // Sign-in pages
   'accounts.google.com',
   'login.microsoftonline.com',
@@ -23,7 +35,6 @@ export const BUILT_IN_BLOCKED = [
   'account.apple.com',
   'okta.com',
   'auth0.com',
-  'login.gov',
   'id.me',
   // Banks, cards and brokerages: US
   'chase.com',
@@ -117,18 +128,46 @@ export const BUILT_IN_BLOCKED = [
   'crypto.com',
   'gemini.com',
   'metamask.io',
-  // Tax and government accounts
-  'irs.gov',
-  'ssa.gov',
-  'account.gov.uk',
-  'cra-arc.gc.ca',
-  'my.gov.au',
+  // Government, by country domain
+  'gov',
+  'mil',
+  'gov.uk',
+  'gc.ca',
+  'gov.au',
+  'govt.nz',
+  'gov.ie',
+  'gouv.fr',
+  'bund.de',
+  'admin.ch',
+  'gob.mx',
+  'gob.es',
+  'gov.it',
+  'gov.in',
+  'gov.sg',
+  'go.jp',
+  'gov.br',
+  'gov.za',
+  'gov.hk',
+  // Tax, credit, payroll and insurance
   'turbotax.intuit.com',
   'hrblock.com',
+  'experian.com',
+  'equifax.com',
+  'transunion.com',
+  'creditkarma.com',
+  'adp.com',
+  'myworkday.com',
+  'gusto.com',
+  'paychex.com',
+  'geico.com',
+  'progressive.com',
+  'statefarm.com',
+  'allstate.com',
   // Health portals
   'mychart.com',
   'kp.org',
   'followmyhealth.com',
+  'zocdoc.com',
 ];
 
 /** Normalizes what a user types ("https://www.Example.com/x") to "example.com". */
