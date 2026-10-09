@@ -1,12 +1,12 @@
-import type { ClipKind } from '@/lib/db';
-import type { DateFilter, SearchFilters } from '@/lib/search';
+import { CLIP_KINDS, KIND_LABEL } from '@/lib/kinds';
+import type { DateFilter, SearchFilters, SortOrder } from '@/lib/search';
 
-const KINDS: { id: ClipKind | 'any'; label: string }[] = [
-  { id: 'any', label: 'Any type' },
-  { id: 'text', label: 'Text' },
-  { id: 'link', label: 'Links' },
-  { id: 'image', label: 'Images' },
-  { id: 'code', label: 'Code' },
+const KINDS = [{ id: 'any', label: 'Any type' }, ...CLIP_KINDS.map((k) => ({ id: k, label: KIND_LABEL[k][1] }))];
+const SORTS: { id: SortOrder; label: string }[] = [
+  { id: 'newest', label: 'Newest first' },
+  { id: 'oldest', label: 'Oldest first' },
+  { id: 'used', label: 'Most used' },
+  { id: 'az', label: 'A–Z' },
 ];
 const DATES: { id: DateFilter; label: string }[] = [
   { id: 'any', label: 'Any time' },
@@ -53,6 +53,18 @@ export function FilterBar({
 }) {
   return (
     <div className="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Filters">
+      <Chip
+        label="Sort"
+        value={filters.sort}
+        active={filters.sort !== 'newest'}
+        onChange={(v) => onChange({ ...filters, sort: v as SortOrder })}
+      >
+        {SORTS.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.label}
+          </option>
+        ))}
+      </Chip>
       <Chip
         label="Type"
         value={filters.kind}

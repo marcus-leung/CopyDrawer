@@ -1,5 +1,5 @@
 import type { Clip } from '@/lib/db';
-import { applyTransform, TRANSFORMS, type Transform } from '@/lib/transforms';
+import { TRANSFORMS, type Transform } from '@/lib/transforms';
 
 const chip = 'h-8 cursor-pointer rounded-full border border-line-strong bg-bg px-3 text-[13px] font-semibold text-ink';
 
@@ -15,7 +15,7 @@ export function PasteAs({
 }) {
   async function copyAs(t: Transform) {
     if (t === 'asis') return onCopyOriginal();
-    await navigator.clipboard.writeText(applyTransform(t, clip.text, clip.html));
+    await navigator.clipboard.writeText(clip.text);
     notify(`Copied as ${TRANSFORMS.find((p) => p.id === t)!.label.toLowerCase()}`);
   }
 
@@ -25,7 +25,7 @@ export function PasteAs({
         Paste as
       </h2>
       <div className="flex flex-wrap gap-2">
-        {TRANSFORMS.filter((t) => t.id !== 'markdown' || clip.html).map((t) => (
+        {TRANSFORMS.map((t) => (
           <button key={t.id} type="button" className={chip} onClick={() => void copyAs(t.id)}>
             {t.label}
           </button>

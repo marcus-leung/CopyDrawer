@@ -125,47 +125,6 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
           )}
         </Section>
 
-        <Section id="s-blocked" title="Blocked sites">
-          <p className="mb-2 text-[13px] leading-[19px] text-text-2">Nothing you copy on these sites is saved.</p>
-          <div className="flex gap-2">
-            <label className="sr-only" htmlFor="add-site">
-              Site to block
-            </label>
-            <input
-              id="add-site"
-              value={site}
-              onChange={(e) => setSite(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && void addSite()}
-              placeholder="e.g. mybank.com"
-              className="h-11 min-w-0 flex-1 rounded-full border border-line-strong bg-bg px-4 text-sm text-ink placeholder:text-text-3"
-            />
-            <Button variant="primary" onClick={() => void addSite()}>
-              Block
-            </Button>
-          </div>
-          {settings.blockedSites.length > 0 && (
-            <ul className="mt-2">
-              {settings.blockedSites.map((host) => (
-                <li key={host} className="flex min-h-12 items-center justify-between border-b border-line">
-                  <span className="text-sm font-semibold">{host}</span>
-                  <Button
-                    size="sm"
-                    onClick={() => void change({ blockedSites: settings.blockedSites.filter((h) => h !== host) })}
-                  >
-                    Unblock
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <details className="mt-3 text-[13px] text-text-2">
-            <summary className="cursor-pointer font-semibold text-link">
-              Always blocked: {BUILT_IN_BLOCKED.length} password manager and banking sites
-            </summary>
-            <p className="mt-2 leading-5">{BUILT_IN_BLOCKED.join(', ')}</p>
-          </details>
-        </Section>
-
         <Section id="s-history" title="History">
           <div className="flex justify-between text-sm">
             <span>Clips saved</span>
@@ -285,6 +244,47 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
           </button>
         </Section>
 
+        <Section id="s-blocked" title="Blocked sites">
+          <p className="mb-2 text-[13px] leading-[19px] text-text-2">Nothing you copy on these sites is saved.</p>
+          <div className="flex gap-2">
+            <label className="sr-only" htmlFor="add-site">
+              Site to block
+            </label>
+            <input
+              id="add-site"
+              value={site}
+              onChange={(e) => setSite(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && void addSite()}
+              placeholder="e.g. mybank.com"
+              className="h-11 min-w-0 flex-1 rounded-full border border-line-strong bg-bg px-4 text-sm text-ink placeholder:text-text-3"
+            />
+            <Button variant="primary" onClick={() => void addSite()}>
+              Block
+            </Button>
+          </div>
+          {settings.blockedSites.length > 0 && (
+            <ul className="mt-2">
+              {settings.blockedSites.map((host) => (
+                <li key={host} className="flex min-h-12 items-center justify-between border-b border-line">
+                  <span className="text-sm font-semibold">{host}</span>
+                  <Button
+                    size="sm"
+                    onClick={() => void change({ blockedSites: settings.blockedSites.filter((h) => h !== host) })}
+                  >
+                    Unblock
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <details className="mt-3 text-[13px] text-text-2">
+            <summary className="cursor-pointer font-semibold text-link">
+              Always blocked: {BUILT_IN_BLOCKED.length} password manager, bank, sign-in, payment, tax and health sites
+            </summary>
+            <p className="mt-2 leading-5">{BUILT_IN_BLOCKED.join(', ')}</p>
+          </details>
+        </Section>
+
         <Section id="s-data" title="Your data">
           <p className="mb-3 text-[13px] leading-[19px] text-text-2">
             Clips are stored only on this computer. Nothing is uploaded. Your settings (theme, blocked sites, auto-delete) follow
@@ -294,7 +294,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
             <Button size="sm" onClick={() => void exportAll()}>
               Export
             </Button>
-            <label className="inline-flex h-9 cursor-pointer items-center rounded-full bg-surface px-3 text-[13px] font-semibold text-ink focus-within:outline-2 focus-within:outline-link hover:opacity-90">
+            <label className="inline-flex h-9 cursor-pointer items-center rounded-full bg-surface px-3 text-[13px] font-semibold text-ink focus-within:outline-2 focus-within:outline-text-3 hover:opacity-90">
               Import
               <input
                 type="file"

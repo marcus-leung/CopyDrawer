@@ -1,15 +1,27 @@
-import { Link2, Pin, Code2, Copy, Type } from 'lucide-react';
+import { Braces, CalendarDays, Code2, Copy, Hash, Link2, Mail, MapPin, Phone, Pin, Type } from 'lucide-react';
 import { IconButton } from './ui';
 import type { Clip, Collection } from '@/lib/db';
 import { colorOf } from '@/lib/collections';
 import { hostOf, shortTime } from '@/lib/format';
 import { useObjectUrl } from '@/lib/useObjectUrl';
 import { useDragOut } from '@/lib/useDragOut';
+import { colorFormats, parseColor } from '@/lib/actions';
+import { KIND_LABEL, type ClipKind } from '@/lib/kinds';
 
 /** Drag data type for moving a clip onto a collection (the panel's drop-to-save ignores it). */
 export const CLIP_DRAG_TYPE = 'application/x-clipboard-clip';
 
-const KIND_ICON = { text: Type, link: Link2, code: Code2, image: Type } as const;
+const KIND_ICON: Record<Exclude<ClipKind, 'image' | 'color'>, typeof Type> = {
+  text: Type,
+  link: Link2,
+  code: Code2,
+  json: Braces,
+  email: Mail,
+  phone: Phone,
+  address: MapPin,
+  date: CalendarDays,
+  number: Hash,
+};
 
 export function ClipRow({
   clip,
@@ -24,7 +36,9 @@ export function ClipRow({
 }) {
   const host = hostOf(clip.source?.url);
   const from = host ? `from ${host}` : 'saved by hand';
-  const meta = [collection?.name, from, shortTime(clip.createdAt)].filter(Boolean).join(', ');
+  // Text and links need no label: the icon and title already say what they are.
+  const type = clip.kind === 'text' || clip.kind === 'link' ? undefined : KIND_LABEL[clip.kind][0];
+  const meta = [type, collection?.name, from, shortTime(clip.createdAt)].filter(Boolean).join(', ');
   const dragOut = useDragOut(clip);
   return (
     <li className="flex min-h-14 items-center gap-3 border-b border-line">
@@ -70,6 +84,16 @@ function ClipIcon({ clip }: { clip: Clip }) {
       <span
         className="size-10 shrink-0 rounded-lg bg-surface bg-cover bg-center"
         style={thumbUrl ? { backgroundImage: `url("${thumbUrl}")` } : undefined}
+        aria-hidden
+      />
+    );
+  }
+  if (clip.kind === 'color') {
+    const rgb = parseColor(clip.text);
+    return (
+      <span
+        className="size-4 shrink-0 rounded-full border border-line-strong"
+        style={rgb ? { background: colorFormats(rgb).rgb } : undefined}
         aria-hidden
       />
     );

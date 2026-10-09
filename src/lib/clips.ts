@@ -1,6 +1,9 @@
 import { db as defaultDb, type Clip, type ClipDatabase, type ClipKind, type ClipSource, type StoredImage } from './db';
 import { autoAssign } from './collections';
 import { cleanUrl } from './actions';
+import { detectKind, KIND_WORDS } from './kinds';
+
+export { detectKind };
 
 /** History limit, pins included. */
 export const MAX_CLIPS = 2000;
@@ -20,18 +23,6 @@ export function hashText(text: string): string {
     h = Math.imul(h, 0x01000193);
   }
   return (h >>> 0).toString(16);
-}
-
-const URL_RE = /^(https?:\/\/|www\.)\S+$/i;
-const CODE_HINTS = /[{};]\s*$|^\s*(const|let|var|function|import|export|def|class|SELECT|INSERT|UPDATE|<\w+)[\s(]/m;
-
-export function detectKind(text: string): ClipKind {
-  const t = text.trim();
-  if (URL_RE.test(t)) return 'link';
-  if (t.includes('\n') && CODE_HINTS.test(t)) return 'code';
-  // One-line SQL ("SELECT … FROM …"); uppercase only, so ordinary sentences don't match.
-  if (/^(SELECT|INSERT|UPDATE|DELETE)\b.*\b(FROM|INTO|SET|WHERE)\b/.test(t)) return 'code';
-  return 'text';
 }
 
 export function makeTitle(text: string, kind: ClipKind): string {
@@ -137,14 +128,7 @@ export async function listClips(db: ClipDatabase = defaultDb): Promise<Clip[]> {
 export function matchesQuery(clip: Clip, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  const hay = [
-    clip.text,
-    clip.title,
-    clip.note,
-    clip.source?.title,
-    clip.source?.url,
-    clip.kind === 'image' ? 'image picture photo screenshot' : '',
-  ]
+  const hay = [clip.text, clip.title, clip.note, clip.source?.title, clip.source?.url, KIND_WORDS[clip.kind]]
     .join('\n')
     .toLowerCase();
   return q.split(/\s+/).every((word) => hay.includes(word));

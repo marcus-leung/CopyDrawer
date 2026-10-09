@@ -111,7 +111,7 @@ export function ClipDetail({
         {clip.kind !== 'image' && (
           <pre
             className={`mt-4 rounded-2xl border border-line-strong p-4 text-sm leading-[21px] break-words whitespace-pre-wrap ${
-              clip.kind === 'code' ? 'font-mono text-[13px]' : 'font-sans'
+              clip.kind === 'code' || clip.kind === 'json' ? 'font-mono text-[13px]' : 'font-sans'
             }`}
           >
             {clip.kind === 'code' ? <CodeView code={clip.text} /> : clip.text}
@@ -279,7 +279,7 @@ function EditClip({ clip, onDone }: { clip: Clip; onDone: (saved: boolean) => vo
               aria-invalid={!!error}
               aria-describedby={error ? 'edit-error' : undefined}
               className={`min-h-48 flex-1 resize-none rounded-xl border border-line-strong bg-bg p-3 text-sm leading-[21px] font-normal text-ink ${
-                clip.kind === 'code' ? 'font-mono text-[13px]' : ''
+                clip.kind === 'code' || clip.kind === 'json' ? 'font-mono text-[13px]' : ''
               }`}
             />
           </label>

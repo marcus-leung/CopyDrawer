@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
+import { detectKind, type ClipKind } from './kinds';
 
-export type ClipKind = 'text' | 'link' | 'image' | 'code';
+export type { ClipKind };
 
 export interface ClipSource {
   url?: string;
@@ -93,6 +94,17 @@ export class ClipDatabase extends Dexie {
             delete c.embedding;
             delete c.embeddingModel;
             if (c.titleSource === 'ai') c.titleSource = 'heuristic';
+          }),
+      );
+    // Emails, phone numbers, colors, JSON, dates, addresses and numbers became types of their own.
+    this.version(5)
+      .stores({})
+      .upgrade((tx) =>
+        tx
+          .table('clips')
+          .toCollection()
+          .modify((c: Clip) => {
+            if (c.kind === 'text' || c.kind === 'code') c.kind = detectKind(c.text);
           }),
       );
   }

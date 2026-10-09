@@ -1,16 +1,32 @@
 import type { Clip, ClipKind } from './db';
 import { matchesQuery } from './clips';
+import { KIND_WORDS } from './kinds';
 import { hostOf } from './format';
 
 export type DateFilter = 'any' | 'today' | 'week' | 'month';
+
+export type SortOrder = 'newest' | 'oldest' | 'used' | 'az';
 
 export interface SearchFilters {
   kind: ClipKind | 'any';
   site: string | 'any';
   date: DateFilter;
+  sort: SortOrder;
 }
 
-export const NO_FILTERS: SearchFilters = { kind: 'any', site: 'any', date: 'any' };
+export const NO_FILTERS: SearchFilters = { kind: 'any', site: 'any', date: 'any', sort: 'newest' };
+
+const ORDER: Record<SortOrder, (a: Clip, b: Clip) => number> = {
+  newest: (a, b) => b.createdAt - a.createdAt,
+  oldest: (a, b) => a.createdAt - b.createdAt,
+  used: (a, b) => b.useCount - a.useCount || b.lastUsedAt - a.lastUsedAt,
+  az: (a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true }),
+};
+
+/** Sorts clips, pinned ones first. */
+export function sortClips(clips: Clip[], sort: SortOrder): Clip[] {
+  return [...clips].sort((a, b) => b.pinned - a.pinned || ORDER[sort](a, b));
+}
 
 function since(date: DateFilter, now: number): number {
   const d = new Date(now);
@@ -65,7 +81,8 @@ const WORD = /[\p{L}\p{N}]+/gu;
 export function matchesWithTypos(clip: Clip, query: string): boolean {
   const words = query.toLowerCase().match(WORD) ?? [];
   if (!words.length) return false;
-  const hay = `${clip.title}\n${clip.text.slice(0, 5000)}\n${clip.note ?? ''}\n${clip.source?.title ?? ''}`.toLowerCase();
+  const hay =
+    `${clip.title}\n${clip.text.slice(0, 5000)}\n${clip.note ?? ''}\n${clip.source?.title ?? ''}\n${KIND_WORDS[clip.kind]}`.toLowerCase();
   const hayWords = new Set(hay.match(WORD) ?? []);
   return words.every((w) => {
     if (hay.includes(w)) return true;
@@ -76,10 +93,9 @@ export function matchesWithTypos(clip: Clip, query: string): boolean {
   });
 }
 
-/** Clips with every query word (small typos allowed), in the order given: pinned, then newest. */
+/** Clips with every query word (small typos allowed), pinned first, in the chosen order (newest keeps the order given). */
 export function searchClips(query: string, clips: Clip[], filters: SearchFilters, now = Date.now()): Clip[] {
-  const pool = clips.filter((c) => passesFilters(c, filters, now));
   const q = query.trim();
-  if (!q) return pool;
-  return pool.filter((c) => matchesQuery(c, q) || matchesWithTypos(c, q));
+  const found = clips.filter((c) => passesFilters(c, filters, now) && (!q || matchesQuery(c, q) || matchesWithTypos(c, q)));
+  return filters.sort === 'newest' ? found : sortClips(found, filters.sort);
 }

@@ -239,6 +239,8 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
             className="min-w-0 flex-1"
             label="Search your clips"
             placeholder="Search your clips"
+            // Chrome focuses the popup's first button otherwise, showing a focus ring nobody asked for.
+            autoFocus={surface === 'popup'}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
