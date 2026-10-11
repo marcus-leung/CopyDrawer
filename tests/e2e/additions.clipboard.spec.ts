@@ -223,3 +223,22 @@ test('turning on auto-delete asks first and says how many clips go', async ({ co
   await expect(retention).toHaveValue('30');
   expect((await readClips(panel)).map((c) => c.text).sort()).toEqual(['fresh', 'pinned old']);
 });
+
+test.describe('with a real mouse drag', () => {
+  // The other drag tests dispatch drag events; this one proves a real drag works. A busy
+  // machine can make Playwright's mouse drag miss, so it gets retries.
+  test.describe.configure({ retries: 2 });
+
+  test('drag a clip onto a collection with the mouse', async ({ context, extensionId }) => {
+    const panel = await context.newPage();
+    await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+    await pasteIntoPanel(panel, '2 cups flour, 1 tbsp sugar. Preheat the oven to 200C.', 'Plain note');
+    const tiles = panel.getByRole('list', { name: 'Collections' });
+    const list = panel.getByRole('list', { name: 'Clips' });
+    await expect(tiles.getByRole('button', { name: /Recipes/ })).toBeVisible();
+
+    await list.getByRole('button', { name: /Plain note/ }).dragTo(tiles.getByRole('button', { name: /Recipes/ }));
+    await expect(panel.getByRole('status')).toContainText('Moved to Recipes');
+    await expect(list.getByRole('listitem').filter({ hasText: 'Plain note' })).toContainText('Recipes');
+  });
+});

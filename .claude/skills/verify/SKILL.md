@@ -49,7 +49,7 @@ To prove something new, add a spec file next to it. Pattern:
 - Read stored clips with `readClips(page)` from `tests/e2e/helpers.ts` (opens the extension's IndexedDB `clipboard`, store `clips`).
 - Call `capture(page, '<feature>', '<n-step>')` from `specs/evidence.ts` after each meaningful action.
 
-Keep one-off specs out of `tests/e2e/`. That suite is `pnpm check`'s and has its own rules (clipboard-reading specs must be listed in `READS_CLIPBOARD`).
+Keep one-off specs out of `tests/e2e/`. That suite is `pnpm check`'s and has its own rules (a spec that reads the clipboard must be named `*.clipboard.spec.ts`).
 
 ## Evidence
 
