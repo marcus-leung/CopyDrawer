@@ -2,14 +2,7 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
-import {
-  deleteCollection,
-  listCollections,
-  MAX_COLLECTION_NAME,
-  moveCollection,
-  recolorCollection,
-  renameCollection,
-} from '@/lib/collections';
+import { deleteCollection, MAX_COLLECTION_NAME, moveCollection, recolorCollection, renameCollection } from '@/lib/collections';
 import { ClipRow } from '@/components/ClipRow';
 import { hostOf } from '@/lib/format';
 import { collectionVars } from '@/components/CollectionTile';
@@ -35,16 +28,18 @@ export function CollectionView({
   onOpen,
   onCopy,
   notify,
+  order,
 }: {
   id: string;
   onBack: () => void;
   onOpen: (clip: Clip) => void;
   onCopy: (clip: Clip) => void;
   notify: (message: string) => void;
+  /** Collection ids in the order home shows them. */
+  order: string[] | undefined;
 }) {
   const collection = useLiveQuery(() => db.collections.get(id), [id]);
   const clips = useLiveQuery(() => db.clips.where('collectionId').equals(id).toArray(), [id]);
-  const order = useLiveQuery(async () => (await listCollections()).map((s) => s.collection.id), []);
   const [sort, setSort] = useState<Sort>('newest');
   const [editing, setEditing] = useState(false);
   const [panel, setPanel] = useState<'color' | 'delete' | null>(null);

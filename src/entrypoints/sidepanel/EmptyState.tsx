@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui';
 import { modKey } from '@/lib/format';
-import { useShortcuts } from '@/lib/useShortcuts';
+import { keyLabel, useShortcuts } from '@/lib/useShortcuts';
 
 /** Home before anything is saved: where collections will appear, and how to save. */
 export function EmptyState({ onGrab, autoSave }: { onGrab: () => void; autoSave: boolean }) {
@@ -23,8 +23,8 @@ export function EmptyState({ onGrab, autoSave }: { onGrab: () => void; autoSave:
               </>
             ) : (
               <>
-                Select text on any page and press <kbd className="bg-bg">{keys['save-selection']}</kbd>, or right-click and choose{' '}
-                <b>Save selection</b>
+                Select text on any page and press <kbd className="bg-bg">{keyLabel(keys, 'save-selection')}</kbd>, or right-click
+                and choose <b>Save selection</b>
               </>
             )}
           </Step>
@@ -32,7 +32,7 @@ export function EmptyState({ onGrab, autoSave }: { onGrab: () => void; autoSave:
             Right-click an image and choose <b>Save image</b>, or drop it here
           </Step>
           <Step n={3}>
-            Paste it back anywhere with <kbd className="bg-bg">{keys['quick-paste']}</kbd>
+            Paste it back anywhere with <kbd className="bg-bg">{keyLabel(keys, 'quick-paste')}</kbd>
           </Step>
         </ol>
         <Button className="mt-4 bg-bg" onClick={onGrab}>

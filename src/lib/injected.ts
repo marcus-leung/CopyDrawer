@@ -153,12 +153,13 @@ export function readSelection(): { text: string; html: string } {
   return { text, html };
 }
 
-/** Fetches an image from the page's own context (helps with same-site and CORS-enabled images). */
-export async function fetchImageInPage(url: string): Promise<string | null> {
+/** Fetches an image from the page's own context (helps with same-site and CORS-enabled images). Null above `maxBytes`. */
+export async function fetchImageInPage(url: string, maxBytes: number): Promise<string | null> {
   try {
     const res = await fetch(url, { credentials: 'include' });
-    if (!res.ok) return null;
+    if (!res.ok || Number(res.headers.get('content-length')) > maxBytes) return null;
     const blob = await res.blob();
+    if (blob.size > maxBytes) return null;
     return await new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);

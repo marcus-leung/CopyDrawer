@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 /**
  * Specs that read the system clipboard are named *.clipboard.spec.ts. Chrome writes to the real
- * clipboard, so they run one at a time, after the rest (`pnpm test:e2e` runs the two projects in order).
+ * clipboard, so they run one at a time, after the rest. `pnpm test:e2e` also runs them when the rest fail.
  */
 const READS_CLIPBOARD = /\.clipboard\.spec\.ts$/;
 
@@ -13,6 +13,6 @@ export default defineConfig({
   reporter: 'list',
   projects: [
     { name: 'parallel', testIgnore: READS_CLIPBOARD },
-    { name: 'clipboard', testMatch: READS_CLIPBOARD, workers: 1 },
+    { name: 'clipboard', testMatch: READS_CLIPBOARD, workers: 1, dependencies: ['parallel'] },
   ],
 });

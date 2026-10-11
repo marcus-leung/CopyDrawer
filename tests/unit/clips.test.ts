@@ -151,8 +151,8 @@ describe('backup', () => {
 
     const other = new ClipDatabase(`test-${crypto.randomUUID()}`);
     await other.open();
-    expect(await importFile(zip, other)).toBe(3);
-    expect(await importFile(zip, other)).toBe(0);
+    expect(await importFile(zip, other)).toEqual({ added: 3, skipped: 0 });
+    expect(await importFile(zip, other)).toEqual({ added: 0, skipped: 0 });
     const research = (await other.clips.toArray()).find((c) => c.text === 'Photosynthesis')!;
     expect((await other.collections.get(research.collectionId!))?.name).toBe('Research');
     const img = (await other.clips.toArray()).find((c) => c.kind === 'image')!;
@@ -182,7 +182,7 @@ describe('backup', () => {
         { id: 'future', kind: 'text', text: 'from the future', hash: 'h2', title: 'future', createdAt: now + 1e12 },
       ],
     };
-    expect(await importBackup(file, db)).toBe(2);
+    expect(await importBackup(file, db)).toEqual({ added: 2, skipped: 4 });
     const clips = await db.clips.toArray();
     expect(clips.map((c) => c.text).sort()).toEqual(['from the future', 'no id, no dates']);
     const plain = clips.find((c) => c.text === 'no id, no dates')!;

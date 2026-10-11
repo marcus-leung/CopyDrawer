@@ -2,7 +2,7 @@ import { db as defaultDb, type Clip, type ClipDatabase, type ClipSource } from '
 import { enforceLimit, saveTime } from './clips';
 import { autoAssign } from './collections';
 
-const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const THUMB_MAX = 320;
 
@@ -13,6 +13,11 @@ export class ImageError extends Error {}
 async function sha256Hex(blob: Blob): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
   return Array.from(new Uint8Array(digest).slice(0, 12), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** The duplicate key for an image: a hash of its bytes. */
+export async function imageHash(blob: Blob): Promise<string> {
+  return `img:${await sha256Hex(blob)}`;
 }
 
 /** Makes a small preview. Works in pages and in the service worker. */
@@ -53,7 +58,7 @@ export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultD
   if (!IMAGE_TYPES.includes(blob.type)) throw new ImageError(NOT_AN_IMAGE);
   if (blob.size > MAX_IMAGE_BYTES) throw new ImageError('Images up to 20 MB can be saved.');
 
-  const hash = `img:${await sha256Hex(blob)}`;
+  const hash = await imageHash(blob);
   const note = input.note?.trim() || undefined;
   const { thumb, width, height } = await makeThumbnail(blob);
   const now = saveTime();

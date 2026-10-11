@@ -194,3 +194,24 @@ export function isBuiltInBlocked(url: string | undefined): boolean {
   const host = hostOf(url);
   return !!host && BUILT_IN_BLOCKED.some((site) => matches(host, site));
 }
+
+// Pages with a web address where Chrome still won't run extension scripts.
+const UNSCRIPTABLE = /^https:\/\/(chromewebstore\.google\.com|chrome\.google\.com\/webstore)\/|\.pdf([?#]|$)/i;
+
+/**
+ * Whether copies on a page are never saved: a blocked site, a page Chrome won't let extensions see,
+ * or incognito when that's off. `frameUrl` is the frame the copy came from; a blank or srcdoc frame
+ * (an editor inside the page) belongs to the page around it.
+ */
+export function notSavedHere(
+  page: { url?: string; frameUrl?: string; incognito?: boolean },
+  s: { blockedSites: string[]; saveInIncognito: boolean },
+): boolean {
+  const copiedFrom = hostOf(page.frameUrl) ? page.frameUrl : page.url;
+  return (
+    isBlocked(copiedFrom, s.blockedSites) ||
+    isBlocked(page.url, s.blockedSites) ||
+    UNSCRIPTABLE.test(page.url ?? '') ||
+    (!!page.incognito && !s.saveInIncognito)
+  );
+}

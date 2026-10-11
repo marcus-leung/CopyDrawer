@@ -3,7 +3,8 @@ import { MAX_CLIPS } from '@/lib/clips';
 import { hostOf } from '@/lib/format';
 import { isPaused, updateSettings, type Settings } from '@/lib/settings';
 import { Notice } from '@/components/Notice';
-import { BACKUP_SNOOZE, backupDue, downloadBackup } from '@/lib/backup';
+import { BACKUP_SNOOZE, backupDue } from '@/lib/backup';
+import { useExport } from '@/lib/useExport';
 
 /** The hostname of the tab next to the panel, when Chrome lets us see it. */
 function useActiveHost(): string | null {
@@ -42,6 +43,7 @@ export function HomeNotice({
   notify: (message: string) => void;
 }) {
   const host = useActiveHost();
+  const backup = useExport(notify);
 
   let notice: React.ReactNode = null;
   if (isPaused(settings, now)) {
@@ -81,10 +83,7 @@ export function HomeNotice({
         tone="info"
         title="Back up your clips"
         body="They're stored only on this computer, so uninstalling Clipboard deletes them. Export a copy every so often."
-        action={{
-          label: 'Export now',
-          onClick: () => void downloadBackup().then((n) => notify(`Exported ${n} ${n === 1 ? 'clip' : 'clips'}`)),
-        }}
+        action={{ label: backup.exporting ? 'Exporting…' : 'Export now', onClick: () => void backup.run() }}
         secondary={{ label: 'Not now', onClick: () => void updateSettings({ backupRemindAfter: Date.now() + BACKUP_SNOOZE }) }}
       />
     );

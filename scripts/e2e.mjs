@@ -15,7 +15,7 @@ if (unnamed.length) {
 }
 
 // Clipboard specs run after the rest, even when the rest fail, so one failure doesn't hide their results.
-const run = (project) =>
-  spawnSync('playwright', ['test', `--project=${project}`, ...process.argv.slice(2)], { stdio: 'inherit' }).status;
-const failed = [run('parallel'), run('clipboard')].some((status) => status !== 0);
+const run = (...flags) =>
+  spawnSync('playwright', ['test', ...flags, '--pass-with-no-tests', ...process.argv.slice(2)], { stdio: 'inherit' }).status;
+const failed = [run('--project=parallel'), run('--project=clipboard', '--no-deps')].some((status) => status !== 0);
 process.exit(failed ? 1 : 0);

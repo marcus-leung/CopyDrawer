@@ -3,10 +3,10 @@
  * images/ with the full-size files and .thumbnails/ with the list previews.
  * Older exports were a single .json with images inlined as data URLs; Import still reads those.
  */
-import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
+import { strFromU8, strToU8, unzipSync, Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import { db as defaultDb, type Clip, type ClipDatabase, type Collection } from './db';
 import { CLIP_KINDS, detectKind } from './kinds';
-import { dataUrlToBlob } from './images';
+import { dataUrlToBlob, IMAGE_TYPES, imageHash, MAX_IMAGE_BYTES } from './images';
 import { enforceLimit, hashText, makeTitle } from './clips';
 import { cleanName, nextOrder } from './collections';
 import { updateSettings, type Settings } from './settings';
@@ -38,6 +38,7 @@ export async function exportBackup(db: ClipDatabase = defaultDb): Promise<{ file
   const names = new Map(collections.map((c) => [c.id, c.name]));
   const images = new Map<string, Blob>();
   const out: ExportedClip[] = [];
+  let n = 0;
   for (const { image, title, text, kind, ...rest } of clips) {
     // Readable fields first.
     const clip: ExportedClip = {
@@ -49,8 +50,10 @@ export async function exportBackup(db: ClipDatabase = defaultDb): Promise<{ file
     };
     if (image) {
       const stored = await db.images.get(image.imageId);
-      const data = stored ? `images/${rest.id}.${extOf(image.mime)}` : undefined;
-      const thumb = `.thumbnails/${rest.id}.${extOf(image.thumb.type)}`;
+      // Named by position: a clip's id came from who knows where (an imported file).
+      n++;
+      const data = stored ? `images/${n}.${extOf(image.mime)}` : undefined;
+      const thumb = `.thumbnails/${n}.${extOf(image.thumb.type)}`;
       if (stored) images.set(data!, stored.blob);
       images.set(thumb, image.thumb);
       clip.image = { ...image, thumb, data };
@@ -71,18 +74,38 @@ export async function exportZip(db: ClipDatabase = defaultDb): Promise<Blob> {
   return zipBackup(await exportBackup(db));
 }
 
+/** Builds the zip a file at a time, letting the panel paint in between, without one big buffer. */
 async function zipBackup({ file, images }: { file: BackupFile; images: Map<string, Blob> }): Promise<Blob> {
-  const entries: Zippable = {
-    'clips.html': strToU8(renderBackupPage(file)),
-    'clips.json': strToU8(JSON.stringify(file, null, 2)),
+  const parts: BlobPart[] = [];
+  let failed: Error | null = null;
+  const zip = new Zip((err, chunk) => {
+    if (err) failed = err;
+    else parts.push(bytesPart(chunk));
+  });
+  const add = (entry: ZipDeflate | ZipPassThrough, data: Uint8Array) => {
+    zip.add(entry);
+    entry.push(data, true);
   };
+  add(new ZipDeflate('clips.html'), strToU8(renderBackupPage(file)));
+  add(new ZipDeflate('clips.json'), strToU8(JSON.stringify(file, null, 2)));
   // Images are already compressed: store them as they are.
-  for (const [path, blob] of images) entries[path] = [new Uint8Array(await blob.arrayBuffer()), { level: 0 }];
-  return new Blob([bytesPart(zipSync(entries))], { type: 'application/zip' });
+  for (const [path, blob] of images) {
+    add(new ZipPassThrough(path), new Uint8Array(await blob.arrayBuffer()));
+    await new Promise((r) => setTimeout(r));
+  }
+  zip.end();
+  if (failed) throw failed;
+  return new Blob(parts, { type: 'application/zip' });
 }
 
-/** Imports an export: a .zip, or an older .json. Returns how many clips were added. */
-export async function importFile(blob: Blob, db: ClipDatabase = defaultDb): Promise<number> {
+export interface ImportResult {
+  added: number;
+  /** Damaged, or an image that's missing, not an image, or too big. Clips already here aren't counted. */
+  skipped: number;
+}
+
+/** Imports an export: a .zip, or an older .json. */
+export async function importFile(blob: Blob, db: ClipDatabase = defaultDb): Promise<ImportResult> {
   const bytes = new Uint8Array(await blob.arrayBuffer());
   const notExport = () => new BackupError("This file isn't a Clipboard export.");
   if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
@@ -92,11 +115,22 @@ export async function importFile(blob: Blob, db: ClipDatabase = defaultDb): Prom
     } catch {
       throw notExport();
     }
-    const json = files['clips.json'];
+    // The shallowest clips.json: an export re-zipped as a folder has everything one level down.
+    const json = Object.keys(files)
+      .filter((path) => path === 'clips.json' || path.endsWith('/clips.json'))
+      .sort((a, b) => a.split('/').length - b.split('/').length)[0];
     if (!json) throw notExport();
-    return importBackup(parse(strFromU8(json)), db, new Map(Object.entries(files)));
+    const root = json.slice(0, -'clips.json'.length);
+    const inRoot = Object.entries(files).flatMap(([path, data]) =>
+      path.startsWith(root) ? [[path.slice(root.length), data] as const] : [],
+    );
+    return importBackup(parse(strFromU8(files[json]!)), db, new Map(inRoot));
   }
-  return importBackup(parse(strFromU8(bytes)), db);
+  const data = parse(strFromU8(bytes));
+  if ((data as Partial<BackupFile>)?.app === 'clipboard-extension' && (data as Partial<BackupFile>).version === 2) {
+    throw new BackupError('This is the clips.json from an export. Import the whole .zip instead.');
+  }
+  return importBackup(data, db);
 
   function parse(text: string): unknown {
     try {
@@ -122,12 +156,18 @@ export async function importBackup(
   file: unknown,
   db: ClipDatabase = defaultDb,
   files?: Map<string, Uint8Array>,
-): Promise<number> {
+): Promise<ImportResult> {
   const data = file as Partial<BackupFile>;
   if (!data || data.app !== 'clipboard-extension' || (data.version !== 1 && data.version !== 2) || !Array.isArray(data.clips)) {
     throw new BackupError("This file isn't a Clipboard export.");
   }
+  // Images are checked and hashed first: hashing can't run inside the database transaction.
+  const images = new Map<ExportedClip, { blob: Blob; thumb: Blob; hash: string } | null>();
+  for (const c of data.clips) {
+    if (c?.kind === 'image') images.set(c, await readImage(c, files));
+  }
   let added = 0;
+  let skipped = 0;
   await db.transaction('rw', [db.clips, db.images, db.collections], async () => {
     // Match collections by key so "Research" isn't duplicated.
     const idMap = new Map<string, string>();
@@ -143,28 +183,28 @@ export async function importBackup(
     }
     const now = Date.now();
     for (const c of data.clips!) {
-      if (!c || typeof c.text !== 'string' || !CLIP_KINDS.includes(c.kind)) continue;
-      const isImage = c.kind === 'image';
-      // Text hashes are recomputed so a hand-edited file can't sneak in duplicates.
-      const hash = isImage ? c.hash : hashText(c.text);
-      if (typeof hash !== 'string' || (isImage && !c.image?.data)) continue;
-      if (await db.clips.where('hash').equals(hash).first()) continue;
-      let image: Clip['image'];
-      let blob: Blob | undefined;
-      if (isImage) {
-        try {
-          const { data: fileData, thumb, ...meta } = c.image!;
-          blob = imageBlob(fileData!, files);
-          image = { ...meta, imageId: crypto.randomUUID(), thumb: imageBlob(thumb, files) };
-        } catch {
-          continue; // damaged image data
-        }
+      if (!c || typeof c.text !== 'string' || !CLIP_KINDS.includes(c.kind)) {
+        skipped++;
+        continue;
       }
-      const id = typeof c.id === 'string' && c.id && !(await db.clips.get(c.id)) ? c.id : crypto.randomUUID();
+      const isImage = c.kind === 'image';
+      const img = isImage ? images.get(c) : undefined;
+      if (isImage && !img) {
+        skipped++;
+        continue;
+      }
+      // Hashes are recomputed so a hand-edited file can't sneak in duplicates.
+      const hash = img ? img.hash : hashText(c.text);
+      if (await db.clips.where('hash').equals(hash).first()) continue;
+      const image: Clip['image'] = img
+        ? { ...c.image!, imageId: crypto.randomUUID(), mime: img.blob.type, bytes: img.blob.size, thumb: img.thumb }
+        : undefined;
+      if (image) delete (image as { data?: string }).data;
+      const keepId = typeof c.id === 'string' && SAFE_ID.test(c.id) && !(await db.clips.get(c.id));
       const { collection: _name, ...fields } = c;
       const clip: Clip = {
         ...fields,
-        id,
+        id: keepId ? c.id : crypto.randomUUID(),
         hash,
         // Types are re-detected, so older exports get the newer types too.
         kind: isImage ? 'image' : detectKind(c.text),
@@ -177,13 +217,27 @@ export async function importBackup(
         image,
         note: isImage && typeof c.note === 'string' && c.note.trim() ? c.note : undefined,
       };
-      if (image) await db.images.put({ id: image.imageId, blob: blob! });
+      if (image) await db.images.put({ id: image.imageId, blob: img!.blob });
       await db.clips.add(clip);
       added++;
     }
   });
   await enforceLimit(db);
-  return added;
+  return { added, skipped };
+}
+
+const SAFE_ID = /^[\w-]{1,64}$/;
+
+/** An image clip's file and preview, held to the same rules as saving one: a real image type, not too big. */
+async function readImage(c: ExportedClip, files?: Map<string, Uint8Array>) {
+  try {
+    const blob = imageBlob(c.image!.data!, files);
+    const thumb = imageBlob(c.image!.thumb, files);
+    if (!IMAGE_TYPES.includes(blob.type) || blob.size > MAX_IMAGE_BYTES || thumb.size > MAX_IMAGE_BYTES) return null;
+    return { blob, thumb, hash: await imageHash(blob) };
+  } catch {
+    return null; // missing or damaged
+  }
 }
 
 const DAY = 86_400_000;

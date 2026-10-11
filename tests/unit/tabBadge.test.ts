@@ -23,3 +23,17 @@ describe('copiesHidden: where the toolbar icon shows ×', () => {
     }
   });
 });
+
+describe('refusedByChrome: when a failed shortcut gets the ×', () => {
+  it('only for pages Chrome keeps extensions out of', async () => {
+    const { refusedByChrome } = await import('@/lib/tabBadge');
+    for (const m of [
+      'Cannot access a chrome:// URL',
+      'The extensions gallery cannot be scripted.',
+      'Cannot access contents of url "chrome-extension://abc/page.html". Extension manifest must request permission to access this host.',
+    ])
+      expect([m, refusedByChrome(new Error(m))]).toEqual([m, true]);
+    for (const m of ['Frame with ID 0 is showing error page', 'No tab with id: 5.', 'The tab was closed.'])
+      expect([m, refusedByChrome(new Error(m))]).toEqual([m, false]);
+  });
+});

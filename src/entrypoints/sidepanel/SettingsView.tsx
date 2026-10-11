@@ -10,8 +10,9 @@ import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { Button, IconButton } from '@/components/ui';
 import { ExpandButton, ExpandContext } from '@/components/ExpandButton';
 import { InlineConfirm } from '@/components/InlineConfirm';
-import { BackupError, downloadBackup, importFile } from '@/lib/backup';
-import { useShortcuts } from '@/lib/useShortcuts';
+import { BackupError, importFile } from '@/lib/backup';
+import { useExport } from '@/lib/useExport';
+import { keyLabel, useShortcuts } from '@/lib/useShortcuts';
 import { NOT_SET } from '@/lib/shortcuts';
 
 const selectClass = 'h-9 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink';
@@ -27,6 +28,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
   // Set only in the toolbar popup, which Chrome closes when a file dialog takes focus.
   const expand = useContext(ExpandContext);
   const keys = useShortcuts();
+  const backup = useExport(notify);
 
   async function changeRetention(days: Settings['retentionDays']) {
     const old = await countOlderThan(days);
@@ -62,16 +64,12 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
     setSite('');
   }
 
-  async function exportAll() {
-    const n = await downloadBackup();
-    notify(`Exported ${n} ${n === 1 ? 'clip' : 'clips'}`);
-  }
-
   async function importFrom(file: File | undefined) {
     if (!file) return;
     try {
-      const added = await importFile(file);
-      notify(added ? `Imported ${added} ${added === 1 ? 'clip' : 'clips'}` : 'Nothing new to import');
+      const { added, skipped } = await importFile(file);
+      const done = added ? `Imported ${added} ${added === 1 ? 'clip' : 'clips'}.` : 'Nothing new to import.';
+      notify(skipped ? `${done} Skipped ${skipped} that ${skipped === 1 ? 'was' : 'were'} damaged or missing an image.` : done);
     } catch (e) {
       notify(e instanceof BackupError ? e.message : "Couldn't read that file.");
     }
@@ -231,10 +229,10 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
         </Section>
 
         <Section id="s-keys" title="Shortcuts">
-          <Row label="Quick paste on any page" value={<kbd>{keys['quick-paste']}</kbd>} />
-          <Row label="Save selection" value={<kbd>{keys['save-selection']}</kbd>} />
-          <Row label="Screenshot an area" value={<kbd>{keys['screenshot-area']}</kbd>} />
-          {Object.values(keys).includes(NOT_SET) && (
+          <Row label="Quick paste on any page" value={<kbd>{keyLabel(keys, 'quick-paste')}</kbd>} />
+          <Row label="Save selection" value={<kbd>{keyLabel(keys, 'save-selection')}</kbd>} />
+          <Row label="Screenshot an area" value={<kbd>{keyLabel(keys, 'screenshot-area')}</kbd>} />
+          {keys && Object.values(keys).includes(NOT_SET) && (
             <p className="mb-2 text-[13px] leading-[19px] text-text-2">
               Chrome leaves a shortcut Not set when another extension or app already uses those keys. Pick one with Change
               shortcuts in Chrome.
@@ -300,8 +298,8 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
             {settings.lastExportAt ? `Last exported: ${new Date(settings.lastExportAt).toLocaleDateString()}` : 'Never exported'}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => void exportAll()}>
-              Export
+            <Button size="sm" disabled={backup.exporting} onClick={() => void backup.run()}>
+              {backup.exporting ? 'Exporting…' : 'Export'}
             </Button>
             {expand ? (
               <Button size="sm" onClick={expand}>

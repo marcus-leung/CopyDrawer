@@ -4,12 +4,12 @@ import { colorOf } from '@/lib/collections';
 import { hostOf } from '@/lib/format';
 import type { QuickClip } from '@/lib/quickpaste';
 import { requestView } from '@/lib/openView';
-import { forgetRefused, markRefused, refreshAllTabBadges, refreshTabBadge } from '@/lib/tabBadge';
-import { getShortcuts } from '@/lib/shortcuts';
+import { forgetRefused, markRefused, refreshAllTabBadges, refreshTabBadge, refusedByChrome } from '@/lib/tabBadge';
+import { getShortcuts, NOT_SET } from '@/lib/shortcuts';
 import { getSettings, isPaused, pullSyncedSettings, settingsItem, syncedSettingsItem, updateSettings } from '@/lib/settings';
-import { isBlocked } from '@/lib/exclusions';
+import { notSavedHere } from '@/lib/exclusions';
 import { injectIntoOpenTabs, onPermissionsAdded, syncAutosaveRegistration } from '@/lib/autosave';
-import { blobToDataUrl, dataUrlToBlob, ImageError, saveImageClip } from '@/lib/images';
+import { blobToDataUrl, dataUrlToBlob, ImageError, MAX_IMAGE_BYTES, saveImageClip } from '@/lib/images';
 import { BACKUP_EVERY } from '@/lib/backup';
 import { fetchImageInPage, readSelection, selectArea, showSavedToast } from '@/lib/injected';
 import type { Clip, ClipSource } from '@/lib/db';
@@ -69,29 +69,58 @@ async function saveSelectionFromTab(tab: Browser.tabs.Tab | undefined, fallbackT
   try {
     const [result] = await browser.scripting.executeScript({ target: { tabId: tab.id }, func: readSelection });
     payload = result?.result as typeof payload;
-  } catch {
+  } catch (e) {
     // The right-click menu passes the selection (it works on PDFs); a shortcut has nothing to fall back on.
-    if (!fallbackText) return markRefused(tab);
+    if (!fallbackText) return refusedByChrome(e) ? markRefused(tab) : badgeError(tab.id);
   }
   const text = payload?.text?.trim() ? payload.text : (fallbackText ?? '');
   const clip = await saveClip({ text, html: payload?.html, source: sourceOf(tab) });
   if (clip) await badgeOk(tab.id);
 }
 
-async function fetchImage(srcUrl: string, tabId?: number): Promise<Blob | null> {
-  if (srcUrl.startsWith('data:')) return dataUrlToBlob(srcUrl);
-  try {
-    const res = await fetch(srcUrl);
-    if (res.ok) return await res.blob();
-  } catch {
-    // Cross-origin without access; try from the page below.
+/** A data URL longer than this decodes to more than an image may be. */
+const MAX_DATA_URL = Math.ceil((MAX_IMAGE_BYTES * 4) / 3) + 100;
+
+/**
+ * An image's bytes. The page picks the URL, so the extension never sends cookies; fetching from
+ * inside the page uses the page's own access. Auto-save asks the page first (where it was copied),
+ * the right-click menu asks the extension first. Null if neither works or it's too big.
+ */
+async function fetchImage(
+  srcUrl: string,
+  tabId: number | undefined,
+  { frameId, pageFirst = false }: { frameId?: number; pageFirst?: boolean } = {},
+) {
+  if (srcUrl.startsWith('data:')) {
+    if (srcUrl.length > MAX_DATA_URL) return null;
+    try {
+      return dataUrlToBlob(srcUrl);
+    } catch {
+      return null;
+    }
   }
-  return tabId == null ? null : fetchImageFromPage(srcUrl, tabId);
+  const fromExtension = async () => {
+    if (!/^https?:/i.test(srcUrl)) return null;
+    try {
+      const res = await fetch(srcUrl, { credentials: 'omit' });
+      if (!res.ok || Number(res.headers.get('content-length')) > MAX_IMAGE_BYTES) return null;
+      const blob = await res.blob();
+      return blob.size > MAX_IMAGE_BYTES ? null : blob;
+    } catch {
+      return null;
+    }
+  };
+  const fromPage = () => (tabId == null ? null : fetchImageFromPage(srcUrl, tabId, frameId));
+  return pageFirst ? ((await fromPage()) ?? fromExtension()) : ((await fromExtension()) ?? fromPage());
 }
 
-async function fetchImageFromPage(srcUrl: string, tabId: number): Promise<Blob | null> {
+async function fetchImageFromPage(srcUrl: string, tabId: number, frameId?: number): Promise<Blob | null> {
   try {
-    const [result] = await browser.scripting.executeScript({ target: { tabId }, func: fetchImageInPage, args: [srcUrl] });
+    const [result] = await browser.scripting.executeScript({
+      target: { tabId, frameIds: frameId == null ? undefined : [frameId] },
+      func: fetchImageInPage,
+      args: [srcUrl, MAX_IMAGE_BYTES],
+    });
     const dataUrl = result?.result as string | null;
     return dataUrl ? dataUrlToBlob(dataUrl) : null;
   } catch {
@@ -115,22 +144,16 @@ async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
   }
 }
 
-/**
- * Auto-save of a copied image. The page picks the URL, so it is fetched from inside the page,
- * with the page's own access, never the extension's. Quiet like text auto-save.
- */
-async function autosaveImage(srcUrl: string, tab?: Browser.tabs.Tab) {
-  const blob = srcUrl.startsWith('data:')
-    ? dataUrlToBlob(srcUrl)
-    : tab?.id != null
-      ? await fetchImageFromPage(srcUrl, tab.id)
-      : null;
-  if (!blob) return;
+/** Auto-save of a copied image: quiet like text auto-save, ! when it couldn't be fetched. */
+async function autosaveImage(srcUrl: string, tab?: Browser.tabs.Tab, frameId?: number) {
+  const blob = await fetchImage(srcUrl, tab?.id, { frameId, pageFirst: true });
+  if (!blob) return badgeError(tab?.id);
   try {
     await saveImageClip({ blob, source: sourceOf(tab), srcUrl });
     await badgeOk(tab?.id);
   } catch (e) {
     console.warn('Image not auto-saved', e instanceof ImageError ? e.message : e);
+    await badgeError(tab?.id);
   }
 }
 
@@ -141,8 +164,8 @@ async function screenshotArea(tab?: Browser.tabs.Tab) {
   try {
     const [result] = await browser.scripting.executeScript({ target: { tabId: tab.id }, func: selectArea });
     area = (result?.result as Area | null | undefined) ?? null;
-  } catch {
-    await markRefused(tab);
+  } catch (e) {
+    await (refusedByChrome(e) ? markRefused(tab) : badgeError(tab.id));
     return;
   }
   if (!area) return;
@@ -177,11 +200,8 @@ async function autosaveAllowed(sender: Browser.runtime.MessageSender): Promise<{
   const s = await getSettings();
   if (!s.autoSave || isPaused(s)) return null;
   const tab = sender.tab;
-  // A blank or srcdoc frame (an editor inside the page) belongs to the page around it.
-  const url = hostOf(sender.url) ? sender.url : tab?.url;
-  if (isBlocked(url, s.blockedSites) || isBlocked(tab?.url, s.blockedSites)) return null;
-  if (tab?.incognito && !s.saveInIncognito) return null;
-  return { url };
+  if (notSavedHere({ url: tab?.url, frameUrl: sender.url, incognito: tab?.incognito }, s)) return null;
+  return { url: hostOf(sender.url) ? sender.url : tab?.url };
 }
 
 async function handleAutosave(msg: { text: string; html?: string; title?: string }, sender: Browser.runtime.MessageSender) {
@@ -237,8 +257,8 @@ async function openQuickPaste(tab: Browser.tabs.Tab | undefined) {
   if (!tab?.id) return;
   try {
     await browser.scripting.executeScript({ target: { tabId: tab.id }, files: ['/content-scripts/quickpaste.js'] });
-  } catch {
-    await markRefused(tab);
+  } catch (e) {
+    await (refusedByChrome(e) ? markRefused(tab) : badgeError(tab.id));
   }
 }
 
@@ -246,7 +266,8 @@ async function quickPasteClips(): Promise<{ clips: QuickClip[]; shortcut: string
   const [clips, collections, keys] = await Promise.all([listClips(), db.collections.toArray(), getShortcuts()]);
   const byId = new Map(collections.map((c) => [c.id, c]));
   return {
-    shortcut: keys['quick-paste'],
+    // No hint for a shortcut Chrome left unset.
+    shortcut: keys['quick-paste'] === NOT_SET ? '' : keys['quick-paste'],
     clips: clips
       .filter((c) => c.kind !== 'image')
       .slice(0, 300)
@@ -280,6 +301,7 @@ async function onInstalled(reason: string) {
   }
   // The first export reminder comes a month after install, or after this update for earlier installs.
   if (!(await getSettings()).backupRemindAfter) await updateSettings({ backupRemindAfter: Date.now() + BACKUP_EVERY });
+  void refreshAllTabBadges();
   const autosaveOn = await syncAutosaveRegistration();
   // An update cuts off the auto-save script in open tabs; give them the new one.
   if (autosaveOn && reason === 'update') await injectIntoOpenTabs();
@@ -291,6 +313,7 @@ export default defineBackground(() => {
   browser.runtime.onStartup.addListener(() => {
     void cleanup();
     void syncAutosaveRegistration();
+    void refreshAllTabBadges();
   });
 
   // Settings changed on another computer (Chrome sync): apply them here.
@@ -304,8 +327,10 @@ export default defineBackground(() => {
   syncedSettingsItem.watch(applySynced);
 
   // × on the toolbar icon for tabs where auto-save can't see copies.
-  void refreshAllTabBadges();
-  settingsItem.watch(() => void refreshAllTabBadges());
+  settingsItem.watch((next, prev) => {
+    const affects = (s: typeof next) => JSON.stringify([s?.autoSave, s?.blockedSites, s?.saveInIncognito]);
+    if (affects(next) !== affects(prev)) void refreshAllTabBadges();
+  });
   browser.tabs.onActivated.addListener(
     ({ tabId }) =>
       void browser.tabs.get(tabId).then(
@@ -353,7 +378,7 @@ export default defineBackground(() => {
         void handleAutosave(msg, sender);
         return;
       case 'autosave-image':
-        void autosaveAllowed(sender).then((ok) => ok && autosaveImage(msg.srcUrl, sender.tab));
+        void autosaveAllowed(sender).then((ok) => ok && autosaveImage(msg.srcUrl, sender.tab, sender.frameId));
         return;
       case 'autosave-sync':
         void syncAutosaveRegistration().then(sendResponse);

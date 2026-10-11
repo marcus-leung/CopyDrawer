@@ -69,3 +69,30 @@ test('the home screen reminds you to export, and Export now, Not now and the set
   await expect(page.getByRole('list', { name: 'Clips' }).getByRole('listitem').first()).toBeVisible();
   await expect(reminder).toHaveCount(0);
 });
+
+test('a failed export says so and keeps the reminder', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(page.getByRole('heading', { name: 'Save something to start' })).toBeVisible();
+  await seedClips(
+    page,
+    Array.from({ length: 60 }, (_, i) => `Note ${i}`),
+  );
+  await page.evaluate(async (due) => {
+    const { settings } = await chrome.storage.local.get('settings');
+    await chrome.storage.local.set({ settings: { ...(settings ?? {}), backupRemindAfter: due } });
+  }, Date.now() - DAY);
+  await page.reload();
+  await page.evaluate(() => {
+    URL.createObjectURL = () => {
+      throw new Error('disk full');
+    };
+  });
+  await page.getByRole('button', { name: 'Export now' }).click();
+  await expect(page.getByRole('status')).toContainText("Couldn't export");
+  await expect(page.getByText('Back up your clips')).toBeVisible();
+  const { lastExportAt } = await page.evaluate(
+    async () => (await chrome.storage.local.get('settings')).settings as { lastExportAt?: number },
+  );
+  expect(lastExportAt ?? 0).toBe(0);
+});

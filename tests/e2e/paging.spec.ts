@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { seedClips } from './helpers';
+import { pasteIntoPanel, seedClips } from './helpers';
 
 test('long lists show 100 clips at a time and load more as you scroll', async ({ context, extensionId }) => {
   const page = await context.newPage();
@@ -48,4 +48,24 @@ test('long lists show 100 clips at a time and load more as you scroll', async ({
   const inFolder = page.getByRole('list', { name: 'Clips in Big folder' }).getByRole('listitem');
   await expect(inFolder).toHaveCount(100);
   await expect(more).toHaveText('Show 50 more');
+});
+
+test('a list that grows past 100 while open still loads more on scroll', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(page.getByRole('heading', { name: 'Save something to start' })).toBeVisible();
+  await seedClips(
+    page,
+    Array.from({ length: 90 }, (_, i) => `Early note ${i}`),
+  );
+  await page.reload();
+  const rows = page.getByRole('list', { name: 'Clips' }).getByRole('listitem');
+  await expect(rows).toHaveCount(90);
+  await expect(page.getByRole('button', { name: /^Show \d+ more$/ })).toHaveCount(0);
+
+  // New clips arrive while the panel is open.
+  await pasteIntoPanel(page, ...Array.from({ length: 20 }, (_, i) => `Later note ${i}`));
+  await expect(page.getByRole('button', { name: 'Show 10 more' })).toBeVisible();
+  await page.getByRole('button', { name: 'Show 10 more' }).scrollIntoViewIfNeeded();
+  await expect(rows).toHaveCount(110);
 });
