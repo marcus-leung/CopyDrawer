@@ -11,6 +11,7 @@ import { Button, IconButton } from '@/components/ui';
 import { ExpandButton, ExpandContext } from '@/components/ExpandButton';
 import { InlineConfirm } from '@/components/InlineConfirm';
 import { BackupError, exportBackup, importBackup } from '@/lib/backup';
+import { useShortcuts } from '@/lib/useShortcuts';
 
 const selectClass = 'h-9 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink';
 
@@ -24,6 +25,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   // Set only in the toolbar popup, which Chrome closes when a file dialog takes focus.
   const expand = useContext(ExpandContext);
+  const keys = useShortcuts();
 
   async function changeRetention(days: Settings['retentionDays']) {
     const old = await countOlderThan(days);
@@ -234,9 +236,9 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
         </Section>
 
         <Section id="s-keys" title="Shortcuts">
-          <Row label="Quick paste on any page" value={<kbd>Alt+Shift+V</kbd>} />
-          <Row label="Save selection" value={<kbd>Alt+Shift+S</kbd>} />
-          <Row label="Screenshot an area" value={<kbd>Alt+Shift+X</kbd>} />
+          <Row label="Quick paste on any page" value={<kbd>{keys['quick-paste']}</kbd>} />
+          <Row label="Save selection" value={<kbd>{keys['save-selection']}</kbd>} />
+          <Row label="Screenshot an area" value={<kbd>{keys['screenshot-area']}</kbd>} />
           <button
             type="button"
             className="cursor-pointer text-[13px] font-semibold text-link hover:text-link-hover"
@@ -244,6 +246,15 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
           >
             Change shortcuts in Chrome
           </button>
+          <div className="mt-3">
+            <Toggle
+              id="t-blocked-pages"
+              label="Explain blocked pages in the side panel"
+              hint="Chrome doesn't let extensions read chrome:// pages, the Web Store or PDFs. Off: just show × on the toolbar icon."
+              checked={settings.explainBlockedPages}
+              onChange={(on) => void updateSettings({ explainBlockedPages: on })}
+            />
+          </div>
         </Section>
 
         <Section id="s-blocked" title="Blocked sites">

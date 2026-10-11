@@ -3,7 +3,8 @@ import { db } from '@/lib/db';
 import { colorOf } from '@/lib/collections';
 import { hostOf } from '@/lib/format';
 import type { QuickClip } from '@/lib/quickpaste';
-import { requestView } from '@/lib/openView';
+import { requestView, type OpenViewRequest } from '@/lib/openView';
+import { getShortcuts } from '@/lib/shortcuts';
 import { getSettings, isPaused, pullSyncedSettings, syncedSettingsItem, updateSettings } from '@/lib/settings';
 import { isBlocked } from '@/lib/exclusions';
 import { injectIntoOpenTabs, onPermissionsAdded, syncAutosaveRegistration } from '@/lib/autosave';
@@ -60,7 +61,8 @@ async function saveSelectionFromTab(tab: Browser.tabs.Tab | undefined, fallbackT
     const [result] = await browser.scripting.executeScript({ target: { tabId: tab.id }, func: readSelection });
     payload = result?.result as typeof payload;
   } catch {
-    // chrome:// pages, the Web Store and PDFs can't be scripted; fall back below.
+    // The right-click menu passes the selection (it works on PDFs); a shortcut has nothing to fall back on.
+    if (!fallbackText) return blockedPage(tab);
   }
   const text = payload?.text?.trim() ? payload.text : (fallbackText ?? '');
   const clip = await saveClip({ text, html: payload?.html, source: sourceOf(tab) });
@@ -123,6 +125,17 @@ async function autosaveImage(srcUrl: string, tab?: Browser.tabs.Tab) {
   }
 }
 
+/** "Open" on the in-page card. */
+function openClip(clipId: string, tab: Browser.tabs.Tab | undefined) {
+  return showInPanel({ view: { name: 'detail', id: clipId } }, tab, `?clip=${encodeURIComponent(clipId)}`);
+}
+
+/** Chrome doesn't let extensions script this tab (chrome:// pages, the Web Store, PDFs). */
+async function blockedPage(tab: Browser.tabs.Tab | undefined) {
+  if ((await getSettings()).explainBlockedPages) await showInPanel({ view: { name: 'home' }, notice: 'blocked-page' }, tab);
+  else await flashBadge('×', '#5B6170');
+}
+
 async function screenshotArea(tab?: Browser.tabs.Tab) {
   if (tab?.id == null || tab.windowId == null) return;
   type Area = { x: number; y: number; w: number; h: number; dpr: number };
@@ -131,7 +144,7 @@ async function screenshotArea(tab?: Browser.tabs.Tab) {
     const [result] = await browser.scripting.executeScript({ target: { tabId: tab.id }, func: selectArea });
     area = (result?.result as Area | null | undefined) ?? null;
   } catch {
-    await badgeError();
+    await blockedPage(tab);
     return;
   }
   if (!area) return;
@@ -199,12 +212,11 @@ function createMenus() {
 }
 
 /**
- * "Open" on the in-page card: shows the clip in the side panel. An open panel
- * picks it up from session storage; otherwise we open the panel, or a tab if
- * Chrome won't (it only allows that right after a click).
+ * Shows a screen in the side panel. An open panel picks the request up from session storage;
+ * otherwise we open the panel, or a tab if Chrome won't (it only allows that right after a click).
  */
-async function openClip(clipId: string, tab: Browser.tabs.Tab | undefined) {
-  await requestView({ view: { name: 'detail', id: clipId }, windowId: tab?.windowId });
+async function showInPanel(req: Omit<OpenViewRequest, 'at' | 'windowId'>, tab: Browser.tabs.Tab | undefined, tabQuery = '') {
+  await requestView({ ...req, windowId: tab?.windowId });
   try {
     if (tab?.id == null) throw new Error('no tab');
     await browser.sidePanel.open({ tabId: tab.id });
@@ -214,7 +226,7 @@ async function openClip(clipId: string, tab: Browser.tabs.Tab | undefined) {
     )?.length;
     if (!panelOpen) {
       await browser.tabs.create({
-        url: browser.runtime.getURL(`/sidepanel.html?clip=${encodeURIComponent(clipId)}`),
+        url: browser.runtime.getURL(`/sidepanel.html${tabQuery}`),
         index: tab ? tab.index + 1 : undefined,
       });
     }
@@ -227,15 +239,15 @@ async function openQuickPaste(tab: Browser.tabs.Tab | undefined) {
   try {
     await browser.scripting.executeScript({ target: { tabId: tab.id }, files: ['/content-scripts/quickpaste.js'] });
   } catch {
-    // Chrome pages, the Web Store and PDFs don't allow scripts: use the side panel instead.
-    await flashBadge('×', '#5B6170');
+    await blockedPage(tab);
   }
 }
 
-async function quickPasteClips(): Promise<{ clips: QuickClip[] }> {
-  const [clips, collections] = await Promise.all([listClips(), db.collections.toArray()]);
+async function quickPasteClips(): Promise<{ clips: QuickClip[]; shortcut: string }> {
+  const [clips, collections, keys] = await Promise.all([listClips(), db.collections.toArray(), getShortcuts()]);
   const byId = new Map(collections.map((c) => [c.id, c]));
   return {
+    shortcut: keys['quick-paste'],
     clips: clips
       .filter((c) => c.kind !== 'image')
       .slice(0, 300)

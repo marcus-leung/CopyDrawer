@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Check, Lock } from 'lucide-react';
 import { enableAutosave } from '@/lib/autosave';
 import { updateSettings } from '@/lib/settings';
+import { useShortcuts } from '@/lib/useShortcuts';
 import { COLORS } from '@/lib/collections';
 import { Button } from '@/components/ui';
 
@@ -10,6 +11,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(1);
   const [autoSave, setAutoSave] = useState<boolean | null>(null);
   const [finished, setFinished] = useState(false);
+  const keys = useShortcuts();
 
   async function finish() {
     await updateSettings({ onboarded: true });
@@ -42,10 +44,10 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             </p>
             <ul className="mt-5 flex flex-col gap-2.5 text-sm">
               <li>
-                <kbd>Alt+Shift+S</kbd> saves the text you selected
+                <kbd>{keys['save-selection']}</kbd> saves the text you selected
               </li>
               <li>
-                <kbd>Alt+Shift+V</kbd> opens quick paste in any text box
+                <kbd>{keys['quick-paste']}</kbd> opens quick paste in any text box
               </li>
               <li>Right-click an image to save it</li>
             </ul>
@@ -124,8 +126,8 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             </h1>
             <p className="mt-3 text-[15px] leading-[23px] text-text-2">They work on any page. You can change them anytime.</p>
             <div className="mt-5 flex flex-col gap-2.5">
-              <Shortcut title="Save what you selected" keys="Alt+Shift+S" />
-              <Shortcut title="Open quick paste" hint="In any text box" keys="Alt+Shift+V" />
+              <Shortcut title="Save what you selected" keys={keys['save-selection']} />
+              <Shortcut title="Open quick paste" hint="In any text box" keys={keys['quick-paste']} />
             </div>
             <button
               type="button"

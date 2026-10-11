@@ -14,6 +14,8 @@ export interface OpenViewRequest {
   filters?: SearchFilters;
   /** Only that window's panel takes it. */
   windowId?: number;
+  /** Why the panel was opened, shown on home. */
+  notice?: 'blocked-page';
   at: number;
 }
 

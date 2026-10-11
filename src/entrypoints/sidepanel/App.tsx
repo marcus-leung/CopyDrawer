@@ -30,6 +30,7 @@ import { Onboarding } from './Onboarding';
 import { EmptyState } from './EmptyState';
 import { usePanelInput } from './usePanelInput';
 import { HomeNotice } from './HomeNotice';
+import { useShortcuts } from '@/lib/useShortcuts';
 
 /** The same app runs in the side panel and in the toolbar popup. */
 export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
@@ -47,9 +48,11 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   const [filters, setFilters] = useState<SearchFilters>(NO_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [blockedPage, setBlockedPage] = useState(false);
   useOpenViewRequests(
     useCallback((req: OpenViewRequest) => {
       setView(req.view);
+      if (req.notice === 'blocked-page') setBlockedPage(true);
       if (req.query !== undefined) setQuery(req.query);
       if (req.filters !== undefined) setFilters(req.filters);
       setFiltersOpen(false);
@@ -63,6 +66,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   // Every collection a clip is in has clips, so the (non-empty) summaries cover them all.
   const collectionsById = useMemo(() => new Map(summaries?.map((s) => [s.collection.id, s.collection])), [summaries]);
 
+  const keys = useShortcuts();
   const notify = useCallback((message: string, onUndo?: () => void) => setToast({ id: Date.now(), message, onUndo }), []);
 
   // Looked up ahead of time: Chrome only opens the side panel straight from a click.
@@ -259,8 +263,25 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
         )}
       </div>
 
-      {settings && clips && (
-        <HomeNotice settings={settings} now={now} count={clips.length} onCleanUp={() => setView({ name: 'settings' })} />
+      {blockedPage ? (
+        <div className="px-[18px] pb-3">
+          <Notice
+            tone="info"
+            title="Chrome doesn't let extensions read this page"
+            body={`That's true of chrome:// pages, the Web Store and PDFs. Copy with ${modKey('C')}, then grab it here.`}
+            action={{
+              label: 'Grab clipboard',
+              onClick: () => {
+                setBlockedPage(false);
+                void saveFromClipboard();
+              },
+            }}
+            secondary={{ label: 'Dismiss', onClick: () => setBlockedPage(false) }}
+          />
+        </div>
+      ) : (
+        settings &&
+        clips && <HomeNotice settings={settings} now={now} count={clips.length} onCleanUp={() => setView({ name: 'settings' })} />
       )}
 
       <main className="min-h-0 flex-1 overflow-y-auto px-[18px]">
@@ -330,7 +351,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
                 <Notice
                   tone="info"
                   title="Try pasting it back"
-                  body="Click into any text box and press Alt+Shift+V to pick from your clips."
+                  body={`Click into any text box and press ${keys['quick-paste']} to pick from your clips.`}
                   action={{
                     label: 'Got it',
                     onClick: () => void updateSettings({ dismissedTips: [...settings.dismissedTips, 'quick-paste'] }),

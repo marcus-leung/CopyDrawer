@@ -170,3 +170,60 @@ test('Ctrl/Cmd+V into the panel saves, and a copied clip pastes into a page', as
   await page.keyboard.press('ControlOrMeta+V');
   await expect(page.locator('#target')).toHaveValue('Pasted into the panel with keys');
 });
+
+test('shortcut labels show the keys Chrome actually bound, in the platform style', async ({ context, extensionId }) => {
+  const { panel, page, tabId } = await setup(context, extensionId, { autoSave: false });
+  const keys = Object.fromEntries((await panel.evaluate(() => chrome.commands.getAll())).map((c) => [c.name, c.shortcut]));
+  if (process.platform === 'darwin') expect(keys['save-selection']).toBe('⌥⇧S');
+
+  // Empty home: how to save and paste back.
+  await expect(panel.getByText(keys['save-selection']!, { exact: true })).toBeVisible();
+  await expect(panel.getByText(keys['quick-paste']!, { exact: true })).toBeVisible();
+
+  await panel.getByRole('button', { name: 'Settings' }).click();
+  const shortcuts = panel.getByRole('region', { name: 'Shortcuts' });
+  for (const name of ['quick-paste', 'save-selection', 'screenshot-area']) {
+    await expect(shortcuts.getByText(keys[name]!, { exact: true })).toBeVisible();
+  }
+
+  // The quick-paste box footer.
+  await page.bringToFront();
+  await page.locator('#target').click();
+  void panel.evaluate((id) => chrome.runtime.sendMessage({ type: 'e2e-command', command: 'quick-paste', tabId: id }), tabId);
+  await expect(page.getByRole('dialog', { name: 'Quick paste' })).toContainText(keys['quick-paste']!);
+});
+
+test('on a page Chrome blocks, a shortcut explains in the panel, or just shows × when that is off', async ({
+  context,
+  extensionId,
+}) => {
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  const page = await context.newPage();
+  await page.goto('chrome://version');
+  // Chrome hides chrome:// addresses from extensions; it's the active tab.
+  const tabId = await panel.evaluate(async () => (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0]!.id!);
+  const press = (command: string) =>
+    panel.evaluate((m) => chrome.runtime.sendMessage({ type: 'e2e-command', ...m }), { command, tabId });
+
+  await press('save-selection');
+  await panel.bringToFront();
+  const notice = panel.getByText("Chrome doesn't let extensions read this page");
+  await expect(notice).toBeVisible();
+  // Copying there still works for Chrome itself: grab it from the panel.
+  await panel.evaluate(() => navigator.clipboard.writeText('Copied on a chrome:// page'));
+  await panel.getByRole('button', { name: 'Grab clipboard' }).first().click();
+  await expect.poll(async () => (await readClips(panel)).map((c) => c.text)).toEqual(['Copied on a chrome:// page']);
+  await expect(notice).toHaveCount(0);
+
+  // Turned off: only the × badge.
+  await panel.getByRole('button', { name: 'Settings' }).click();
+  const toggle = panel.getByLabel('Explain blocked pages in the side panel');
+  await expect(toggle).toBeChecked();
+  await toggle.click();
+  await expect(toggle).not.toBeChecked();
+  await panel.getByRole('button', { name: 'Back' }).click();
+  await press('quick-paste');
+  expect(await panel.evaluate(() => chrome.action.getBadgeText({}))).toBe('×');
+  await expect(notice).toHaveCount(0);
+});

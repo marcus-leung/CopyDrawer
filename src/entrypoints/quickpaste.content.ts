@@ -1,5 +1,5 @@
 /**
- * Quick-paste box (Alt+Shift+V): an overlay on the current page to find a clip
+ * Quick-paste box (Alt+Shift+V, or the key the user set): an overlay on the current page to find a clip
  * and paste it into the field you were typing in. Injected on demand with
  * activeTab, so it needs no site access.
  */
@@ -158,6 +158,7 @@ function open() {
   box.append(head, list, foot);
 
   let clips: QuickClip[] = [];
+  let shortcut = '';
   let shown: QuickClip[] = [];
   let selected = 0;
   let loaded = false;
@@ -214,7 +215,7 @@ function open() {
       };
       list.append(li);
     });
-    foot.replaceChildren(hint('Enter', 'paste'), hint('Esc', 'close'), el('span', 'r', 'Alt+Shift+V'));
+    foot.replaceChildren(hint('Enter', 'paste'), hint('Esc', 'close'), el('span', 'r', shortcut));
     list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
   };
 
@@ -259,8 +260,9 @@ function open() {
   document.documentElement.append(host);
   input.focus();
   render();
-  void safeSend<{ clips: QuickClip[] }>({ type: 'qp-clips' }).then((res) => {
+  void safeSend<{ clips: QuickClip[]; shortcut: string }>({ type: 'qp-clips' }).then((res) => {
     clips = res?.clips ?? [];
+    shortcut = res?.shortcut ?? '';
     loaded = true;
     render();
     for (const key of early) {
