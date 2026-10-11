@@ -7,6 +7,7 @@ Bundled in the extension:
 | React, React DOM | MIT |
 | Dexie, dexie-react-hooks | Apache-2.0 |
 | lucide-react | ISC |
+| fflate | MIT |
 | Instrument Sans (via @fontsource) | SIL Open Font License 1.1 |
 | Bricolage Grotesque (via @fontsource) | SIL Open Font License 1.1 |
 | JetBrains Mono (via @fontsource) | SIL Open Font License 1.1 |

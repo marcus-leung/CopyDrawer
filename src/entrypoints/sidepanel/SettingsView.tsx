@@ -10,7 +10,7 @@ import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { Button, IconButton } from '@/components/ui';
 import { ExpandButton, ExpandContext } from '@/components/ExpandButton';
 import { InlineConfirm } from '@/components/InlineConfirm';
-import { BackupError, downloadBackup, importBackup } from '@/lib/backup';
+import { BackupError, downloadBackup, importFile } from '@/lib/backup';
 import { useShortcuts } from '@/lib/useShortcuts';
 import { NOT_SET } from '@/lib/shortcuts';
 
@@ -70,7 +70,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
   async function importFrom(file: File | undefined) {
     if (!file) return;
     try {
-      const added = await importBackup(JSON.parse(await file.text()));
+      const added = await importFile(file);
       notify(added ? `Imported ${added} ${added === 1 ? 'clip' : 'clips'}` : 'Nothing new to import');
     } catch (e) {
       notify(e instanceof BackupError ? e.message : "Couldn't read that file.");
@@ -312,7 +312,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
                 Import
                 <input
                   type="file"
-                  accept="application/json,.json"
+                  accept=".zip,application/zip,.json,application/json"
                   className="sr-only"
                   onChange={(e) => {
                     void importFrom(e.target.files?.[0]);

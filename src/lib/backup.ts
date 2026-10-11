@@ -1,49 +1,130 @@
 /**
- * Export and import: one JSON file with clips, images and collections, so
- * people can move their history or keep a copy.
+ * Export and import. An export is a .zip: clips.html to read, clips.json (what Import reads),
+ * images/ with the full-size files and .thumbnails/ with the list previews.
+ * Older exports were a single .json with images inlined as data URLs; Import still reads those.
  */
+import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
 import { db as defaultDb, type Clip, type ClipDatabase, type Collection } from './db';
 import { CLIP_KINDS, detectKind } from './kinds';
-import { blobToDataUrl, dataUrlToBlob } from './images';
+import { dataUrlToBlob } from './images';
 import { enforceLimit, hashText, makeTitle } from './clips';
 import { cleanName, nextOrder } from './collections';
 import { updateSettings, type Settings } from './settings';
+import { renderBackupPage } from './backupPage';
 
-interface ExportedClip extends Omit<Clip, 'image'> {
+/** A clip as written to clips.json. `image.data` and `image.thumb` are paths in the zip (version 2) or data URLs (version 1). */
+export interface ExportedClip extends Omit<Clip, 'image'> {
+  /** The collection's name, for people reading the file. */
+  collection?: string;
   image?: Omit<NonNullable<Clip['image']>, 'thumb'> & { thumb: string; data?: string };
 }
 
-interface BackupFile {
+export interface BackupFile {
   app: 'clipboard-extension';
-  version: 1;
+  version: 1 | 2;
   exportedAt: string;
   collections: Collection[];
   clips: ExportedClip[];
 }
 
-export async function exportBackup(db: ClipDatabase = defaultDb): Promise<BackupFile> {
+const EXT: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' };
+const MIME = Object.fromEntries(Object.entries(EXT).map(([mime, ext]) => [ext, mime]));
+const extOf = (mime: string) => EXT[mime] ?? 'bin';
+// fflate always allocates plain ArrayBuffers, which is what Blob wants.
+const bytesPart = (u: Uint8Array) => u as Uint8Array<ArrayBuffer>;
+
+export async function exportBackup(db: ClipDatabase = defaultDb): Promise<{ file: BackupFile; images: Map<string, Blob> }> {
   const [clips, collections] = await Promise.all([db.clips.orderBy('createdAt').reverse().toArray(), db.collections.toArray()]);
+  const names = new Map(collections.map((c) => [c.id, c.name]));
+  const images = new Map<string, Blob>();
   const out: ExportedClip[] = [];
-  for (const { image, ...rest } of clips) {
-    if (!image) {
-      out.push(rest);
-      continue;
-    }
-    const stored = await db.images.get(image.imageId);
-    out.push({
+  for (const { image, title, text, kind, ...rest } of clips) {
+    // Readable fields first.
+    const clip: ExportedClip = {
+      title,
+      text,
+      kind,
+      collection: rest.collectionId ? names.get(rest.collectionId) : undefined,
       ...rest,
-      image: { ...image, thumb: await blobToDataUrl(image.thumb), data: stored ? await blobToDataUrl(stored.blob) : undefined },
-    });
+    };
+    if (image) {
+      const stored = await db.images.get(image.imageId);
+      const data = stored ? `images/${rest.id}.${extOf(image.mime)}` : undefined;
+      const thumb = `.thumbnails/${rest.id}.${extOf(image.thumb.type)}`;
+      if (stored) images.set(data!, stored.blob);
+      images.set(thumb, image.thumb);
+      clip.image = { ...image, thumb, data };
+    }
+    out.push(clip);
   }
-  return { app: 'clipboard-extension', version: 1, exportedAt: new Date().toISOString(), collections, clips: out };
+  const file: BackupFile = {
+    app: 'clipboard-extension',
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    collections,
+    clips: out,
+  };
+  return { file, images };
+}
+
+export async function exportZip(db: ClipDatabase = defaultDb): Promise<Blob> {
+  return zipBackup(await exportBackup(db));
+}
+
+async function zipBackup({ file, images }: { file: BackupFile; images: Map<string, Blob> }): Promise<Blob> {
+  const entries: Zippable = {
+    'clips.html': strToU8(renderBackupPage(file)),
+    'clips.json': strToU8(JSON.stringify(file, null, 2)),
+  };
+  // Images are already compressed: store them as they are.
+  for (const [path, blob] of images) entries[path] = [new Uint8Array(await blob.arrayBuffer()), { level: 0 }];
+  return new Blob([bytesPart(zipSync(entries))], { type: 'application/zip' });
+}
+
+/** Imports an export: a .zip, or an older .json. Returns how many clips were added. */
+export async function importFile(blob: Blob, db: ClipDatabase = defaultDb): Promise<number> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const notExport = () => new BackupError("This file isn't a Clipboard export.");
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
+    let files: Record<string, Uint8Array>;
+    try {
+      files = unzipSync(bytes);
+    } catch {
+      throw notExport();
+    }
+    const json = files['clips.json'];
+    if (!json) throw notExport();
+    return importBackup(parse(strFromU8(json)), db, new Map(Object.entries(files)));
+  }
+  return importBackup(parse(strFromU8(bytes)), db);
+
+  function parse(text: string): unknown {
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw notExport();
+    }
+  }
+}
+
+/** An image from the file: a data URL (version 1) or a path in the zip (version 2). */
+function imageBlob(ref: string, files?: Map<string, Uint8Array>): Blob {
+  if (ref.startsWith('data:')) return dataUrlToBlob(ref);
+  const bytes = files?.get(ref);
+  if (!bytes) throw new Error(`missing ${ref}`);
+  return new Blob([bytesPart(bytes)], { type: MIME[ref.split('.').pop() ?? ''] ?? '' });
 }
 
 export class BackupError extends Error {}
 
 /** Adds clips from a backup. Clips already here (same content) are skipped. Returns how many were added. */
-export async function importBackup(file: unknown, db: ClipDatabase = defaultDb): Promise<number> {
+export async function importBackup(
+  file: unknown,
+  db: ClipDatabase = defaultDb,
+  files?: Map<string, Uint8Array>,
+): Promise<number> {
   const data = file as Partial<BackupFile>;
-  if (!data || data.app !== 'clipboard-extension' || data.version !== 1 || !Array.isArray(data.clips)) {
+  if (!data || data.app !== 'clipboard-extension' || (data.version !== 1 && data.version !== 2) || !Array.isArray(data.clips)) {
     throw new BackupError("This file isn't a Clipboard export.");
   }
   let added = 0;
@@ -73,15 +154,16 @@ export async function importBackup(file: unknown, db: ClipDatabase = defaultDb):
       if (isImage) {
         try {
           const { data: fileData, thumb, ...meta } = c.image!;
-          blob = dataUrlToBlob(fileData!);
-          image = { ...meta, imageId: crypto.randomUUID(), thumb: dataUrlToBlob(thumb) };
+          blob = imageBlob(fileData!, files);
+          image = { ...meta, imageId: crypto.randomUUID(), thumb: imageBlob(thumb, files) };
         } catch {
           continue; // damaged image data
         }
       }
       const id = typeof c.id === 'string' && c.id && !(await db.clips.get(c.id)) ? c.id : crypto.randomUUID();
+      const { collection: _name, ...fields } = c;
       const clip: Clip = {
-        ...c,
+        ...fields,
         id,
         hash,
         // Types are re-detected, so older exports get the newer types too.
@@ -118,16 +200,16 @@ export function backupDue(
   return s.backupReminder && clipCount >= BACKUP_MIN_CLIPS && s.backupRemindAfter > 0 && now >= s.backupRemindAfter;
 }
 
-/** Downloads every clip as a JSON file and puts the next reminder a month away. Returns how many clips it saved. */
+/** Downloads every clip as a .zip and puts the next reminder a month away. Returns how many clips it saved. */
 export async function downloadBackup(): Promise<number> {
-  const file = await exportBackup();
-  const url = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }));
+  const backup = await exportBackup();
+  const url = URL.createObjectURL(await zipBackup(backup));
   const a = document.createElement('a');
   a.href = url;
-  a.download = `clipboard-export-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `clipboard-export-${new Date().toISOString().slice(0, 10)}.zip`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
   const now = Date.now();
   await updateSettings({ lastExportAt: now, backupRemindAfter: now + BACKUP_EVERY });
-  return file.clips.length;
+  return backup.file.clips.length;
 }

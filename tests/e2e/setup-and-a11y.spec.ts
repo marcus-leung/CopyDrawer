@@ -1,4 +1,6 @@
+import fs from 'node:fs';
 import AxeBuilder from '@axe-core/playwright';
+import { strFromU8, unzipSync } from 'fflate';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
 
@@ -57,6 +59,12 @@ test('notices, export and import, inline confirms, accessibility', async ({ cont
   await axe(page, 'settings');
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export' }).click()]);
   const file = await download.path();
+  // A .zip anyone can open: a readable page, tidy JSON for Import.
+  expect(download.suggestedFilename()).toMatch(/^clipboard-export-\d{4}-\d{2}-\d{2}\.zip$/);
+  const zip = unzipSync(new Uint8Array(fs.readFileSync(file)));
+  expect(Object.keys(zip)).toEqual(expect.arrayContaining(['clips.html', 'clips.json']));
+  expect(strFromU8(zip['clips.html']!)).toContain('1Z 999 AA1 01 2345 6784');
+  expect(strFromU8(zip['clips.json']!)).toContain('\n  "clips": [');
   // Delete all asks in place: Esc cancels, then confirm.
   await page.getByRole('button', { name: 'Delete all' }).click();
   const confirmBox = page.getByRole('alertdialog', { name: /Delete all clips, including pinned ones/ });

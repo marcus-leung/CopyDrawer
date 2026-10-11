@@ -26,7 +26,7 @@ The extension does not use analytics, ads or trackers, and does not sell or shar
 ## Your control
 
 - Delete any clip, everything older than 30 or 90 days, or all clips, in the side panel.
-- Export your clips to a file, and import them again, in Settings.
+- Export your clips to a .zip file (a readable page, the data and your images), and import them again, in Settings. The file is saved on your computer; nothing is uploaded.
 - Uninstalling the extension deletes everything it stored.
 
 ## Contact
