@@ -1,3 +1,4 @@
+import { readClips } from './helpers';
 import { test, expect } from './fixtures';
 
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>Lisbon guide</title></head><body>
@@ -141,4 +142,71 @@ test('granting site access turns auto-save on, and tabs already open save withou
   const list = panel.getByRole('list', { name: 'Clips' });
   await expect(list.getByRole('listitem')).toHaveCount(1);
   await expect(list).toContainText('Belém Tower opens at 10:00.');
+});
+
+test('auto-save ignores copy events the page fakes, and never fetches their images', async ({ context, extensionId }) => {
+  const intranetHits: string[] = [];
+  await context.route('https://intranet.e2e.test/**', (route) => {
+    intranetHits.push(route.request().url());
+    return route.fulfill({ status: 404 });
+  });
+  await context.route('https://guide.e2e.test/**', (route) => route.fulfill({ contentType: 'text/html', body: PAGE }));
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await panel.evaluate(async () => {
+    const { settings } = await chrome.storage.local.get('settings');
+    await chrome.storage.local.set({ settings: { ...(settings ?? {}), autoSave: true } });
+    await chrome.runtime.sendMessage({ type: 'autosave-sync' });
+  });
+
+  const page = await context.newPage();
+  await page.goto('https://guide.e2e.test/');
+  await page.evaluate(() => {
+    // Lazy and hidden, so the page itself never loads it: any request comes from the extension.
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.style.display = 'none';
+    img.src = 'https://intranet.e2e.test/admin.png';
+    document.body.append(img);
+    img.dispatchEvent(new ClipboardEvent('copy', { bubbles: true }));
+    for (let i = 0; i < 5; i++) {
+      const data = new DataTransfer();
+      data.setData('text/plain', `Fake copy ${i}`);
+      window.dispatchEvent(new ClipboardEvent('copy', { clipboardData: data }));
+    }
+  });
+  await page.waitForTimeout(500);
+  await expect.poll(async () => (await readClips(panel)).length).toBe(0);
+
+  // A real copy on the same page still saves.
+  await page.locator('#tip').selectText();
+  await page.keyboard.press('ControlOrMeta+C');
+  await expect.poll(async () => (await readClips(panel)).map((c) => c.text)).toEqual(['Belém Tower opens at 10:00.']);
+  expect(intranetHits).toEqual([]);
+});
+
+test('tabs already open keep auto-saving after the extension updates', async ({ context, extensionId }) => {
+  await context.route('https://guide.e2e.test/**', (route) => route.fulfill({ contentType: 'text/html', body: PAGE }));
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await panel.evaluate(async () => {
+    const { settings } = await chrome.storage.local.get('settings');
+    await chrome.storage.local.set({ settings: { ...(settings ?? {}), autoSave: true } });
+    await chrome.runtime.sendMessage({ type: 'autosave-sync' });
+  });
+
+  // The state an update leaves behind (Playwright can't update an extension): the script is
+  // still registered, but the open tab's copy is cut off. Here: a tab opened while unregistered.
+  const [registered] = await panel.evaluate(() => chrome.scripting.getRegisteredContentScripts());
+  await panel.evaluate(() => chrome.scripting.unregisterContentScripts());
+  const page = await context.newPage();
+  await page.goto('https://guide.e2e.test/');
+  await panel.evaluate((script) => chrome.scripting.registerContentScripts([script]), registered!);
+
+  await panel.evaluate(() => chrome.runtime.sendMessage({ type: 'e2e-installed', reason: 'update' }));
+  await page.bringToFront();
+  await page.locator('#tip').selectText();
+  await page.keyboard.press('ControlOrMeta+C');
+  await expect.poll(async () => (await readClips(panel)).map((c) => c.text)).toEqual(['Belém Tower opens at 10:00.']);
 });

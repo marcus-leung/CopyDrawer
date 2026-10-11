@@ -13,7 +13,7 @@ describe('detectKind', () => {
       ['#2457C5', 'color'],
       ['rgb(36, 87, 197)', 'color'],
       ['hsl(220, 69%, 46%)', 'color'],
-      ['2457c5', 'color'],
+      ['#fff', 'color'],
       ['{"a": 1, "b": [2, 3]}', 'json'],
       ['[1, 2, 3]', 'json'],
       ['+1 (415) 555-0134', 'phone'],
@@ -48,11 +48,28 @@ describe('detectKind', () => {
       '1Z 999 AA1 01 2345 6784',
       'bad',
       'decade',
+      '2457c5',
+      '2FA',
+      'e2e',
+      'c0ffee',
+      'dab4a84e',
       '192.168.1.1',
       '{not json}',
       '',
     ])
       expect([text, detectKind(text)]).toEqual([text, 'text']);
+  });
+});
+
+describe('actions follow the type', () => {
+  it('offers only what the clip was saved as', () => {
+    expect(detectActions({ kind: 'text', text: 'decade' }).note).toBeUndefined();
+    const date = detectActions({ kind: 'date', text: '2026-10-14' }).actions.map((a) => a.label);
+    expect(date).toContain('Add 2026-10-14 to calendar');
+    expect(date).not.toContain('Call');
+    expect(detectActions({ kind: 'phone', text: '+1 (415) 555-0134' }).actions.map((a) => a.label)).toEqual(['Call']);
+    expect(detectActions({ kind: 'color', text: '#2457C5' }).note).toBe('Looks like a color');
+    expect(detectActions({ kind: 'text', text: '{"a": 1}' }).json).toBeUndefined();
   });
 });
 
@@ -126,5 +143,23 @@ describe('database upgrade to types', () => {
     const upgraded = new ClipDatabase(name);
     const kinds = Object.fromEntries((await upgraded.clips.toArray()).map((c) => [c.id, c.kind]));
     expect(kinds).toEqual({ e: 'email', j: 'json', t: 'text', l: 'link' });
+  });
+
+  it('turns bare hex saved as a color back into text', async () => {
+    const name = `test-${crypto.randomUUID()}`;
+    const old = new Dexie(name);
+    old.version(5).stores({
+      clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId',
+      images: 'id',
+      collections: 'id, &key, order',
+    });
+    await old.table('clips').bulkAdd([
+      { id: 'sha', createdAt: 1, kind: 'color', text: 'dab4a84e', title: 'dab4a84e' },
+      { id: 'hex', createdAt: 2, kind: 'color', text: '#2457C5', title: '#2457C5' },
+    ]);
+    old.close();
+    const upgraded = new ClipDatabase(name);
+    const kinds = Object.fromEntries((await upgraded.clips.toArray()).map((c) => [c.id, c.kind]));
+    expect(kinds).toEqual({ sha: 'text', hex: 'color' });
   });
 });

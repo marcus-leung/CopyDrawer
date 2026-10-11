@@ -40,7 +40,7 @@ Service worker (background)
   - context menus, keyboard commands, alarms, message router
   - writes clips to IndexedDB (single writer)
 Side panel (React)           - main UI: home, search, collections, detail, settings
-Toolbar popup (React)        - recent clips + auto-save switch
+Toolbar popup (React)        - the full app; expands into the side panel
 Content script, auto-capture - listens to copy/cut; only after the user grants optional all-sites access (MVP)
 Injected overlay             - quick-paste box (Alt+Shift+V), injected on demand via activeTab, Shadow DOM (MVP)
 ```
@@ -101,7 +101,7 @@ Settings { autoSave, blockedSites[], retentionDays, theme, analytics, shortcutsS
 Built on top of v0.1, in this order. Each week ends with a usable build.
 
 ### Week 1: capture everything ✅
-- **Auto-save (opt-in):** onboarding step requests optional all-sites access; content script captures copy/cut with source; pause (1 hour default) and per-site block; built-in exclusions (password managers, banks); no capture in incognito by default. _Screens 1.2, 5.2, 5.3._
+- **Auto-save (opt-in):** onboarding step requests optional all-sites access; content script captures copy/cut with source; pause (1 hour default) and per-site block; built-in exclusions (password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites); only trusted copy events count; no capture in incognito by default. _Screens 1.2, 5.2, 5.3._
 - **Images:** right-click "Save image", screenshot an area (`captureVisibleTab` + crop), drop/paste images into the panel; files in OPFS, thumbnails in IndexedDB; size limit 20 MB; formats PNG/JPG/GIF/WebP. _Screens 2.1–2.5._
 - In-page "Saved" toast with Open/Undo. _Screen 2.3._
 
@@ -112,8 +112,8 @@ Built on top of v0.1, in this order. Each week ends with a usable build.
 
 ### Week 3: find and paste ✅
 - **Search:** words, with small typos forgiven; filters: type, site, date. _Screen 3.1._
-- **Quick-paste box** (Alt+Shift+V): overlay in Shadow DOM via activeTab, type to filter, Enter paste into the focused field, Tab for Paste as, Esc close. _Screen 3.2._
-- **Paste as:** plain text, Markdown, bullet list, checklist, one line, case. _Screen 3.3._
+- **Quick-paste box** (Alt+Shift+V): overlay in Shadow DOM via activeTab, type to filter, Enter paste into the focused field, Esc close. _Screen 3.2._
+- **Paste as:** as is or plain text, for clips with formatting. _Screen 3.3._
 
 ### Week 4: smart actions + home polish ✅
 - **Smart types and actions:** link tracking-param removal, color swatch + formats, JSON tidy, code highlight, **date → Add to calendar (.ics)**, **address → Open in Google Maps**, flight number / tracking number → status link, email/phone. Prices keep their currency symbol (no conversion). _Screens 3.3, 6.2._

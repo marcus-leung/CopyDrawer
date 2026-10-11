@@ -107,6 +107,17 @@ export class ClipDatabase extends Dexie {
             if (c.kind === 'text' || c.kind === 'code') c.kind = detectKind(c.text);
           }),
       );
+    // A color now needs a #, rgb() or hsl(): bare hex like "2FA" or a git hash goes back to text.
+    this.version(6)
+      .stores({})
+      .upgrade((tx) =>
+        tx
+          .table('clips')
+          .toCollection()
+          .modify((c: Clip) => {
+            if (c.kind === 'color') c.kind = detectKind(c.text);
+          }),
+      );
   }
 }
 

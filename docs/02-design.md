@@ -32,7 +32,7 @@ Ranked by marketing strength × feasibility. The first three are the **hero clai
 |---|---|---|---|
 | 1 | **It sorts itself** | "Never tag a clip again." | Rules sort clips into collections (Research, Links, Code, Shopping, Recipes, Personal) and trips named after the place |
 | 2 | **Find it fast** | "That Airbnb link from last week." | Word search that forgives small typos, plus type, site and date filters |
-| 3 | **Paste it the way you need it** | "Paste as plain text, bullets, a checklist or one line." | Quick-paste box → pick a clip → optional Paste as |
+| 3 | **Paste it back anywhere** | "Any clip, in any text box." | Quick-paste box → filter → Enter. Clips with formatting paste as is or as plain text |
 | 4 | **Private by design** | "Your clipboard never leaves your device." | No account, no server, no network requests, open-source client |
 | 5 | **Smart actions** | "Copy a tracking number, get a Track button." | Rules: tracking, address, color, date, JSON, code, email/phone |
 | 6 | **Clipboard Guard** _(post-MVP)_ | "Catches passwords and keys." | Rule-based secret detection, auto-expiry |
@@ -52,7 +52,7 @@ Problem: auto-capturing copies on every site needs `<all_urls>` content scripts 
 
 Why: a lighter install warning, a likely smoother first review, and a trust story ("we only read pages if you turn it on"), while most users still end up with auto-capture through onboarding. The production build must not list `<all_urls>` in `host_permissions`; `pnpm check` checks this before every push.
 
-Always excluded (hardcoded + user list): `chrome://` pages, the Web Store, and a small seed list of password-manager and banking domains (cheap safety net; full secret detection is out of scope for MVP).
+Always excluded (hardcoded + user list): `chrome://` pages, the Web Store, and a built-in list of password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites (cheap safety net; full secret detection is out of scope for MVP). Only trusted copy events (made by the user, not dispatched by the page) are saved; a copied image is fetched from inside the page, never with the extension's all-sites access.
 
 ---
 
@@ -60,9 +60,9 @@ Always excluded (hardcoded + user list): `chrome://` pages, the Web Store, and a
 
 ### 4.1 Surfaces
 1. **Side panel (main home):** search bar, collection folders, images & colors strip, recent clips.
-2. **Quick-paste box:** `Alt+Shift+V` overlay (user-changeable; see §9) injected on the current page (via activeTab). Type to filter, Enter to paste, `Tab` for "Paste as…".
+2. **Quick-paste box:** `Alt+Shift+V` overlay (user-changeable; see §9) injected on the current page (via activeTab). Type to filter, Enter to paste, Esc to close.
 3. **Context menu:** Save selection · Save image · Screenshot an area · Don't save on this site.
-4. **Toolbar popup:** last 8 clips + open panel (lightweight).
+4. **Toolbar popup:** the full app (small, medium or large); an expand button opens the same screen and search in the side panel.
 5. **Onboarding:** 3 steps: privacy promise → turn on auto-save (recommended; explains page access) → the two shortcuts to know.
 
 ### 4.2 Everything happens in the panel

@@ -6,6 +6,8 @@ const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const THUMB_MAX = 320;
 
+export const NOT_AN_IMAGE = 'Only PNG, JPG, GIF and WebP images can be saved.';
+
 export class ImageError extends Error {}
 
 async function sha256Hex(blob: Blob): Promise<string> {
@@ -48,7 +50,7 @@ interface NewImage {
 /** Saves an image clip; duplicates (same bytes) move to the top. */
 export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultDb): Promise<Clip> {
   const { blob } = input;
-  if (!IMAGE_TYPES.includes(blob.type)) throw new ImageError('Only PNG, JPG, GIF and WebP images can be saved.');
+  if (!IMAGE_TYPES.includes(blob.type)) throw new ImageError(NOT_AN_IMAGE);
   if (blob.size > MAX_IMAGE_BYTES) throw new ImageError('Images up to 20 MB can be saved.');
 
   const hash = `img:${await sha256Hex(blob)}`;
@@ -84,6 +86,26 @@ export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultD
     await enforceLimit(db);
     return sorted;
   });
+}
+
+/** Saves each file as an image clip, carrying on past ones that fail. */
+export async function saveImages<T extends Blob>(
+  files: T[],
+  note?: string,
+): Promise<{ saved: number; failed: T[]; error?: string }> {
+  let saved = 0;
+  const failed: T[] = [];
+  let error: string | undefined;
+  for (const blob of files) {
+    try {
+      await saveImageClip({ blob, fileName: blob instanceof File ? blob.name : undefined, note });
+      saved++;
+    } catch (e) {
+      failed.push(blob);
+      error = e instanceof ImageError ? e.message : "Couldn't save that image.";
+    }
+  }
+  return { saved, failed, error };
 }
 
 export async function getImageBlob(clip: Clip, db: ClipDatabase = defaultDb): Promise<Blob | undefined> {

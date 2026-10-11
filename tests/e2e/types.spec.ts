@@ -46,11 +46,11 @@ test('each clip type is recognized, filtered, searched, acted on and quick-paste
     await panel.getByRole('button', { name: 'Filters' }).click();
     await expect(list.getByRole('listitem')).toHaveCount(TYPES.length + 2);
 
-    // Its detail: the right action, and only two Paste as options.
+    // Its detail: the right action. Plain text has no formatting, so no Paste as.
     await list.getByRole('button', { name: new RegExp(t.text.replace(/[$()+{}[\]]/g, '\\$&').slice(0, 20)) }).click();
     const actions = panel.getByRole('region', { name: 'Smart actions' });
     await expect(actions.getByRole('button', { name: t.action, exact: true })).toBeVisible();
-    await expect(panel.getByRole('region', { name: 'Paste as' }).getByRole('button')).toHaveText(['Paste as is', 'Plain text']);
+    await expect(panel.getByRole('region', { name: 'Paste as' })).toHaveCount(0);
     if ('copies' in t) {
       await actions.getByRole('button', { name: t.action, exact: true }).click();
       await expect.poll(() => panel.evaluate(() => navigator.clipboard.readText())).toBe(t.copies);

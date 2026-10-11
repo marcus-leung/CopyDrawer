@@ -14,7 +14,7 @@ There is no account, and no server stores your clips.
 ## When the extension reads pages
 
 - **Saving by hand** (shortcut, right-click menu, screenshot tool, quick paste): Chrome gives the extension access to the current tab only, only at that moment.
-- **Auto-save** (off until you turn it on): Chrome asks you to allow access to the sites you visit. The extension uses it only to notice when you copy or cut text, and saves that text. It never reads password fields, and never saves on banking and password-manager sites or on sites you block. You can pause it or turn it off at any time.
+- **Auto-save** (off until you turn it on): Chrome asks you to allow access to the sites you visit. The extension uses it only to notice when you copy or cut, and saves the text or image you copied. Only copies you make count; a page can't fake one. A copied image is fetched from inside that page, the same way the page loads it, never with the extension's own access. It never reads password fields, and never saves on password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites or on sites you block. You can pause it or turn it off at any time.
 
 ## Network requests
 

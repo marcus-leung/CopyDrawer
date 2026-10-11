@@ -7,7 +7,8 @@ import { watchCopies } from '@/lib/copyWatcher';
 
 declare global {
   interface Window {
-    __clipboardAutosave?: boolean;
+    /** Stops this tab's current copy watcher. */
+    __clipboardAutosave?: () => void;
   }
 }
 
@@ -17,9 +18,9 @@ export default defineContentScript({
   allFrames: true,
   runAt: 'document_start',
   main() {
-    // Already-open pages get the script when auto-save starts; listen once even if it arrives twice.
-    if (window.__clipboardAutosave) return;
-    window.__clipboardAutosave = true;
-    watchCopies(window);
+    // The script can arrive twice (open tabs get it when auto-save starts or the extension updates).
+    // The newest copy takes over, so a watcher cut off by an update never blocks its replacement.
+    window.__clipboardAutosave?.();
+    window.__clipboardAutosave = watchCopies(window);
   },
 });

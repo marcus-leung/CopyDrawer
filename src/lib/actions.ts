@@ -356,7 +356,7 @@ export function detectActions(clip: { kind: string; text: string }, now = new Da
     return out;
   }
 
-  const color = text.length <= 40 ? parseColor(text) : null;
+  const color = clip.kind === 'color' ? parseColor(text) : null;
   if (color) {
     const f = colorFormats(color);
     out.color = color;
@@ -367,19 +367,17 @@ export function detectActions(clip: { kind: string; text: string }, now = new Da
     return out;
   }
 
-  if (/^[[{]/.test(text) && text.length < 500_000) {
+  if (clip.kind === 'json') {
     try {
       const json: unknown = JSON.parse(text);
-      if (json && typeof json === 'object') {
-        out.json = json;
-        out.note = 'Looks like JSON';
-        out.actions.push({ kind: 'copy', label: 'Copy tidy', text: JSON.stringify(json, null, 2) });
-        out.actions.push({ kind: 'copy', label: 'Copy on one line', text: JSON.stringify(json) });
-        return out;
-      }
+      out.json = json;
+      out.note = 'Looks like JSON';
+      out.actions.push({ kind: 'copy', label: 'Copy tidy', text: JSON.stringify(json, null, 2) });
+      out.actions.push({ kind: 'copy', label: 'Copy on one line', text: JSON.stringify(json) });
     } catch {
-      // not JSON
+      // Saved as JSON under older rules; nothing to offer.
     }
+    return out;
   }
   if (clip.kind === 'code') return out;
 
@@ -398,10 +396,10 @@ export function detectActions(clip: { kind: string; text: string }, now = new Da
     }
   }
 
-  if (EMAIL.test(text)) {
+  if (clip.kind === 'email') {
     out.note ??= 'Looks like an email address';
     out.actions.push({ kind: 'open-link', label: 'Write an email', url: `mailto:${text}` });
-  } else if (PHONE.test(text) && text.replace(/\D/g, '').length >= 7) {
+  } else if (clip.kind === 'phone') {
     out.note ??= 'Looks like a phone number';
     out.actions.push({ kind: 'open-link', label: 'Call', url: `tel:${text.replace(/[^\d+]/g, '')}` });
   }

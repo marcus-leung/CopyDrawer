@@ -26,11 +26,11 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 
 ## Features
 
-- **Save:** Alt+Shift+S or right-click → Save selection; right-click → Save image; Alt+Shift+X screenshot an area; paste or drop into the panel; **add a clip by hand** (+ on the home screen: type or paste, then Save); optional **auto-save** of everything you copy (asks for site access only when you turn it on, and granting that access is what turns it on; covers tabs that are already open; skips password fields, banks, password managers and blocked sites; pause anytime).
+- **Save:** Alt+Shift+S or right-click → Save selection; right-click → Save image; Alt+Shift+X screenshot an area; paste or drop into the panel; **add a clip by hand** (+ on the home screen: type or paste text or images, then Save); optional **auto-save** of the text and images you copy (asks for site access only when you turn it on, and granting that access is what turns it on; covers tabs that are already open, and keeps working in them after an update; ignores copy events a page fakes; skips password fields, password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites and sites you block; pause anytime).
 - **Collections:** rules sort clips into Research, Links, Code, Shopping, Recipes, Personal, and trips named after the place ("Lisbon trip"). Make your own right in the panel, rename them, and pick any color (presets or a rainbow bar). Drag clips and images onto a collection to file them.
 - **Images:** save by paste, drop, right-click or screenshot. Drag images within the panel to reorder them or file them, or drag one out onto a page or the desktop.
 - **Find:** word search that forgives small typos, with type, site and date filters.
-- **Paste back:** Alt+Shift+V quick-paste box in any text box; toolbar popup with recent clips; **Paste as** plain text, Markdown, bullets, checklist, one line, case.
+- **Paste back:** Alt+Shift+V quick-paste box in any text box; the toolbar popup is the full app (small, medium or large) and can expand into the side panel; clips with formatting can be copied **as is** or as **plain text**.
 - **Smart actions:** track package, flight status, add to calendar (.ics), open address in Maps, email/call, color formats, tidy JSON, links without tracking parameters.
 - **Your data:** export/import (JSON), auto-delete after 30/90 days, delete all.
 - **Appearance:** light and dark themes, a choice of font (default, system or monospace) and four text sizes, everywhere including the quick-paste box.
@@ -46,10 +46,10 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 ```
 src/entrypoints/background.ts   context menus, shortcuts, saving, quick-paste data
 src/entrypoints/sidepanel/      React side panel (home, collections, detail, settings, onboarding)
-src/entrypoints/popup/          toolbar popup (recent clips)
+src/entrypoints/popup/          toolbar popup (the full app, expands into the side panel)
 src/entrypoints/*.content.ts    auto-save listener, quick-paste box (injected on demand)
 src/lib/                        storage (Dexie), clips, collections + classifier, search,
-                                smart actions, transforms
+                                clip types, smart actions
 src/components/                 UI building blocks (design system in docs/05)
 tests/unit, tests/e2e           Vitest and Playwright tests
 docs/                           research, design, plan, design system, mockups

@@ -3,7 +3,6 @@
  * and paste it into the field you were typing in. Injected on demand with
  * activeTab, so it needs no site access.
  */
-import { TRANSFORMS } from '@/lib/transforms';
 import type { QuickClip } from '@/lib/quickpaste';
 import { modKey } from '@/lib/format';
 import { safeSend } from '@/lib/safeSend';
@@ -15,21 +14,19 @@ declare global {
   }
 }
 
-const DARK =
-  '--ink:#F4F5F8; --bg:#1B1D27; --surface:#262936; --line:#323646; --t3:#A3A8BC; --sel:#1E2C4D; --pill:#1E2C4D; --pillfg:#B9CCFF;';
+const DARK = '--ink:#F4F5F8; --bg:#1B1D27; --surface:#262936; --line:#323646; --t3:#A3A8BC; --sel:#1E2C4D;';
 
 // Follows the theme chosen in Settings; until that's read, the system setting.
 const CSS = `
 :host { all: initial; }
 * { box-sizing: border-box; }
 .scrim { position: fixed; inset: 0; background: rgba(23,25,35,.28); z-index: 2147483647; display: flex; justify-content: center; align-items: flex-start; padding-top: 14vh; font: 14px/1.45 "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); }
-.box { --ink:#171923; --bg:#fff; --surface:#F1F2F6; --line:#E5E7EE; --t3:#6B7080; --sel:#E6EEFC; --pill:#E6EEFC; --pillfg:#173D8F;
+.box { --ink:#171923; --bg:#fff; --surface:#F1F2F6; --line:#E5E7EE; --t3:#6B7080; --sel:#E6EEFC;
   width: min(560px, 92vw); background: var(--bg); color: var(--ink); border-radius: 18px; box-shadow: 0 18px 48px rgba(23,25,35,.22), 0 2px 6px rgba(23,25,35,.08); overflow: hidden; }
 @media (prefers-color-scheme: dark) { .box:not([data-theme="light"]) { ${DARK} } }
 .box[data-theme="dark"] { ${DARK} }
 .head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
 .head input { flex: 1; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; padding: 6px 0; }
-.mode { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--pill); color: var(--pillfg); }
 ul { list-style: none; margin: 0; padding: 6px; max-height: 340px; overflow-y: auto; }
 li { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; cursor: pointer; }
 li[aria-selected="true"] { background: var(--sel); }
@@ -151,8 +148,7 @@ function open() {
   input.setAttribute('role', 'combobox');
   input.setAttribute('aria-controls', 'qp-list');
   input.setAttribute('aria-expanded', 'true');
-  const mode = el('span', 'mode');
-  head.append(input, mode);
+  head.append(input);
   const list = el('ul');
   list.id = 'qp-list';
   list.setAttribute('role', 'listbox');
@@ -164,8 +160,6 @@ function open() {
   let clips: QuickClip[] = [];
   let shown: QuickClip[] = [];
   let selected = 0;
-  let pasteAs: QuickClip | null = null;
-  const options = TRANSFORMS;
   let loaded = false;
   // Keys pressed before the clips arrive (the background may still be waking up), replayed in order.
   const early: string[] = [];
@@ -175,7 +169,6 @@ function open() {
     document.removeEventListener('keydown', trap, true);
   };
 
-  // Fields here take text only, so "Paste as is" and "Plain text" paste the same.
   const finish = async (clip: QuickClip) => {
     const text = clip.text;
     close();
@@ -192,30 +185,6 @@ function open() {
 
   const render = () => {
     list.replaceChildren();
-    if (pasteAs) {
-      mode.textContent = 'Paste as';
-      mode.hidden = false;
-      input.placeholder = 'Filter options';
-      const q = input.value.toLowerCase();
-      const opts = options.filter((o) => o.label.toLowerCase().includes(q));
-      selected = Math.min(selected, Math.max(0, opts.length - 1));
-      opts.forEach((o, i) => {
-        const li = el('li');
-        li.setAttribute('role', 'option');
-        li.setAttribute('aria-selected', String(i === selected));
-        li.append(el('span', 'title', o.label));
-        li.onmousedown = (e) => {
-          e.preventDefault();
-          void finish(pasteAs!);
-        };
-        list.append(li);
-      });
-      list.dataset.count = String(opts.length);
-      foot.replaceChildren(hint('Enter', 'paste'), hint('Esc', 'back'), el('span', 'r', pasteAs.title.slice(0, 40)));
-      return;
-    }
-    mode.hidden = true;
-    input.placeholder = 'Filter clips';
     const q = input.value.trim();
     shown = clips
       .map((c, i) => ({ c, s: matches(c, q), i }))
@@ -245,7 +214,7 @@ function open() {
       };
       list.append(li);
     });
-    foot.replaceChildren(hint('Enter', 'paste'), hint('Tab', 'paste as'), hint('Esc', 'close'), el('span', 'r', 'Alt+Shift+V'));
+    foot.replaceChildren(hint('Enter', 'paste'), hint('Esc', 'close'), el('span', 'r', 'Alt+Shift+V'));
     list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
   };
 
@@ -257,30 +226,14 @@ function open() {
 
   /** Runs a box shortcut. Returns false for keys that aren't one. */
   const handleKey = (key: string): boolean => {
-    const count = pasteAs ? Number(list.dataset.count ?? 0) : shown.length;
-    if (key === 'Escape') {
-      if (pasteAs) {
-        pasteAs = null;
-        input.value = '';
-        render();
-      } else close();
-    } else if (key === 'ArrowDown' || key === 'ArrowUp') {
+    const count = shown.length;
+    if (key === 'Escape') close();
+    else if (key === 'ArrowDown' || key === 'ArrowUp') {
       if (count) selected = (selected + (key === 'ArrowDown' ? 1 : count - 1)) % count;
       render();
-    } else if (key === 'Tab') {
-      if (!pasteAs && shown[selected]) {
-        pasteAs = shown[selected]!;
-        selected = 0;
-        input.value = '';
-        render();
-      }
     } else if (key === 'Enter') {
-      if (pasteAs) {
-        const opt = list.querySelectorAll('li')[selected]?.textContent;
-        const o = options.find((x) => x.label === opt);
-        if (o) void finish(pasteAs);
-      } else if (shown[selected]) void finish(shown[selected]!);
-    } else return false;
+      if (shown[selected]) void finish(shown[selected]!);
+    } else if (key !== 'Tab') return false; // Tab stays in the box, like any dialog.
     return true;
   };
 

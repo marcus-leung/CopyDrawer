@@ -6,7 +6,7 @@ import type { QuickClip } from '@/lib/quickpaste';
 import { requestView } from '@/lib/openView';
 import { getSettings, isPaused, pullSyncedSettings, syncedSettingsItem, updateSettings } from '@/lib/settings';
 import { isBlocked } from '@/lib/exclusions';
-import { onPermissionsAdded, syncAutosaveRegistration } from '@/lib/autosave';
+import { injectIntoOpenTabs, onPermissionsAdded, syncAutosaveRegistration } from '@/lib/autosave';
 import { blobToDataUrl, dataUrlToBlob, ImageError, saveImageClip } from '@/lib/images';
 import { fetchImageInPage, readSelection, selectArea, showSavedToast } from '@/lib/injected';
 import type { Clip, ClipSource } from '@/lib/db';
@@ -75,7 +75,10 @@ async function fetchImage(srcUrl: string, tabId?: number): Promise<Blob | null> 
   } catch {
     // Cross-origin without access; try from the page below.
   }
-  if (tabId == null) return null;
+  return tabId == null ? null : fetchImageFromPage(srcUrl, tabId);
+}
+
+async function fetchImageFromPage(srcUrl: string, tabId: number): Promise<Blob | null> {
   try {
     const [result] = await browser.scripting.executeScript({ target: { tabId }, func: fetchImageInPage, args: [srcUrl] });
     const dataUrl = result?.result as string | null;
@@ -98,6 +101,25 @@ async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
   } catch (e) {
     console.warn('Image not saved', e instanceof ImageError ? e.message : e);
     await badgeError();
+  }
+}
+
+/**
+ * Auto-save of a copied image. The page picks the URL, so it is fetched from inside the page,
+ * with the page's own access, never the extension's. Quiet like text auto-save.
+ */
+async function autosaveImage(srcUrl: string, tab?: Browser.tabs.Tab) {
+  const blob = srcUrl.startsWith('data:')
+    ? dataUrlToBlob(srcUrl)
+    : tab?.id != null
+      ? await fetchImageFromPage(srcUrl, tab.id)
+      : null;
+  if (!blob) return;
+  try {
+    await saveImageClip({ blob, source: sourceOf(tab), srcUrl });
+    await badgeOk();
+  } catch (e) {
+    console.warn('Image not auto-saved', e instanceof ImageError ? e.message : e);
   }
 }
 
@@ -232,15 +254,19 @@ async function quickPasteClips(): Promise<{ clips: QuickClip[] }> {
   };
 }
 
+async function onInstalled(reason: string) {
+  createMenus();
+  void browser.alarms.create(ALARM_CLEANUP, { periodInMinutes: 24 * 60 });
+  if (reason === 'install') {
+    void browser.tabs.create({ url: browser.runtime.getURL('/sidepanel.html?onboarding=1') });
+  }
+  const autosaveOn = await syncAutosaveRegistration();
+  // An update cuts off the auto-save script in open tabs; give them the new one.
+  if (autosaveOn && reason === 'update') await injectIntoOpenTabs();
+}
+
 export default defineBackground(() => {
-  browser.runtime.onInstalled.addListener((details) => {
-    createMenus();
-    void browser.alarms.create(ALARM_CLEANUP, { periodInMinutes: 24 * 60 });
-    void syncAutosaveRegistration();
-    if (details.reason === 'install') {
-      void browser.tabs.create({ url: browser.runtime.getURL('/sidepanel.html?onboarding=1') });
-    }
-  });
+  browser.runtime.onInstalled.addListener((details) => void onInstalled(details.reason));
 
   browser.runtime.onStartup.addListener(() => {
     void cleanup();
@@ -294,7 +320,7 @@ export default defineBackground(() => {
         void handleAutosave(msg, sender);
         return;
       case 'autosave-image':
-        void autosaveAllowed(sender).then((ok) => ok && saveImageFromUrl(msg.srcUrl, sender.tab));
+        void autosaveAllowed(sender).then((ok) => ok && autosaveImage(msg.srcUrl, sender.tab));
         return;
       case 'autosave-sync':
         void syncAutosaveRegistration().then(sendResponse);
@@ -320,6 +346,11 @@ export default defineBackground(() => {
         if (msg.action === 'quick-paste') await openQuickPaste(tab);
         sendResponse(true);
       });
+      return true;
+    }
+    // Test-only: Playwright can't update an extension.
+    if (__E2E__ && msg.type === 'e2e-installed') {
+      void onInstalled(msg.reason).then(() => sendResponse(true));
       return true;
     }
     // Test-only: Playwright can't click Chrome's permission prompt.

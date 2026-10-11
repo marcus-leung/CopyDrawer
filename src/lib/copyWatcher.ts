@@ -11,6 +11,8 @@ export function watchCopies(win: Window): () => void {
     win.removeEventListener('cut', onCopy);
   };
   function onCopy(event: ClipboardEvent) {
+    // Page scripts can dispatch copy events of their own; only the user's count.
+    if (!event.isTrusted) return;
     if (!extensionAlive()) return stop();
     const target = event.target;
     // Never read password fields.

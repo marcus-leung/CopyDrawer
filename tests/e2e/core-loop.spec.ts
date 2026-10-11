@@ -108,3 +108,41 @@ test('add a clip by hand: type or paste, save, cancel, empty refused', async ({ 
   await expect(list.getByRole('listitem')).toHaveCount(1);
   await expect(list).toContainText('pasted.png');
 });
+
+test('the add box keeps text pasted with an image, and refuses files that are not images', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await page.getByRole('button', { name: 'Add a clip' }).click();
+  const form = page.getByRole('form', { name: 'Add a clip' });
+  const box = form.getByRole('textbox');
+  const previews = form.getByRole('list', { name: 'Images to save' }).getByRole('listitem');
+
+  // A real Ctrl+V of a picture copied together with its caption.
+  await page.evaluate(async () => {
+    const canvas = new OffscreenCanvas(40, 30);
+    canvas.getContext('2d')!.fillRect(0, 0, 40, 30);
+    const png = await canvas.convertToBlob({ type: 'image/png' });
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': png, 'text/plain': new Blob(['Bake sale poster'], { type: 'text/plain' }) }),
+    ]);
+  });
+  await box.click();
+  await page.keyboard.press('ControlOrMeta+V');
+  await expect(previews).toHaveCount(1);
+  await expect(box).toHaveValue('Bake sale poster');
+
+  // A PDF is not an image: no broken preview, and the box says why.
+  await page.evaluate(() => {
+    const data = new DataTransfer();
+    data.items.add(new File(['%PDF-1.4'], 'menu.pdf', { type: 'application/pdf' }));
+    document.activeElement!.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true }));
+  });
+  await expect(form.getByRole('alert')).toHaveText('Only PNG, JPG, GIF and WebP images can be saved.');
+  await expect(previews).toHaveCount(1);
+
+  await form.getByRole('button', { name: 'Save' }).click();
+  await expect(form).toHaveCount(0);
+  const clips = await readClips(page);
+  expect(clips).toHaveLength(1);
+  expect(clips[0]).toMatchObject({ kind: 'image', note: 'Bake sale poster' });
+});

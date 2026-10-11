@@ -21,7 +21,7 @@ async function hasAllSitesAccess(): Promise<boolean> {
 }
 
 /** Pages that were open before auto-save started: give them the script now, no reload needed. */
-async function injectIntoOpenTabs() {
+export async function injectIntoOpenTabs() {
   const tabs = await browser.tabs.query({ url: ['http://*/*', 'https://*/*'] });
   await Promise.all(
     tabs.map((tab) =>
