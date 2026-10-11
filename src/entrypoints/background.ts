@@ -254,6 +254,13 @@ async function quickPasteClips(): Promise<{ clips: QuickClip[] }> {
   };
 }
 
+/** A keyboard shortcut from the manifest's `commands`. */
+async function runCommand(command: string, tab?: Browser.tabs.Tab) {
+  if (command === 'save-selection') await saveSelectionFromTab(tab);
+  if (command === 'screenshot-area') await screenshotArea(tab);
+  if (command === 'quick-paste') await openQuickPaste(tab);
+}
+
 async function onInstalled(reason: string) {
   createMenus();
   void browser.alarms.create(ALARM_CLEANUP, { periodInMinutes: 24 * 60 });
@@ -307,11 +314,7 @@ export default defineBackground(() => {
     }
   });
 
-  browser.commands.onCommand.addListener((command, tab) => {
-    if (command === 'save-selection') void saveSelectionFromTab(tab);
-    if (command === 'screenshot-area') void screenshotArea(tab);
-    if (command === 'quick-paste') void openQuickPaste(tab);
-  });
+  browser.commands.onCommand.addListener((command, tab) => void runCommand(command, tab));
 
   browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!msg || typeof msg !== 'object') return;
@@ -346,6 +349,14 @@ export default defineBackground(() => {
         if (msg.action === 'quick-paste') await openQuickPaste(tab);
         sendResponse(true);
       });
+      return true;
+    }
+    // Test-only: Playwright can't press Chrome's extension shortcuts.
+    if (__E2E__ && msg.type === 'e2e-command') {
+      void browser.tabs
+        .get(msg.tabId)
+        .then((tab) => runCommand(msg.command, tab))
+        .then(() => sendResponse(true));
       return true;
     }
     // Test-only: Playwright can't update an extension.
