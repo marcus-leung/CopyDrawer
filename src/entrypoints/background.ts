@@ -10,6 +10,7 @@ import { getSettings, isPaused, pullSyncedSettings, settingsItem, syncedSettings
 import { isBlocked } from '@/lib/exclusions';
 import { injectIntoOpenTabs, onPermissionsAdded, syncAutosaveRegistration } from '@/lib/autosave';
 import { blobToDataUrl, dataUrlToBlob, ImageError, saveImageClip } from '@/lib/images';
+import { BACKUP_EVERY } from '@/lib/backup';
 import { fetchImageInPage, readSelection, selectArea, showSavedToast } from '@/lib/injected';
 import type { Clip, ClipSource } from '@/lib/db';
 
@@ -277,6 +278,8 @@ async function onInstalled(reason: string) {
   if (reason === 'install') {
     void browser.tabs.create({ url: browser.runtime.getURL('/sidepanel.html?onboarding=1') });
   }
+  // The first export reminder comes a month after install, or after this update for earlier installs.
+  if (!(await getSettings()).backupRemindAfter) await updateSettings({ backupRemindAfter: Date.now() + BACKUP_EVERY });
   const autosaveOn = await syncAutosaveRegistration();
   // An update cuts off the auto-save script in open tabs; give them the new one.
   if (autosaveOn && reason === 'update') await injectIntoOpenTabs();

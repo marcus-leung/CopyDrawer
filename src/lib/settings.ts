@@ -29,6 +29,11 @@ export interface Settings {
   saveInIncognito: boolean;
   dismissedTips: string[];
   onboarded: boolean;
+  /** When clips were last exported from this computer. 0 = never. */
+  lastExportAt: number;
+  /** The export reminder shows from this time (0 = not scheduled yet). */
+  backupRemindAfter: number;
+  backupReminder: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -43,6 +48,9 @@ const DEFAULT_SETTINGS: Settings = {
   saveInIncognito: false,
   dismissedTips: [],
   onboarded: false,
+  lastExportAt: 0,
+  backupRemindAfter: 0,
+  backupReminder: true,
 };
 
 export const PAUSE_MS = 60 * 60 * 1000;

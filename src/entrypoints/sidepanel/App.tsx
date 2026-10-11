@@ -265,7 +265,13 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
       </div>
 
       {settings && clips && (
-        <HomeNotice settings={settings} now={now} count={clips.length} onCleanUp={() => setView({ name: 'settings' })} />
+        <HomeNotice
+          settings={settings}
+          now={now}
+          count={clips.length}
+          onCleanUp={() => setView({ name: 'settings' })}
+          notify={notify}
+        />
       )}
 
       <main className="min-h-0 flex-1 overflow-y-auto px-[18px]">

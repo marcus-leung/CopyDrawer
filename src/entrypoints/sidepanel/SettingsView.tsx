@@ -10,7 +10,7 @@ import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { Button, IconButton } from '@/components/ui';
 import { ExpandButton, ExpandContext } from '@/components/ExpandButton';
 import { InlineConfirm } from '@/components/InlineConfirm';
-import { BackupError, exportBackup, importBackup } from '@/lib/backup';
+import { BackupError, downloadBackup, importBackup } from '@/lib/backup';
 import { useShortcuts } from '@/lib/useShortcuts';
 import { NOT_SET } from '@/lib/shortcuts';
 
@@ -63,14 +63,8 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
   }
 
   async function exportAll() {
-    const file = await exportBackup();
-    const url = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `clipboard-export-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    notify(`Exported ${file.clips.length} ${file.clips.length === 1 ? 'clip' : 'clips'}`);
+    const n = await downloadBackup();
+    notify(`Exported ${n} ${n === 1 ? 'clip' : 'clips'}`);
   }
 
   async function importFrom(file: File | undefined) {
@@ -302,6 +296,9 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
             Clips are stored only on this computer. Nothing is uploaded. Your settings (theme, blocked sites, auto-delete) follow
             you to other computers through Chrome sync, if it's on.
           </p>
+          <p className="mb-3 text-[13px] text-text-2">
+            {settings.lastExportAt ? `Last exported: ${new Date(settings.lastExportAt).toLocaleDateString()}` : 'Never exported'}
+          </p>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => void exportAll()}>
               Export
@@ -327,6 +324,15 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
             <Button size="sm" variant="danger" aria-expanded={confirmDeleteAll} onClick={() => setConfirmDeleteAll(true)}>
               Delete all
             </Button>
+          </div>
+          <div className="mt-3">
+            <Toggle
+              id="t-backup-reminder"
+              label="Remind me to export every month"
+              hint="Once you have 50 clips or more. Uninstalling Clipboard deletes your clips, so a copy is worth keeping."
+              checked={settings.backupReminder}
+              onChange={(on) => void updateSettings({ backupReminder: on })}
+            />
           </div>
           {confirmDeleteAll && (
             <div className="mt-3">
