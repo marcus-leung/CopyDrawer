@@ -193,37 +193,44 @@ test('shortcut labels show the keys Chrome actually bound, in the platform style
   await expect(page.getByRole('dialog', { name: 'Quick paste' })).toContainText(keys['quick-paste']!);
 });
 
-test('on a page Chrome blocks, a shortcut explains in the panel, or just shows × when that is off', async ({
-  context,
-  extensionId,
-}) => {
-  const panel = await context.newPage();
-  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
-  const page = await context.newPage();
-  await page.goto('chrome://version');
+test('the toolbar icon shows × where copies are not seen, and when a shortcut cannot run', async ({ context, extensionId }) => {
+  const { panel, tabId: siteTab } = await setup(context, extensionId, { autoSave: false });
+  const chromePage = await context.newPage();
+  await chromePage.goto('chrome://version');
   // Chrome hides chrome:// addresses from extensions; it's the active tab.
-  const tabId = await panel.evaluate(async () => (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0]!.id!);
-  const press = (command: string) =>
-    panel.evaluate((m) => chrome.runtime.sendMessage({ type: 'e2e-command', ...m }), { command, tabId });
+  const chromeTab = await panel.evaluate(
+    async () => (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0]!.id!,
+  );
+  const badge = (tabId: number) => panel.evaluate((id) => chrome.action.getBadgeText({ tabId: id }), tabId);
+  const settings = (patch: object) =>
+    panel.evaluate(async (patch) => {
+      const { settings } = await chrome.storage.local.get('settings');
+      await chrome.storage.local.set({ settings: { ...(settings ?? {}), ...patch } });
+      await chrome.runtime.sendMessage({ type: 'autosave-sync' });
+    }, patch);
 
-  await press('save-selection');
-  await panel.bringToFront();
-  const notice = panel.getByText("Chrome doesn't let extensions read this page");
-  await expect(notice).toBeVisible();
-  // Copying there still works for Chrome itself: grab it from the panel.
-  await panel.evaluate(() => navigator.clipboard.writeText('Copied on a chrome:// page'));
-  await panel.getByRole('button', { name: 'Grab clipboard' }).first().click();
-  await expect.poll(async () => (await readClips(panel)).map((c) => c.text)).toEqual(['Copied on a chrome:// page']);
-  await expect(notice).toHaveCount(0);
+  // A shortcut on a page Chrome blocks: × on that tab while it shows that page (auto-save is off).
+  for (const command of ['save-selection', 'quick-paste']) {
+    await panel.evaluate((m) => chrome.runtime.sendMessage({ type: 'e2e-command', ...m }), { command, tabId: chromeTab });
+    await expect.poll(() => badge(chromeTab)).toBe('×');
+    await panel.waitForTimeout(2500);
+    expect(await badge(chromeTab)).toBe('×');
+    // Loading another page clears it.
+    await chromePage.goto('https://keys.e2e.test/');
+    await expect.poll(() => badge(chromeTab)).toBe('');
+    await chromePage.goto('chrome://version');
+  }
+  // No page opened to explain.
+  expect(context.pages().filter((p) => p.url().includes('sidepanel.html'))).toHaveLength(1);
 
-  // Turned off: only the × badge.
-  await panel.getByRole('button', { name: 'Settings' }).click();
-  const toggle = panel.getByLabel('Explain blocked pages in the side panel');
-  await expect(toggle).toBeChecked();
-  await toggle.click();
-  await expect(toggle).not.toBeChecked();
-  await panel.getByRole('button', { name: 'Back' }).click();
-  await press('quick-paste');
-  expect(await panel.evaluate(() => chrome.action.getBadgeText({}))).toBe('×');
-  await expect(notice).toHaveCount(0);
+  // Auto-save on: × stays on pages where copies can't be seen.
+  await settings({ autoSave: true });
+  await expect.poll(() => badge(chromeTab)).toBe('×');
+  expect(await badge(siteTab)).toBe('');
+  await settings({ blockedSites: ['keys.e2e.test'] });
+  await expect.poll(() => badge(siteTab)).toBe('×');
+
+  await settings({ autoSave: false });
+  await expect.poll(() => badge(chromeTab)).toBe('');
+  await expect.poll(() => badge(siteTab)).toBe('');
 });
