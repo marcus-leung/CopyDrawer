@@ -69,8 +69,8 @@ test('copying on real sites fills collections and a named trip', async ({ contex
   await panel.bringToFront();
   const tiles = panel.getByRole('list', { name: 'Collections' });
   await expect(tiles.getByRole('button')).toHaveCount(5);
-  // Largest first: the trip has the two stays and the city-less flight.
-  await expect(tiles.getByRole('button').first()).toHaveText(/Lisbon trip\s*3 clips, 3 new/);
+  // The trip has the two stays and the city-less flight.
+  await expect(tiles.getByRole('button', { name: /Lisbon trip/ })).toHaveText(/Lisbon trip\s*3 clips, 3 new/);
   for (const name of ['Research', 'Recipes', 'Code', 'Shopping']) await expect(tiles).toContainText(name);
   await expect(panel.getByText('Sorted 7 new clips today')).toBeVisible();
 

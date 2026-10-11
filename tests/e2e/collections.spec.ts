@@ -1,3 +1,4 @@
+import { dragAndDrop, pasteIntoPanel } from './helpers';
 import { test, expect } from './fixtures';
 
 test('clips sort into collections and trips; moving a clip keeps it there', async ({ context, extensionId }) => {
@@ -55,4 +56,44 @@ test('clips sort into collections and trips; moving a clip keeps it there', asyn
   await page.getByRole('button', { name: 'Back to home' }).click();
   await expect(tiles).toContainText('Places to stay');
   await expect(tiles).toContainText('Lisbon in October');
+});
+
+test('folders keep their place when clips are dropped in, and move where you put them', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await pasteIntoPanel(page, 'Remember to call grandma on Sunday', 'Buy stamps');
+  for (const name of ['Alpha', 'Bravo', 'Charlie']) {
+    await page.getByRole('button', { name: 'New collection' }).click();
+    const form = page.getByRole('form', { name: 'New collection' });
+    await form.getByLabel('Collection name').fill(name);
+    await form.getByLabel('Collection name').press('Enter');
+    await expect(form).toHaveCount(0);
+  }
+  const tiles = page.getByRole('list', { name: 'Collections' }).getByRole('button');
+  await expect(tiles).toHaveText([/^Alpha/, /^Bravo/, /^Charlie/]);
+
+  // Dropping clips into the last folder doesn't move it.
+  const list = page.getByRole('list', { name: 'Clips' });
+  for (const clip of [/grandma/, /stamps/]) {
+    await dragAndDrop(page, list.getByRole('button', { name: clip }), tiles.filter({ hasText: 'Charlie' }));
+    await expect(page.getByRole('status')).toContainText('Moved to Charlie');
+  }
+  await expect(tiles.filter({ hasText: 'Charlie' })).toContainText('2 clips');
+  await expect(tiles).toHaveText([/^Alpha/, /^Bravo/, /^Charlie/]);
+
+  // Dragging a folder onto another puts it in that one's place, and it stays there.
+  await dragAndDrop(page, tiles.filter({ hasText: 'Alpha' }), tiles.filter({ hasText: 'Charlie' }));
+  await expect(tiles).toHaveText([/^Bravo/, /^Charlie/, /^Alpha/]);
+  await expect(page.getByText('Drop to save')).toHaveCount(0);
+  await page.reload();
+  await expect(tiles).toHaveText([/^Bravo/, /^Charlie/, /^Alpha/]);
+
+  // From the keyboard: Move earlier / Move later on the folder's own screen.
+  await tiles.filter({ hasText: 'Bravo' }).click();
+  await expect(page.getByText('Folder 1 of 3')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Move earlier' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Move later' }).click();
+  await expect(page.getByText('Folder 2 of 3')).toBeVisible();
+  await page.getByRole('button', { name: 'Back to home' }).click();
+  await expect(tiles).toHaveText([/^Charlie/, /^Bravo/, /^Alpha/]);
 });

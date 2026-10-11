@@ -69,6 +69,12 @@ export function colorOf(collection: Pick<Collection, 'color'> | undefined): Coll
   return COLORS[color] ?? COLORS.grey!;
 }
 
+/** The order for a new collection: after every existing one. */
+export async function nextOrder(db: ClipDatabase = defaultDb): Promise<number> {
+  const last = await db.collections.orderBy('order').last();
+  return last ? last.order + 1 : 0;
+}
+
 /** Finds or creates the collection for a key. Must run inside a transaction that includes `collections`. */
 async function ensureCollection(
   db: ClipDatabase,
@@ -77,8 +83,7 @@ async function ensureCollection(
 ): Promise<Collection> {
   const existing = await db.collections.where('key').equals(key).first();
   if (existing) return existing;
-  const count = await db.collections.count();
-  const collection: Collection = { id: crypto.randomUUID(), key, createdAt: Date.now(), order: count, ...init };
+  const collection: Collection = { id: crypto.randomUUID(), key, createdAt: Date.now(), order: await nextOrder(db), ...init };
   await db.collections.add(collection);
   return collection;
 }
@@ -176,6 +181,19 @@ export async function recolorCollection(id: string, color: string, db: ClipDatab
   await db.collections.update(id, { color });
 }
 
+/** Puts a collection where `targetId` is now; the ones in between shift over by one. */
+export async function moveCollection(id: string, targetId: string, db: ClipDatabase = defaultDb): Promise<void> {
+  if (id === targetId) return;
+  await db.transaction('rw', db.collections, async () => {
+    const all = await db.collections.orderBy('order').toArray();
+    const from = all.findIndex((c) => c.id === id);
+    const to = all.findIndex((c) => c.id === targetId);
+    if (from < 0 || to < 0) return;
+    all.splice(to, 0, ...all.splice(from, 1));
+    await Promise.all(all.map((c, order) => (c.order === order ? null : db.collections.update(c.id, { order }))));
+  });
+}
+
 /** Deletes a collection; its clips stay in history without a collection. */
 export async function deleteCollection(id: string, db: ClipDatabase = defaultDb): Promise<void> {
   await db.transaction('rw', db.clips, db.collections, async () => {
@@ -190,7 +208,7 @@ export interface CollectionSummary {
   newCount: number;
 }
 
-/** Collections with clip counts, largest first; empty ones hidden. "New" = saved in the last 24 h. */
+/** Collections with clip counts, in the user's order; empty ones hidden. "New" = saved in the last 24 h. */
 export async function listCollections(db: ClipDatabase = defaultDb, now = Date.now()): Promise<CollectionSummary[]> {
   const [collections, clips] = await Promise.all([db.collections.toArray(), db.clips.toArray()]);
   const counts = new Map<string, { count: number; newCount: number }>();
@@ -204,5 +222,5 @@ export async function listCollections(db: ClipDatabase = defaultDb, now = Date.n
   return collections
     .map((collection) => ({ collection, ...(counts.get(collection.id) ?? { count: 0, newCount: 0 }) }))
     .filter((s) => s.count > 0 || s.collection.kind === 'manual')
-    .sort((a, b) => b.count - a.count || a.collection.order - b.collection.order);
+    .sort((a, b) => a.collection.order - b.collection.order);
 }
