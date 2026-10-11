@@ -3,6 +3,7 @@ import { MAX_CLIPS } from '@/lib/clips';
 import { hostOf } from '@/lib/format';
 import { isPaused, updateSettings, type Settings } from '@/lib/settings';
 import { Notice } from '@/components/Notice';
+import { BACKUP_SNOOZE, backupDue, downloadBackup } from '@/lib/backup';
 
 /** The hostname of the tab next to the panel, when Chrome lets us see it. */
 function useActiveHost(): string | null {
@@ -26,17 +27,19 @@ function useActiveHost(): string | null {
   return host;
 }
 
-/** One notice at a time under the search bar: paused, site blocked, history full. */
+/** One notice at a time under the search bar: paused, site blocked, history full, time to back up. */
 export function HomeNotice({
   settings,
   now,
   count,
   onCleanUp,
+  notify,
 }: {
   settings: Settings;
   now: number;
   count: number;
   onCleanUp: () => void;
+  notify: (message: string) => void;
 }) {
   const host = useActiveHost();
 
@@ -70,6 +73,19 @@ export function HomeNotice({
         title={`History is full: ${count.toLocaleString()} of ${MAX_CLIPS.toLocaleString()}`}
         body="New clips replace your oldest unpinned ones. Pinned clips are kept."
         action={{ label: 'Clean up', onClick: onCleanUp }}
+      />
+    );
+  } else if (backupDue(settings, count, now)) {
+    notice = (
+      <Notice
+        tone="info"
+        title="Back up your clips"
+        body="They're stored only on this computer, so uninstalling Clipboard deletes them. Export a copy every so often."
+        action={{
+          label: 'Export now',
+          onClick: () => void downloadBackup().then((n) => notify(`Exported ${n} ${n === 1 ? 'clip' : 'clips'}`)),
+        }}
+        secondary={{ label: 'Not now', onClick: () => void updateSettings({ backupRemindAfter: Date.now() + BACKUP_SNOOZE }) }}
       />
     );
   }

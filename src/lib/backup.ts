@@ -7,6 +7,7 @@ import { CLIP_KINDS, detectKind } from './kinds';
 import { blobToDataUrl, dataUrlToBlob } from './images';
 import { enforceLimit, hashText, makeTitle } from './clips';
 import { cleanName, nextOrder } from './collections';
+import { updateSettings, type Settings } from './settings';
 
 interface ExportedClip extends Omit<Clip, 'image'> {
   image?: Omit<NonNullable<Clip['image']>, 'thumb'> & { thumb: string; data?: string };
@@ -101,4 +102,32 @@ export async function importBackup(file: unknown, db: ClipDatabase = defaultDb):
   });
   await enforceLimit(db);
   return added;
+}
+
+const DAY = 86_400_000;
+export const BACKUP_EVERY = 30 * DAY;
+export const BACKUP_SNOOZE = 7 * DAY;
+/** Below this many clips there's little to lose, so no reminder. */
+const BACKUP_MIN_CLIPS = 50;
+
+export function backupDue(
+  s: Pick<Settings, 'backupReminder' | 'backupRemindAfter'>,
+  clipCount: number,
+  now = Date.now(),
+): boolean {
+  return s.backupReminder && clipCount >= BACKUP_MIN_CLIPS && s.backupRemindAfter > 0 && now >= s.backupRemindAfter;
+}
+
+/** Downloads every clip as a JSON file and puts the next reminder a month away. Returns how many clips it saved. */
+export async function downloadBackup(): Promise<number> {
+  const file = await exportBackup();
+  const url = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `clipboard-export-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  const now = Date.now();
+  await updateSettings({ lastExportAt: now, backupRemindAfter: now + BACKUP_EVERY });
+  return file.clips.length;
 }

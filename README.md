@@ -33,7 +33,7 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 - **Find:** word search that forgives small typos, with type, site and date filters.
 - **Paste back:** Alt+Shift+V quick-paste box in any text box; the toolbar popup is the full app (small, medium or large) and can expand into the side panel; clips with formatting can be copied **as is** or as **plain text**.
 - **Smart actions:** track package, flight status, add to calendar (.ics), open address in Maps, email/call, color formats, tidy JSON, links without tracking parameters.
-- **Your data:** export/import (JSON), auto-delete after 30/90 days, delete all.
+- **Your data:** export/import (JSON), with a monthly reminder to export once you have 50+ clips (Not now waits a week; turn it off in Settings), auto-delete after 30/90 days, delete all.
 - **Appearance:** light and dark themes, a choice of font (default, system or monospace) and four text sizes, everywhere including the quick-paste box.
 - **No pop-ups:** naming, colors and confirmations all happen inside the panel. The only prompt you'll see is Chrome's own permission request when you turn on auto-save.
 
