@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft } from 'lucide-react';
 import { db } from '@/lib/db';
@@ -8,7 +8,7 @@ import { disableAutosave, enableAutosave } from '@/lib/autosave';
 import { BUILT_IN_BLOCKED, normalizeSite } from '@/lib/exclusions';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { Button, IconButton } from '@/components/ui';
-import { ExpandButton } from '@/components/ExpandButton';
+import { ExpandButton, ExpandContext } from '@/components/ExpandButton';
 import { InlineConfirm } from '@/components/InlineConfirm';
 import { BackupError, exportBackup, importBackup } from '@/lib/backup';
 
@@ -22,6 +22,8 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
   /** Auto-delete waiting for the user to confirm, with how many clips it would delete now. */
   const [pendingRetention, setPendingRetention] = useState<{ days: Settings['retentionDays']; old: number } | null>(null);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  // Set only in the toolbar popup, which Chrome closes when a file dialog takes focus.
+  const expand = useContext(ExpandContext);
 
   async function changeRetention(days: Settings['retentionDays']) {
     const old = await countOlderThan(days);
@@ -295,18 +297,24 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
             <Button size="sm" onClick={() => void exportAll()}>
               Export
             </Button>
-            <label className="inline-flex h-9 cursor-pointer items-center rounded-full bg-surface px-3 text-[13px] font-semibold text-ink focus-within:outline-2 focus-within:outline-text-3 hover:opacity-90">
-              Import
-              <input
-                type="file"
-                accept="application/json,.json"
-                className="sr-only"
-                onChange={(e) => {
-                  void importFrom(e.target.files?.[0]);
-                  e.target.value = '';
-                }}
-              />
-            </label>
+            {expand ? (
+              <Button size="sm" onClick={expand}>
+                Import
+              </Button>
+            ) : (
+              <label className="inline-flex h-9 cursor-pointer items-center rounded-full bg-surface px-3 text-[13px] font-semibold text-ink focus-within:outline-2 focus-within:outline-text-3 hover:opacity-90">
+                Import
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  className="sr-only"
+                  onChange={(e) => {
+                    void importFrom(e.target.files?.[0]);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            )}
             <Button size="sm" variant="danger" aria-expanded={confirmDeleteAll} onClick={() => setConfirmDeleteAll(true)}>
               Delete all
             </Button>

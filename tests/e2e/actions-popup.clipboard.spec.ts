@@ -1,3 +1,4 @@
+import { pasteIntoPanel, readClips } from './helpers';
 import { test, expect } from './fixtures';
 
 test('smart actions, images and colors strip, toolbar popup expands to the panel', async ({ context, extensionId }) => {
@@ -66,4 +67,44 @@ test('smart actions, images and colors strip, toolbar popup expands to the panel
   await expect(panel.getByRole('heading', { name: '1Z 999 AA1 01 2345 6784' })).toBeVisible();
   // The side panel itself has no expand button.
   await expect(panel.getByRole('button', { name: 'Open in side panel' })).toHaveCount(0);
+});
+
+test('a request to open a clip keeps the search, and only its own window takes it', async ({ context, extensionId }) => {
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await pasteIntoPanel(panel, 'Lemon garlic pasta', 'Trail running shoes');
+  const list = panel.getByRole('list', { name: 'Clips' });
+  await expect(list.getByRole('listitem')).toHaveCount(2);
+  const search = panel.getByLabel('Search your clips');
+  await search.fill('garlic');
+  const shoes = (await readClips(panel)).find((c) => c.text === 'Trail running shoes')!;
+  const request = (req: object) =>
+    panel.evaluate((req) => chrome.storage.session.set({ openView: { ...req, at: Date.now() } }), req);
+
+  // For another window: left for that window's panel.
+  await request({ view: { name: 'detail', id: shoes.id }, windowId: -42 });
+  await panel.waitForTimeout(300);
+  await expect(search).toHaveValue('garlic');
+  expect(await panel.evaluate(async () => (await chrome.storage.session.get('openView')).openView)).toBeTruthy();
+
+  // "Open" from the page's Saved card names only the clip: the search stays.
+  await request({ view: { name: 'detail', id: shoes.id } });
+  await expect(panel.getByRole('heading', { name: 'Trail running shoes' })).toBeVisible();
+  await panel.getByRole('button', { name: 'Back' }).click();
+  await expect(search).toHaveValue('garlic');
+});
+
+test('Import from the popup opens Settings in the side panel, where the file picker works', async ({ context, extensionId }) => {
+  const origin = `chrome-extension://${extensionId}`;
+  const panel = await context.newPage();
+  await panel.goto(`${origin}/sidepanel.html`);
+  const popup = await context.newPage();
+  await popup.goto(`${origin}/popup.html`);
+  await popup.getByRole('button', { name: 'Settings' }).click();
+  // A file dialog takes focus, and Chrome closes a popup that loses it.
+  await expect(popup.locator('input[type=file]')).toHaveCount(0);
+  await popup.getByRole('button', { name: 'Import' }).click();
+  await panel.bringToFront();
+  await expect(panel.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await expect(panel.locator('input[type=file]')).toHaveCount(1);
 });

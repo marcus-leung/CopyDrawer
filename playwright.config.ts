@@ -1,10 +1,10 @@
 import { defineConfig } from '@playwright/test';
 
 /**
- * Tests that read the system clipboard. Chrome writes to the real clipboard, so
- * these run one at a time, after the rest, so no other test copies over what they read.
+ * Specs that read the system clipboard are named *.clipboard.spec.ts. Chrome writes to the real
+ * clipboard, so they run one at a time, after the rest (`pnpm test:e2e` runs the two projects in order).
  */
-const READS_CLIPBOARD = /(actions-popup|additions|core-loop|find-and-paste|types)\.spec\.ts$/;
+const READS_CLIPBOARD = /\.clipboard\.spec\.ts$/;
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -13,6 +13,6 @@ export default defineConfig({
   reporter: 'list',
   projects: [
     { name: 'parallel', testIgnore: READS_CLIPBOARD },
-    { name: 'clipboard', testMatch: READS_CLIPBOARD, workers: 1, dependencies: ['parallel'] },
+    { name: 'clipboard', testMatch: READS_CLIPBOARD, workers: 1 },
   ],
 });

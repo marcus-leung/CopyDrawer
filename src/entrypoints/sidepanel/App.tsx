@@ -10,7 +10,7 @@ import { isPaused, PAUSE_MS, updateSettings } from '@/lib/settings';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { useAppearance } from '@/lib/useAppearance';
 import { useSearch } from '@/lib/useSearch';
-import { requestView, useOpenViewRequests, type OpenViewRequest, type View } from '@/lib/openView';
+import { cancelViewRequest, requestView, useOpenViewRequests, type OpenViewRequest, type View } from '@/lib/openView';
 import { modKey } from '@/lib/format';
 import { listCollections, moveClip } from '@/lib/collections';
 import { CollectionTile } from '@/components/CollectionTile';
@@ -50,8 +50,8 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   useOpenViewRequests(
     useCallback((req: OpenViewRequest) => {
       setView(req.view);
-      setQuery(req.query ?? '');
-      setFilters(req.filters ?? NO_FILTERS);
+      if (req.query !== undefined) setQuery(req.query);
+      if (req.filters !== undefined) setFilters(req.filters);
       setFiltersOpen(false);
     }, []),
     surface === 'panel',
@@ -73,11 +73,14 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
 
   const expand = useCallback(() => {
     if (windowId == null) return;
-    void requestView({ view, query, filters });
+    void requestView({ view, query, filters, windowId });
     void browser.sidePanel
       .open({ windowId })
       .then(() => window.close())
-      .catch(() => notify("Couldn't open the panel. Try again."));
+      .catch(() => {
+        void cancelViewRequest();
+        notify("Couldn't open the panel. Try again.");
+      });
   }, [windowId, view, query, filters, notify]);
 
   const copy = useCallback(

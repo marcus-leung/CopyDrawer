@@ -204,7 +204,7 @@ function createMenus() {
  * Chrome won't (it only allows that right after a click).
  */
 async function openClip(clipId: string, tab: Browser.tabs.Tab | undefined) {
-  await requestView({ view: { name: 'detail', id: clipId } });
+  await requestView({ view: { name: 'detail', id: clipId }, windowId: tab?.windowId });
   try {
     if (tab?.id == null) throw new Error('no tab');
     await browser.sidePanel.open({ tabId: tab.id });
