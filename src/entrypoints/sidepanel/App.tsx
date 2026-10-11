@@ -32,7 +32,7 @@ import { usePanelInput } from './usePanelInput';
 import { HomeNotice } from './HomeNotice';
 import { usePaged } from '@/lib/usePaged';
 import { ShowMore } from '@/components/ShowMore';
-import { useShortcuts } from '@/lib/useShortcuts';
+import { keyLabel, useShortcuts } from '@/lib/useShortcuts';
 
 /** The same app runs in the side panel and in the toolbar popup. */
 export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
@@ -190,6 +190,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
         onOpen={(c) => setView({ name: 'detail', id: c.id, from: here })}
         onCopy={copy}
         notify={notify}
+        order={summaries?.map((s) => s.collection.id)}
       />,
     );
   }
@@ -341,7 +342,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
                 <Notice
                   tone="info"
                   title="Try pasting it back"
-                  body={`Click into any text box and press ${keys['quick-paste']} to pick from your clips.`}
+                  body={`Click into any text box and press ${keyLabel(keys, 'quick-paste')} to pick from your clips.`}
                   action={{
                     label: 'Got it',
                     onClick: () => void updateSettings({ dismissedTips: [...settings.dismissedTips, 'quick-paste'] }),

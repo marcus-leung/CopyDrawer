@@ -1,3 +1,5 @@
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { readClips } from './helpers';
 import { test, expect } from './fixtures';
 
@@ -209,4 +211,51 @@ test('tabs already open keep auto-saving after the extension updates', async ({ 
   await page.locator('#tip').selectText();
   await page.keyboard.press('ControlOrMeta+C');
   await expect.poll(async () => (await readClips(panel)).map((c) => c.text)).toEqual(['Belém Tower opens at 10:00.']);
+});
+
+// Real servers: Playwright's route() skips CORS, so it can't show what a CDN without CORS headers does.
+function serve(handler: http.RequestListener): Promise<{ origin: string; close: () => void }> {
+  return new Promise((resolve) => {
+    const server = http.createServer(handler).listen(0, '127.0.0.1', () => {
+      resolve({ origin: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, close: () => server.close() });
+    });
+  });
+}
+
+test('copying an image hosted on another site, without CORS headers, saves it', async ({ context, extensionId }) => {
+  const PNG = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+    'base64',
+  );
+  const cdn = await serve((_req, res) => res.writeHead(200, { 'content-type': 'image/png' }).end(PNG));
+  const site = await serve((_req, res) =>
+    res
+      .writeHead(200, { 'content-type': 'text/html' })
+      .end(`<p>Photo</p><img id="pic" src="${cdn.origin}/pic.png" width="40" height="40">`),
+  );
+  try {
+    const panel = await context.newPage();
+    await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+    await panel.evaluate(async () => {
+      const { settings } = await chrome.storage.local.get('settings');
+      await chrome.storage.local.set({ settings: { ...(settings ?? {}), autoSave: true } });
+      await chrome.runtime.sendMessage({ type: 'autosave-sync' });
+    });
+    const page = await context.newPage();
+    await page.goto(`${site.origin}/`);
+    await page.locator('#pic').evaluate((img: HTMLImageElement) => img.decode());
+    await page.evaluate(() => {
+      const range = document.createRange();
+      range.selectNode(document.getElementById('pic')!);
+      getSelection()!.removeAllRanges();
+      getSelection()!.addRange(range);
+    });
+    await page.keyboard.press('ControlOrMeta+C');
+    await expect
+      .poll(async () => (await readClips(panel)).map((c) => c.title))
+      .toEqual([expect.stringMatching(/^Image from 127\.0\.0\.1/)]);
+  } finally {
+    cdn.close();
+    site.close();
+  }
 });

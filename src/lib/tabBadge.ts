@@ -1,22 +1,23 @@
-import { isBlocked } from './exclusions';
+import { notSavedHere } from './exclusions';
 import { getSettings, type Settings } from './settings';
 
 const CROSS_COLOR = '#5B6170';
-// Pages with a web address where Chrome still won't run extension scripts.
-const UNSCRIPTABLE = /^https:\/\/(chromewebstore\.google\.com|chrome\.google\.com\/webstore)\/|\.pdf([?#]|$)/i;
-
 /** True when auto-save is on but copies on this tab can't be seen or aren't saved: the toolbar icon shows ×. */
 export function copiesHidden(
   tab: { url?: string; incognito?: boolean },
   s: Pick<Settings, 'autoSave' | 'blockedSites' | 'saveInIncognito'>,
 ): boolean {
-  if (!s.autoSave) return false;
-  return isBlocked(tab.url, s.blockedSites) || UNSCRIPTABLE.test(tab.url ?? '') || (!!tab.incognito && !s.saveInIncognito);
+  return s.autoSave && notSavedHere(tab, s);
 }
 
 // Tabs where Chrome refused a shortcut, until they load another page. Session storage outlives the service worker.
 const REFUSED_KEY = 'refusedTabs';
 const refusedTabs = async () => ((await browser.storage.session.get(REFUSED_KEY))[REFUSED_KEY] as number[] | undefined) ?? [];
+
+/** The error Chrome gives when it keeps extensions out of a page, as opposed to a passing hiccup (a tab mid-load or closed). */
+export function refusedByChrome(error: unknown): boolean {
+  return /cannot (access|be scripted)/i.test(error instanceof Error ? error.message : String(error));
+}
 
 /** Chrome wouldn't let a shortcut script this tab (chrome:// pages, the Web Store, PDFs): × until it loads another page. */
 export async function markRefused(tab: Browser.tabs.Tab) {
