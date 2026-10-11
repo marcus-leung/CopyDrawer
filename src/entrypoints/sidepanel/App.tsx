@@ -48,11 +48,9 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   const [filters, setFilters] = useState<SearchFilters>(NO_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [blockedPage, setBlockedPage] = useState(false);
   useOpenViewRequests(
     useCallback((req: OpenViewRequest) => {
       setView(req.view);
-      if (req.notice === 'blocked-page') setBlockedPage(true);
       if (req.query !== undefined) setQuery(req.query);
       if (req.filters !== undefined) setFilters(req.filters);
       setFiltersOpen(false);
@@ -263,25 +261,8 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
         )}
       </div>
 
-      {blockedPage ? (
-        <div className="px-[18px] pb-3">
-          <Notice
-            tone="info"
-            title="Chrome doesn't let extensions read this page"
-            body={`That's true of chrome:// pages, the Web Store and PDFs. Copy with ${modKey('C')}, then grab it here.`}
-            action={{
-              label: 'Grab clipboard',
-              onClick: () => {
-                setBlockedPage(false);
-                void saveFromClipboard();
-              },
-            }}
-            secondary={{ label: 'Dismiss', onClick: () => setBlockedPage(false) }}
-          />
-        </div>
-      ) : (
-        settings &&
-        clips && <HomeNotice settings={settings} now={now} count={clips.length} onCleanUp={() => setView({ name: 'settings' })} />
+      {settings && clips && (
+        <HomeNotice settings={settings} now={now} count={clips.length} onCleanUp={() => setView({ name: 'settings' })} />
       )}
 
       <main className="min-h-0 flex-1 overflow-y-auto px-[18px]">

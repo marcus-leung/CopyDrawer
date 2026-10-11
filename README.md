@@ -39,7 +39,7 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 ## Known limitations
 
 - **Copy buttons on sites aren't auto-saved.** Auto-save notices copy events (Ctrl/Cmd+C, Copy in the menu). Buttons that copy with `navigator.clipboard.writeText` (GitHub code blocks, ChatGPT answers) fire no copy event, so those copies aren't saved. Use **Grab clipboard** in the panel instead.
-- **Chrome blocks extensions on some pages.** `chrome://` pages, the Chrome Web Store, other extensions' pages and the PDF viewer can't be read by any extension, so auto-save and the shortcuts can't work there. A shortcut on such a page opens the side panel to say so, with **Grab clipboard** to save what you copied (or, if you turn that off in Settings, shows × on the toolbar icon).
+- **Chrome blocks extensions on some pages.** `chrome://` pages, the Chrome Web Store, other extensions' pages and the PDF viewer can't be read by any extension, so auto-save and the shortcuts can't work there. The toolbar icon shows **×** on those pages while auto-save is on (and on sites that are blocked, or incognito when that's off), and after a shortcut that couldn't run there. To save from such a page, copy as usual and use **Grab clipboard** in the panel.
 
 ## Project layout
 

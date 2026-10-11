@@ -3,9 +3,10 @@ import { db } from '@/lib/db';
 import { colorOf } from '@/lib/collections';
 import { hostOf } from '@/lib/format';
 import type { QuickClip } from '@/lib/quickpaste';
-import { requestView, type OpenViewRequest } from '@/lib/openView';
+import { requestView } from '@/lib/openView';
+import { forgetRefused, markRefused, refreshAllTabBadges, refreshTabBadge } from '@/lib/tabBadge';
 import { getShortcuts } from '@/lib/shortcuts';
-import { getSettings, isPaused, pullSyncedSettings, syncedSettingsItem, updateSettings } from '@/lib/settings';
+import { getSettings, isPaused, pullSyncedSettings, settingsItem, syncedSettingsItem, updateSettings } from '@/lib/settings';
 import { isBlocked } from '@/lib/exclusions';
 import { injectIntoOpenTabs, onPermissionsAdded, syncAutosaveRegistration } from '@/lib/autosave';
 import { blobToDataUrl, dataUrlToBlob, ImageError, saveImageClip } from '@/lib/images';
@@ -30,14 +31,21 @@ function sourceOf(tab?: Browser.tabs.Tab): ClipSource | undefined {
   return { url: tab.url, title: tab.title, favicon: tab.favIconUrl };
 }
 
-/** A short mark on the toolbar icon, for pages where the in-page card can't show. */
-async function flashBadge(text: string, color: string) {
-  await browser.action.setBadgeBackgroundColor({ color });
-  await browser.action.setBadgeText({ text });
-  setTimeout(() => void browser.action.setBadgeText({ text: '' }), 1500);
+/** A short mark on the toolbar icon, for pages where the in-page card can't show. Then the tab's own mark returns. */
+async function flashBadge(text: string, color: string, tabId?: number) {
+  await browser.action.setBadgeBackgroundColor({ color, tabId });
+  await browser.action.setBadgeText({ text, tabId });
+  setTimeout(() => {
+    if (tabId == null) void browser.action.setBadgeText({ text: '' });
+    else
+      void browser.tabs.get(tabId).then(
+        (tab) => refreshTabBadge(tab),
+        () => {},
+      );
+  }, 1500);
 }
-const badgeOk = () => flashBadge('✓', '#0E7A62');
-const badgeError = () => flashBadge('!', '#B42318');
+const badgeOk = (tabId?: number) => flashBadge('✓', '#0E7A62', tabId);
+const badgeError = (tabId?: number) => flashBadge('!', '#B42318', tabId);
 
 /** Shows the in-page "saved" card. Needs scripting access to the tab (activeTab or all sites). */
 async function toastInTab(tabId: number | undefined, clip: Clip, title: string) {
@@ -50,7 +58,7 @@ async function toastInTab(tabId: number | undefined, clip: Clip, title: string) 
       args: [{ title, detail: clip.title, clipId: clip.id, thumbUrl, openShadow: __E2E__ }],
     });
   } catch {
-    await badgeOk();
+    await badgeOk(tabId);
   }
 }
 
@@ -62,11 +70,11 @@ async function saveSelectionFromTab(tab: Browser.tabs.Tab | undefined, fallbackT
     payload = result?.result as typeof payload;
   } catch {
     // The right-click menu passes the selection (it works on PDFs); a shortcut has nothing to fall back on.
-    if (!fallbackText) return blockedPage(tab);
+    if (!fallbackText) return markRefused(tab);
   }
   const text = payload?.text?.trim() ? payload.text : (fallbackText ?? '');
   const clip = await saveClip({ text, html: payload?.html, source: sourceOf(tab) });
-  if (clip) await badgeOk();
+  if (clip) await badgeOk(tab.id);
 }
 
 async function fetchImage(srcUrl: string, tabId?: number): Promise<Blob | null> {
@@ -93,7 +101,7 @@ async function fetchImageFromPage(srcUrl: string, tabId: number): Promise<Blob |
 async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
   const blob = await fetchImage(srcUrl, tab?.id);
   if (!blob) {
-    await badgeError();
+    await badgeError(tab?.id);
     return;
   }
   try {
@@ -102,7 +110,7 @@ async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
     await toastInTab(tab?.id, clip, 'Image saved');
   } catch (e) {
     console.warn('Image not saved', e instanceof ImageError ? e.message : e);
-    await badgeError();
+    await badgeError(tab?.id);
   }
 }
 
@@ -119,21 +127,10 @@ async function autosaveImage(srcUrl: string, tab?: Browser.tabs.Tab) {
   if (!blob) return;
   try {
     await saveImageClip({ blob, source: sourceOf(tab), srcUrl });
-    await badgeOk();
+    await badgeOk(tab?.id);
   } catch (e) {
     console.warn('Image not auto-saved', e instanceof ImageError ? e.message : e);
   }
-}
-
-/** "Open" on the in-page card. */
-function openClip(clipId: string, tab: Browser.tabs.Tab | undefined) {
-  return showInPanel({ view: { name: 'detail', id: clipId } }, tab, `?clip=${encodeURIComponent(clipId)}`);
-}
-
-/** Chrome doesn't let extensions script this tab (chrome:// pages, the Web Store, PDFs). */
-async function blockedPage(tab: Browser.tabs.Tab | undefined) {
-  if ((await getSettings()).explainBlockedPages) await showInPanel({ view: { name: 'home' }, notice: 'blocked-page' }, tab);
-  else await flashBadge('×', '#5B6170');
 }
 
 async function screenshotArea(tab?: Browser.tabs.Tab) {
@@ -144,7 +141,7 @@ async function screenshotArea(tab?: Browser.tabs.Tab) {
     const [result] = await browser.scripting.executeScript({ target: { tabId: tab.id }, func: selectArea });
     area = (result?.result as Area | null | undefined) ?? null;
   } catch {
-    await blockedPage(tab);
+    await markRefused(tab);
     return;
   }
   if (!area) return;
@@ -171,7 +168,7 @@ async function blockSiteOf(tab?: Browser.tabs.Tab) {
   if (!host) return;
   const s = await getSettings();
   if (!s.blockedSites.includes(host)) await updateSettings({ blockedSites: [...s.blockedSites, host] });
-  await flashBadge('off', '#555A6E');
+  await flashBadge('off', '#555A6E', tab?.id);
 }
 
 /** Whether a copy reported by the auto-save script should be kept; if so, the page's URL. */
@@ -195,7 +192,7 @@ async function handleAutosave(msg: { text: string; html?: string; title?: string
     html: msg.html,
     source: { url: tab?.url ?? allowed.url, title: tab?.title ?? msg.title, favicon: tab?.favIconUrl },
   });
-  if (clip) await badgeOk();
+  if (clip) await badgeOk(tab?.id);
 }
 
 function createMenus() {
@@ -212,11 +209,12 @@ function createMenus() {
 }
 
 /**
- * Shows a screen in the side panel. An open panel picks the request up from session storage;
- * otherwise we open the panel, or a tab if Chrome won't (it only allows that right after a click).
+ * "Open" on the in-page card: shows the clip in the side panel. An open panel
+ * picks it up from session storage; otherwise we open the panel, or a tab if
+ * Chrome won't (it only allows that right after a click).
  */
-async function showInPanel(req: Omit<OpenViewRequest, 'at' | 'windowId'>, tab: Browser.tabs.Tab | undefined, tabQuery = '') {
-  await requestView({ ...req, windowId: tab?.windowId });
+async function openClip(clipId: string, tab: Browser.tabs.Tab | undefined) {
+  await requestView({ view: { name: 'detail', id: clipId }, windowId: tab?.windowId });
   try {
     if (tab?.id == null) throw new Error('no tab');
     await browser.sidePanel.open({ tabId: tab.id });
@@ -226,7 +224,7 @@ async function showInPanel(req: Omit<OpenViewRequest, 'at' | 'windowId'>, tab: B
     )?.length;
     if (!panelOpen) {
       await browser.tabs.create({
-        url: browser.runtime.getURL(`/sidepanel.html${tabQuery}`),
+        url: browser.runtime.getURL(`/sidepanel.html?clip=${encodeURIComponent(clipId)}`),
         index: tab ? tab.index + 1 : undefined,
       });
     }
@@ -239,7 +237,7 @@ async function openQuickPaste(tab: Browser.tabs.Tab | undefined) {
   try {
     await browser.scripting.executeScript({ target: { tabId: tab.id }, files: ['/content-scripts/quickpaste.js'] });
   } catch {
-    await blockedPage(tab);
+    await markRefused(tab);
   }
 }
 
@@ -301,6 +299,23 @@ export default defineBackground(() => {
       .catch((e) => console.warn('Settings sync failed', e));
   applySynced();
   syncedSettingsItem.watch(applySynced);
+
+  // × on the toolbar icon for tabs where auto-save can't see copies.
+  void refreshAllTabBadges();
+  settingsItem.watch(() => void refreshAllTabBadges());
+  browser.tabs.onActivated.addListener(
+    ({ tabId }) =>
+      void browser.tabs.get(tabId).then(
+        (tab) => refreshTabBadge(tab),
+        () => {},
+      ),
+  );
+  browser.tabs.onUpdated.addListener((id, info, tab) => {
+    // "loading" marks a new page even where Chrome hides the address.
+    if (info.status === 'loading') void forgetRefused(id).then(() => refreshTabBadge(tab));
+    else if (info.url || info.status) void refreshTabBadge(tab);
+  });
+  browser.tabs.onRemoved.addListener((id) => void forgetRefused(id));
 
   browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === ALARM_CLEANUP) void cleanup();

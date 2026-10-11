@@ -29,8 +29,6 @@ export interface Settings {
   saveInIncognito: boolean;
   dismissedTips: string[];
   onboarded: boolean;
-  /** On pages Chrome blocks (chrome://, the Web Store, PDFs), a shortcut opens the panel to say why. Off: a × badge. */
-  explainBlockedPages: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -45,7 +43,6 @@ const DEFAULT_SETTINGS: Settings = {
   saveInIncognito: false,
   dismissedTips: [],
   onboarded: false,
-  explainBlockedPages: true,
 };
 
 export const PAUSE_MS = 60 * 60 * 1000;
