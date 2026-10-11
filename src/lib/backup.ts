@@ -6,7 +6,7 @@ import { db as defaultDb, type Clip, type ClipDatabase, type Collection } from '
 import { CLIP_KINDS, detectKind } from './kinds';
 import { blobToDataUrl, dataUrlToBlob } from './images';
 import { enforceLimit, hashText, makeTitle } from './clips';
-import { cleanName } from './collections';
+import { cleanName, nextOrder } from './collections';
 
 interface ExportedClip extends Omit<Clip, 'image'> {
   image?: Omit<NonNullable<Clip['image']>, 'thumb'> & { thumb: string; data?: string };
@@ -55,7 +55,7 @@ export async function importBackup(file: unknown, db: ClipDatabase = defaultDb):
       if (existing) idMap.set(c.id, existing.id);
       else {
         const id = (await db.collections.get(c.id)) ? crypto.randomUUID() : c.id;
-        await db.collections.add({ ...c, id, name: cleanName(c.name) || 'Collection', order: await db.collections.count() });
+        await db.collections.add({ ...c, id, name: cleanName(c.name) || 'Collection', order: await nextOrder(db) });
         idMap.set(c.id, id);
       }
     }

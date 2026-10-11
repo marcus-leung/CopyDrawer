@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import Dexie from 'dexie';
 import { ClipDatabase } from '@/lib/db';
 import { saveClip } from '@/lib/clips';
 import { classifyByRules, detectDestination } from '@/lib/classify';
@@ -9,6 +10,7 @@ import {
   deleteCollection,
   listCollections,
   moveClip,
+  moveCollection,
   renameCollection,
 } from '@/lib/collections';
 
@@ -67,12 +69,13 @@ describe('collections', () => {
     await saveClip({ text: 'just a note to self' }, db);
 
     const list = await listCollections(db);
+    // In the order they appeared, not by size.
     expect(list.map((s) => [s.collection.name, s.count])).toEqual([
-      ['Lisbon trip', 2],
       ['Research', 1],
+      ['Lisbon trip', 2],
     ]);
-    expect(list[0]?.collection.color).toBe('mustard');
-    expect(list[0]?.newCount).toBe(2);
+    expect(list[1]?.collection.color).toBe('mustard');
+    expect(list[1]?.newCount).toBe(2);
   });
 
   it('puts travel clips without a city in the trip being planned', async () => {
@@ -155,5 +158,59 @@ describe('collection names', () => {
       db,
     );
     expect((await db.collections.where('key').equals('manual:k').first())!.name).toHaveLength(100);
+  });
+});
+
+describe('collection order', () => {
+  const names = async () => (await listCollections(db)).map((s) => s.collection.name);
+
+  it('stays put when a later folder gets more clips', async () => {
+    const a = await createCollection('A', undefined, db);
+    const b = await createCollection('B', undefined, db);
+    for (const t of ['one', 'two', 'three']) {
+      const c = await saveClip({ text: t }, db);
+      await moveClip(c!.id, b.id, db);
+    }
+    expect(a.order).toBeLessThan(b.order);
+    expect(await names()).toEqual(['A', 'B']);
+  });
+
+  it('moves a folder into the place of the one it is dropped on', async () => {
+    for (const n of ['A', 'B', 'C', 'D']) await createCollection(n, undefined, db);
+    const id = async (n: string) => (await listCollections(db)).find((s) => s.collection.name === n)!.collection.id;
+    await moveCollection(await id('A'), await id('C'), db);
+    expect(await names()).toEqual(['B', 'C', 'A', 'D']);
+    await moveCollection(await id('D'), await id('B'), db);
+    expect(await names()).toEqual(['D', 'B', 'C', 'A']);
+  });
+
+  it('puts a new folder last, even after one was deleted', async () => {
+    const a = await createCollection('A', undefined, db);
+    await createCollection('B', undefined, db);
+    await deleteCollection(a.id, db);
+    await createCollection('C', undefined, db);
+    expect(await names()).toEqual(['B', 'C']);
+  });
+
+  it('keeps the order folders had before the upgrade (most clips first)', async () => {
+    const name = `test-${crypto.randomUUID()}`;
+    const old = new Dexie(name);
+    old.version(6).stores({
+      clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId',
+      images: 'id',
+      collections: 'id, &key, order',
+    });
+    await old.table('collections').bulkAdd([
+      { id: 'few', key: 'manual:few', name: 'Few', color: 'blue', kind: 'manual', order: 0, createdAt: 1 },
+      { id: 'many', key: 'manual:many', name: 'Many', color: 'blue', kind: 'manual', order: 1, createdAt: 2 },
+    ]);
+    await old.table('clips').bulkAdd([
+      { id: '1', createdAt: 1, kind: 'text', text: 'a', title: 'a', collectionId: 'many' },
+      { id: '2', createdAt: 2, kind: 'text', text: 'b', title: 'b', collectionId: 'many' },
+      { id: '3', createdAt: 3, kind: 'text', text: 'c', title: 'c', collectionId: 'few' },
+    ]);
+    old.close();
+    const upgraded = new ClipDatabase(name);
+    expect((await listCollections(upgraded)).map((s) => s.collection.name)).toEqual(['Many', 'Few']);
   });
 });

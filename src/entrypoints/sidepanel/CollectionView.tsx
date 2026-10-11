@@ -2,7 +2,14 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
-import { deleteCollection, MAX_COLLECTION_NAME, recolorCollection, renameCollection } from '@/lib/collections';
+import {
+  deleteCollection,
+  listCollections,
+  MAX_COLLECTION_NAME,
+  moveCollection,
+  recolorCollection,
+  renameCollection,
+} from '@/lib/collections';
 import { ClipRow } from '@/components/ClipRow';
 import { hostOf } from '@/lib/format';
 import { collectionVars } from '@/components/CollectionTile';
@@ -35,6 +42,7 @@ export function CollectionView({
 }) {
   const collection = useLiveQuery(() => db.collections.get(id), [id]);
   const clips = useLiveQuery(() => db.clips.where('collectionId').equals(id).toArray(), [id]);
+  const order = useLiveQuery(async () => (await listCollections()).map((s) => s.collection.id), []);
   const [sort, setSort] = useState<Sort>('newest');
   const [editing, setEditing] = useState(false);
   const [panel, setPanel] = useState<'color' | 'delete' | null>(null);
@@ -112,6 +120,27 @@ export function CollectionView({
           <p className="mt-0.5 text-[13px]">
             {clips.length} {clips.length === 1 ? 'clip' : 'clips'}
           </p>
+          {order && order.indexOf(id) >= 0 && (
+            <div className="mt-2 flex items-center gap-1.5 text-[13px]">
+              <span className="mr-1">
+                Folder {order.indexOf(id) + 1} of {order.length}
+              </span>
+              {(['earlier', 'later'] as const).map((way) => {
+                const target = order[order.indexOf(id) + (way === 'earlier' ? -1 : 1)];
+                return (
+                  <button
+                    key={way}
+                    type="button"
+                    disabled={!target}
+                    onClick={() => target && void moveCollection(id, target).then(() => notify(`Moved ${way}`))}
+                    className="h-8 cursor-pointer rounded-full bg-bg/70 px-3 font-semibold text-ink disabled:cursor-default disabled:opacity-40"
+                  >
+                    Move {way}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {panel === 'color' && (
             <div className="mt-3 rounded-2xl bg-bg p-3.5 text-ink">
               <ColorPicker value={collection.color} onChange={(color) => void recolorCollection(collection.id, color)} />

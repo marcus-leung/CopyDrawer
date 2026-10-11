@@ -118,6 +118,18 @@ export class ClipDatabase extends Dexie {
             if (c.kind === 'color') c.kind = detectKind(c.text);
           }),
       );
+    // Collections stopped sorting by size: keep the order they were showing in (most clips first).
+    this.version(7)
+      .stores({})
+      .upgrade(async (tx) => {
+        const counts = new Map<string, number>();
+        await tx
+          .table('clips')
+          .each((c: Clip) => c.collectionId && counts.set(c.collectionId, (counts.get(c.collectionId) ?? 0) + 1));
+        const all: Collection[] = await tx.table('collections').toArray();
+        all.sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0) || a.order - b.order);
+        await Promise.all(all.map((c, order) => tx.table('collections').update(c.id, { order })));
+      });
   }
 }
 

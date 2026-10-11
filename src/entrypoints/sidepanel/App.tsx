@@ -12,7 +12,7 @@ import { useAppearance } from '@/lib/useAppearance';
 import { useSearch } from '@/lib/useSearch';
 import { cancelViewRequest, requestView, useOpenViewRequests, type OpenViewRequest, type View } from '@/lib/openView';
 import { modKey } from '@/lib/format';
-import { listCollections, moveClip } from '@/lib/collections';
+import { listCollections, moveClip, moveCollection } from '@/lib/collections';
 import { CollectionTile } from '@/components/CollectionTile';
 import { NewCollectionForm } from '@/components/NewCollectionForm';
 import { AddClipForm } from '@/components/AddClipForm';
@@ -309,6 +309,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
                       onDropClip={(clipId) => {
                         void moveClip(clipId, s.collection.id).then(() => notify(`Moved to ${s.collection.name}`));
                       }}
+                      onDropCollection={(id) => void moveCollection(id, s.collection.id)}
                     />
                   ))}
                 </ul>
