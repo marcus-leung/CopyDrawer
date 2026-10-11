@@ -10,11 +10,24 @@ afterEach(() => {
   setId('test-extension');
 });
 
-function copy(text: string) {
+function copy(text: string, trusted = true) {
   const data = new DataTransfer();
   data.setData('text/plain', text);
-  window.dispatchEvent(new ClipboardEvent('copy', { clipboardData: data }));
+  const event = new ClipboardEvent('copy', { clipboardData: data });
+  if (trusted) Object.defineProperty(event, 'isTrusted', { value: true });
+  window.dispatchEvent(event);
 }
+
+it('the copy watcher ignores copy events a page script dispatches', () => {
+  const send = vi.spyOn(browser.runtime, 'sendMessage').mockResolvedValue(undefined);
+  setId('test-extension');
+  const stop = watchCopies(window);
+  copy('faked by the page', false);
+  expect(send).not.toHaveBeenCalled();
+  copy('copied by the user');
+  expect(send).toHaveBeenCalledTimes(1);
+  stop();
+});
 
 describe('after the extension is reloaded', () => {
   it('safeSend resolves instead of throwing', async () => {

@@ -1,9 +1,8 @@
 import type { Clip } from '@/lib/db';
-import { TRANSFORMS, type Transform } from '@/lib/transforms';
 
 const chip = 'h-8 cursor-pointer rounded-full border border-line-strong bg-bg px-3 text-[13px] font-semibold text-ink';
 
-/** Paste as: each option copies the reshaped clip right away. */
+/** Paste as, for clips with formatting: keep it, or copy plain text. */
 export function PasteAs({
   clip,
   onCopyOriginal,
@@ -13,10 +12,9 @@ export function PasteAs({
   onCopyOriginal: () => void;
   notify: (message: string) => void;
 }) {
-  async function copyAs(t: Transform) {
-    if (t === 'asis') return onCopyOriginal();
+  async function copyPlain() {
     await navigator.clipboard.writeText(clip.text);
-    notify(`Copied as ${TRANSFORMS.find((p) => p.id === t)!.label.toLowerCase()}`);
+    notify('Copied as plain text');
   }
 
   return (
@@ -25,11 +23,12 @@ export function PasteAs({
         Paste as
       </h2>
       <div className="flex flex-wrap gap-2">
-        {TRANSFORMS.map((t) => (
-          <button key={t.id} type="button" className={chip} onClick={() => void copyAs(t.id)}>
-            {t.label}
-          </button>
-        ))}
+        <button type="button" className={chip} onClick={onCopyOriginal}>
+          Paste as is
+        </button>
+        <button type="button" className={chip} onClick={() => void copyPlain()}>
+          Plain text
+        </button>
       </div>
     </section>
   );

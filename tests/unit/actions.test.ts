@@ -83,10 +83,10 @@ describe('places, parcels and flights', () => {
     expect(ups.actions.map((a) => a.label)).toEqual(['Track package', 'Copy without spaces']);
     const fado = detectActions({ kind: 'text', text: 'Fado on Sat 18 Oct, 9 PM at Rua de São João da Praça 94, Lisbon.' }, NOW);
     expect(fado.actions.map((a) => a.label)).toEqual(['Add Sat 18 Oct, 9 PM to calendar', 'Open address in Maps']);
-    expect(detectActions({ kind: 'text', text: '{"a":1,"b":[2,3]}' }, NOW).actions[0]).toMatchObject({
+    expect(detectActions({ kind: 'json', text: '{"a":1,"b":[2,3]}' }, NOW).actions[0]).toMatchObject({
       text: '{\n  "a": 1,\n  "b": [\n    2,\n    3\n  ]\n}',
     });
-    expect(detectActions({ kind: 'text', text: 'alex@example.com' }, NOW).actions[0]).toMatchObject({
+    expect(detectActions({ kind: 'email', text: 'alex@example.com' }, NOW).actions[0]).toMatchObject({
       url: 'mailto:alex@example.com',
     });
   });

@@ -228,7 +228,6 @@ test('quick paste: keys pressed right after opening count, even before the list 
   for (let i = 0; i < 3; i++) {
     await run(['Enter'], 'the Q3 report');
     await run(['a', 'l', 'e', 'x', 'Enter'], 'Alex Morgan');
-    await run(['Tab', 'p', 'l', 'a', 'Enter'], 'the Q3 report');
   }
 });
 
@@ -303,10 +302,7 @@ test('quick paste with no text field (or inside a frame) copies instead and says
   await expect(page.locator('#clipboard-quick-paste-toast')).toHaveCount(1);
 });
 
-test('quick paste: Tab for Paste as, filter options, Esc back to clips; images are not listed', async ({
-  context,
-  extensionId,
-}) => {
+test('quick paste: Tab stays in the box; images are not listed', async ({ context, extensionId }) => {
   const { panel, page, open } = await setupQuickPaste(context, extensionId, ['eggs, milk, bread, butter']);
   // An image clip: not pasteable as text, so not listed.
   await panel.evaluate(async () => {
@@ -325,16 +321,8 @@ test('quick paste: Tab for Paste as, filter options, Esc back to clips; images a
   await open();
   await expect(page.getByRole('option')).toHaveCount(1);
   await page.keyboard.press('Tab');
-  await expect(page.getByText('Paste as', { exact: true })).toBeVisible();
-  await expect(page.getByRole('combobox')).toHaveAttribute('placeholder', 'Filter options');
-  await expect(page.getByRole('option')).toHaveText(['Paste as is', 'Plain text']);
-  await page.keyboard.type('pla');
+  await expect(page.getByRole('combobox', { name: 'Filter clips' })).toBeFocused();
   await expect(page.getByRole('option')).toHaveCount(1);
-  // Esc goes back to the clip list, not out.
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('combobox')).toHaveAttribute('placeholder', 'Filter clips');
-  await page.keyboard.press('Tab');
-  await page.keyboard.type('pla');
   await page.keyboard.press('Enter');
   await expect(page.locator('#notes')).toHaveValue('eggs, milk, bread, butter');
 });

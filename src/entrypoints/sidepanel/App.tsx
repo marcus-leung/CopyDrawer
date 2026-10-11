@@ -5,7 +5,7 @@ import type { Clip } from '@/lib/db';
 import { deleteClip, listClips, markUsed, restoreClip, saveClip } from '@/lib/clips';
 import { NO_FILTERS, topSites, type SearchFilters } from '@/lib/search';
 import { copyClipToClipboard, readClipboard, type ClipboardContents } from '@/lib/clipboard';
-import { ImageError, saveImageClip } from '@/lib/images';
+import { saveImages } from '@/lib/images';
 import { isPaused, PAUSE_MS, updateSettings } from '@/lib/settings';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { useAppearance } from '@/lib/useAppearance';
@@ -107,16 +107,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
     async (contents: ClipboardContents & { images?: File[] }) => {
       const images = contents.images?.length ? contents.images : contents.image ? [contents.image] : [];
       if (images.length) {
-        let saved = 0;
-        let error: string | undefined;
-        for (const file of images) {
-          try {
-            await saveImageClip({ blob: file, fileName: file instanceof File ? file.name : undefined });
-            saved++;
-          } catch (e) {
-            error = e instanceof ImageError ? e.message : "Couldn't save that image.";
-          }
-        }
+        const { saved, error } = await saveImages(images);
         notify(error ?? (saved === 1 ? 'Image saved' : `${saved} images saved`));
         return;
       }

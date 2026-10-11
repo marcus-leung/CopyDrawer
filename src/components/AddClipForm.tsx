@@ -1,9 +1,10 @@
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useId, useState } from 'react';
 import { X } from 'lucide-react';
 import { saveClip } from '@/lib/clips';
 import { fromDataTransfer } from '@/lib/clipboard';
-import { ImageError, saveImageClip } from '@/lib/images';
+import { IMAGE_TYPES, NOT_AN_IMAGE, saveImages } from '@/lib/images';
 import { modKey } from '@/lib/format';
+import { useObjectUrl } from '@/lib/useObjectUrl';
 import { Button, IconButton } from './ui';
 
 /** Type or paste text or images to save them as clips, right in the panel. Text typed with images is their note. */
@@ -12,20 +13,15 @@ export function AddClipForm({ onSaved, onCancel }: { onSaved: () => void; onCanc
   const [text, setText] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const previews = useMemo(() => images.map((f) => URL.createObjectURL(f)), [images]);
-  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
-
   async function save() {
     if (!text.trim() && !images.length) return setError('Type or paste something to save.');
-    for (const [i, blob] of images.entries()) {
-      try {
-        await saveImageClip({ blob, fileName: blob.name || undefined, note: text });
-      } catch (e) {
-        setImages(images.slice(i));
-        return setError(e instanceof ImageError ? e.message : "Couldn't save that image.");
+    if (images.length) {
+      const { failed, error } = await saveImages(images, text);
+      if (error) {
+        setImages(failed);
+        return setError(error);
       }
-    }
-    if (!images.length && text.trim()) await saveClip({ text });
+    } else await saveClip({ text });
     onSaved();
   }
 
@@ -46,11 +42,13 @@ export function AddClipForm({ onSaved, onCancel }: { onSaved: () => void; onCanc
         }
       }}
       onPaste={(e) => {
-        const pasted = fromDataTransfer(e.clipboardData).images;
-        if (!pasted.length) return;
-        e.preventDefault();
+        const { text: pastedText, images: files } = fromDataTransfer(e.clipboardData);
+        if (!files.length) return;
+        // Text that comes with the image (a caption) still lands in the box.
+        if (!pastedText) e.preventDefault();
+        const pasted = files.filter((f) => IMAGE_TYPES.includes(f.type));
         setImages([...images, ...pasted]);
-        setError(null);
+        setError(pasted.length < files.length ? NOT_AN_IMAGE : null);
       }}
       className="flex flex-col gap-2.5 rounded-2xl bg-info-bg p-3.5 text-info-fg"
     >
@@ -78,9 +76,9 @@ export function AddClipForm({ onSaved, onCancel }: { onSaved: () => void; onCanc
       />
       {images.length > 0 && (
         <ul aria-label="Images to save" className="flex flex-wrap gap-2">
-          {previews.map((url, i) => (
-            <li key={url} className="relative">
-              <img src={url} alt="" className="size-16 rounded-lg bg-bg object-cover" />
+          {images.map((file, i) => (
+            <li key={i} className="relative">
+              <Preview file={file} />
               <button
                 type="button"
                 aria-label={`Remove image ${i + 1}`}
@@ -112,4 +110,9 @@ export function AddClipForm({ onSaved, onCancel }: { onSaved: () => void; onCanc
       </div>
     </form>
   );
+}
+
+function Preview({ file }: { file: File }) {
+  const url = useObjectUrl(file);
+  return <img src={url} alt="" className="size-16 rounded-lg bg-bg object-cover" />;
 }

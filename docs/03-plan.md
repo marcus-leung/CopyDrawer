@@ -94,7 +94,7 @@ Spending that's optional but worth it later: a designer for the icon and store a
 **Post-launch (L+1 → L+12)**
 - **Product Hunt** with the next feature release (~L+4), as a second moment.
 - **SEO content** on the landing site, one article/week: "Best clipboard manager for Chrome (2026)", "Clipboard History Pro alternative", "How to see clipboard history on a Chromebook", "How to copy multiple things at once", "Clipboard managers and privacy: what extensions can see".
-- **Short-form video:** 15–30 s demos (TikTok/Reels/Shorts): "paste as bullets", "find that link from last week", "plan a trip from your clipboard".
+- **Short-form video:** 15–30 s demos (TikTok/Reels/Shorts): "quick paste into any form", "find that link from last week", "plan a trip from your clipboard".
 - **Micro-creators:** reach out to 10–20 study and productivity creators (disclosed partnerships).
 - **In-product loops:** review prompt after a value moment (e.g. the 20th paste from history), never on first use.
 - **Respond to every store review** within 48 h; publish a changelog.

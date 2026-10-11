@@ -23,7 +23,7 @@ Copy for the Chrome Web Store and Microsoft Edge Add-ons, the permission justifi
 >
 > **Paste it back anywhere**
 > • Alt+Shift+V opens quick paste in any text box. Type, press Enter, done.
-> • Paste as plain text, a bullet list, a checklist, Markdown, one line, or change the case.
+> • Clips with formatting paste as is or as plain text.
 >
 > **Smart actions**
 > • Tracking number → Track package. Date → Add to calendar. Address → Open in Maps. Flight number → status.
@@ -31,7 +31,7 @@ Copy for the Chrome Web Store and Microsoft Edge Add-ons, the permission justifi
 >
 > **Private by design**
 > • No account. Clips stay on your computer. The extension sends nothing anywhere.
-> • Never saves password fields, banking or password-manager sites, or sites you block.
+> • Never saves password fields, password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites, or sites you block.
 > • Open source (GPL-3.0).
 
 **Screenshots (1280×800, 5):** take from the side panel docked next to a real page, light theme:
@@ -62,7 +62,7 @@ Copy for the Chrome Web Store and Microsoft Edge Add-ons, the permission justifi
 | `activeTab`, `scripting` | Read the selection, show the "Saved" card, run the screenshot tool and the quick-paste box on the current tab when the user asks. |
 | `clipboardRead`, `clipboardWrite` | "Grab clipboard" reads what the user copied; Copy/Paste writes it back. |
 | `alarms` | Daily cleanup of clips older than the user's chosen limit. |
-| Optional host access `<all_urls>` | Only if the user turns on auto-save: notice copy events on the pages they visit. Requested at that moment, never at install. |
+| Optional host access `<all_urls>` | Only if the user turns on auto-save: notice copy events on the pages they visit and save the copied text or image. Requested at that moment, never at install. |
 
 ## 4. Publish steps
 

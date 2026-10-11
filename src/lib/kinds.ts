@@ -57,10 +57,9 @@ function isPhone(t: string): boolean {
   return digits >= 7 && digits <= 15;
 }
 
-/** A hex color needs a # or a digit, so words like "bad" or "decade" stay text. */
+/** Written as a color: #hex, rgb() or hsl(). Bare hex ("2FA", "c0ffee", a git hash) stays text. */
 function isColor(t: string): boolean {
-  if (t.length > 40 || !parseColor(t)) return false;
-  return /^(#|rgba?\(|hsla?\()/i.test(t) || /\d/.test(t);
+  return t.length <= 40 && /^(#|rgba?\(|hsla?\()/i.test(t) && !!parseColor(t);
 }
 
 function isJson(t: string): boolean {

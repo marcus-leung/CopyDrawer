@@ -118,7 +118,7 @@ export function ClipDetail({
           </pre>
         )}
         <SmartActions clip={clip} notify={notify} />
-        {clip.kind !== 'image' && <PasteAs clip={clip} onCopyOriginal={() => onCopy(clip)} notify={notify} />}
+        {clip.html && clip.kind !== 'image' && <PasteAs clip={clip} onCopyOriginal={() => onCopy(clip)} notify={notify} />}
         <p className="mt-3 text-xs text-text-3">
           {clip.useCount > 0 ? `Used ${clip.useCount} ${clip.useCount === 1 ? 'time' : 'times'}.` : 'Not used yet.'}
         </p>

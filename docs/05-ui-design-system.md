@@ -87,7 +87,7 @@ Rules:
 - **Spacing scale (px):** 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32.
 - **Side panel:** designed at **400px wide**; must work from 320px to 600px (Chrome lets users resize). Side padding 18px (14px on dense screens).
 - **Quick-paste box:** 480px wide card centered near the top of the page, inside Shadow DOM.
-- **Toolbar popup:** 360 × 560px.
+- **Toolbar popup:** 400 × 600px (medium, the default); small 360 × 480px; large 520 × 600px.
 - **Touch and click targets:** at least 44 × 44px for icon buttons and list rows (chips may be 32–36px tall).
 - **Structure of a panel screen:** header (title + 44px icon buttons) → optional notice → content → sticky footer (privacy line + Pause, or the main action).
 
@@ -128,14 +128,14 @@ Rules:
 | **Notice** | Radius 16, padding 14×16, tinted by meaning (warning, info blue, neutral grey), title 14/600 + one sentence + up to two buttons. One at a time, under search. |
 | **Inline confirm** | Replaces browser dialogs. A `--surface` box with a `--danger`-tinted border, shown in place under the control that asked: one sentence, a danger outline button naming the action ("Delete collection") and Cancel. Focus moves to Cancel; Esc cancels; focus returns to the trigger. `role="alertdialog"`. |
 | **New collection form** | Inline, above the collection grid (or under the Collection select in clip detail): "Collection name" field (focused, up to 100 characters; rename and import use the same cap), color picker, Create (primary) and Cancel. Enter creates, Esc cancels, an empty name shows "Give the collection a name." |
-| **Add clip form** | The + button in the home header ("Add a clip") opens it under the search bar: a "Clip" textarea (focused), Save (primary) and Cancel. Cmd/Ctrl+Enter saves, Esc cancels, empty text shows "Type or paste something to save." Pasting into it stays in the box. |
+| **Add clip form** | The + button in the home header ("Add a clip") opens it under the search bar: a "Clip" textarea (focused), Save (primary) and Cancel. Cmd/Ctrl+Enter saves, Esc cancels, empty text shows "Type or paste something to save." Pasting into it stays in the box. Pasted images show as removable previews and the text becomes their note (text pasted with an image lands in the box); other files show "Only PNG, JPG, GIF and WebP images can be saved." |
 | **Color picker** | A row of 7 round preset swatches (28px, `role="radio"`, ring on the selected one) and a 12px rainbow bar (`<input type="range">` 0–359, labelled "Custom color", ring when a custom hue is chosen). |
-| **Popup rows and footer** | Each recent clip: clicking it opens the clip in the side panel; a copy icon button on the right copies it. Under the list, the hint "Click a clip to open it, or the copy icon to copy it" (then "Copied…"). Footer: the auto-save switch labelled "Save what I copy" with the sub-line "On: everything you copy on websites is saved. Off: save by hand." |
+| **Toolbar popup** | The full app, same screens as the side panel. An expand button ("Open in side panel") opens the current screen and search in the side panel. |
 | **Toast** | Dark (`--ink`) bar for "Clip deleted · Undo"; white card with thumbnail for "Image saved, filed in Research · Open · Undo" (shown on the page, bottom right, 5s). |
 | **Sheet** | Bottom sheet over a scrim, radius 24 top corners, grab handle, close button. |
 | **Drop zone** | 3px dashed `--link`, blue-tint fill at 92%, centered illustration + "Drop to save N images". |
 | **Drag targets** | Images, colors and clip rows are draggable. Dropping on a folder tile or another strip tile shows a 2px `--ink` outline on the target. Internal drags never trigger the drop zone. |
-| **Key hint** | `<kbd>` pill: Enter paste · Tab paste as · Esc close. |
+| **Key hint** | `<kbd>` pill: Enter paste · Esc close. |
 | **Empty placeholder** | 2px dashed `--border-strong` tile where collections will appear. |
 | **Image placeholder** | Diagonal-stripe fill (`#F1F2F6` / `#E5E7EE`), used until thumbnails load. |
 
