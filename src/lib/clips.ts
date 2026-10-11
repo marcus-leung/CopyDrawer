@@ -6,7 +6,7 @@ import { detectKind, KIND_WORDS } from './kinds';
 export { detectKind };
 
 /** History limit, pins included. */
-export const MAX_CLIPS = 2000;
+export const MAX_CLIPS = 5000;
 
 interface NewClip {
   text: string;

@@ -69,7 +69,7 @@ Settings { autoSave, blockedSites[], retentionDays, theme, analytics, shortcutsS
 5. **Home = recent list** (clip rows from doc 05): newest first, Paste/Copy button, pin, delete with Undo toast.
 6. **Keyword search** across text and titles.
 7. **Copy back**: click a clip to copy it to the clipboard (paste into the page comes in MVP via the overlay).
-8. Basic **settings**: history limit (2,000 including pins, oldest unpinned dropped), delete everything, link to Chrome's shortcut page.
+8. Basic **settings**: history limit (5,000 including pins, oldest unpinned dropped), delete everything, link to Chrome's shortcut page.
 9. Unit tests for storage and limits; one Playwright e2e test: save selection → appears in panel → copy works.
 10. Build zip + **unlisted** Chrome Web Store submission (starts the review relationship early).
 
