@@ -7,3 +7,4 @@ playwright-report/
 *.zip
 .output-e2e/
 verify-evidence/
+bench-results.jsonl

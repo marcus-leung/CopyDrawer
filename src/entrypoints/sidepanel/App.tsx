@@ -30,6 +30,8 @@ import { Onboarding } from './Onboarding';
 import { EmptyState } from './EmptyState';
 import { usePanelInput } from './usePanelInput';
 import { HomeNotice } from './HomeNotice';
+import { usePaged } from '@/lib/usePaged';
+import { ShowMore } from '@/components/ShowMore';
 import { useShortcuts } from '@/lib/useShortcuts';
 
 /** The same app runs in the side panel and in the toolbar popup. */
@@ -145,6 +147,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   // Stays open while you change filters, even back to "Any".
   const showFilters = filtersOpen || filtering || query.trim() !== '';
   const visible = searching ? (current ?? []) : (clips ?? []);
+  const paged = usePaged(visible, `${query}\n${JSON.stringify(filters)}`);
   const sites = useMemo(() => topSites(clips ?? []), [clips]);
   const paused = settings ? isPaused(settings, now) : false;
   const sortedToday = useMemo(() => {
@@ -349,7 +352,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
               </p>
             )}
             <ul aria-label="Clips">
-              {visible.map((clip) => (
+              {paged.shown.map((clip) => (
                 <ClipRow
                   key={clip.id}
                   clip={clip}
@@ -359,6 +362,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
                 />
               ))}
             </ul>
+            <ShowMore rest={paged.rest} pageSize={paged.pageSize} onMore={paged.more} />
           </>
         )}
       </main>
