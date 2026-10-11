@@ -17,6 +17,8 @@ import { IconButton } from '@/components/ui';
 import { ExpandButton } from '@/components/ExpandButton';
 import { ColorPicker } from '@/components/ColorPicker';
 import { InlineConfirm } from '@/components/InlineConfirm';
+import { ShowMore } from '@/components/ShowMore';
+import { usePaged } from '@/lib/usePaged';
 
 type Sort = 'newest' | 'used' | 'source';
 
@@ -47,6 +49,7 @@ export function CollectionView({
   const [editing, setEditing] = useState(false);
   const [panel, setPanel] = useState<'color' | 'delete' | null>(null);
   const sorted = useMemo(() => [...(clips ?? [])].sort(SORTS[sort]), [clips, sort]);
+  const paged = usePaged(sorted, `${id}\n${sort}`);
 
   if (collection === undefined || clips === undefined) return null;
   if (collection === null) return null;
@@ -178,11 +181,14 @@ export function CollectionView({
         {sorted.length === 0 ? (
           <p className="py-10 text-center text-sm text-text-3">Nothing here yet. Open a clip and choose this collection.</p>
         ) : (
-          <ul aria-label={`Clips in ${collection.name}`}>
-            {sorted.map((clip) => (
-              <ClipRow key={clip.id} clip={clip} onOpen={onOpen} onCopy={onCopy} />
-            ))}
-          </ul>
+          <>
+            <ul aria-label={`Clips in ${collection.name}`}>
+              {paged.shown.map((clip) => (
+                <ClipRow key={clip.id} clip={clip} onOpen={onOpen} onCopy={onCopy} />
+              ))}
+            </ul>
+            <ShowMore rest={paged.rest} pageSize={paged.pageSize} onMore={paged.more} />
+          </>
         )}
         {collection.kind !== 'manual' && (
           <p className="py-5 text-[13px] leading-5 text-text-3">

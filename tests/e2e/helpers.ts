@@ -45,3 +45,50 @@ export async function dragAndDrop(page: Page, source: Locator, target: Locator) 
   for (const type of ['dragenter', 'dragover', 'drop']) await target.dispatchEvent(type, { dataTransfer });
   await source.dispatchEvent('dragend', { dataTransfer });
 }
+
+/** Puts many clips straight into IndexedDB, faster than saving them one by one. Wait for the panel to load first so the database exists. */
+export function seedClips(page: Page, texts: string[], collection?: { id: string; name: string }) {
+  return page.evaluate(
+    ({ texts, collection }) =>
+      new Promise<void>((resolve, reject) => {
+        const req = indexedDB.open('clipboard');
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          if (!req.result.objectStoreNames.contains('clips'))
+            return reject(new Error('The panel has not created the database yet'));
+          const tx = req.result.transaction(['clips', 'collections'], 'readwrite');
+          if (collection) {
+            tx.objectStore('collections').put({
+              ...collection,
+              key: `manual:${collection.id}`,
+              color: 'blue',
+              kind: 'manual',
+              createdAt: 1,
+              order: 0,
+            });
+          }
+          const now = Date.now();
+          texts.forEach((text, i) =>
+            tx.objectStore('clips').put({
+              id: `seed-${collection?.id ?? 'x'}-${i}`,
+              createdAt: now - i * 1000,
+              lastUsedAt: now - i * 1000,
+              useCount: 0,
+              kind: 'text',
+              text,
+              title: text,
+              pinned: 0,
+              hash: `seed-${collection?.id ?? 'x'}-${i}`,
+              collectionId: collection?.id,
+            }),
+          );
+          tx.oncomplete = () => {
+            req.result.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+      }),
+    { texts, collection },
+  );
+}
