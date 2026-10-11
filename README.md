@@ -26,7 +26,7 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 
 ## Features
 
-- **Save:** Alt+Shift+S or right-click → Save selection; right-click → Save image; Alt+Shift+X screenshot an area; paste or drop into the panel; **add a clip by hand** (+ on the home screen: type or paste text or images, then Save); optional **auto-save** of the text and images you copy (asks for site access only when you turn it on, and granting that access is what turns it on; covers tabs that are already open, and keeps working in them after an update; ignores copy events a page fakes; skips password fields, password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites and sites you block; pause anytime).
+- **Save:** Alt+Shift+S (⌥⇧S on a Mac: Option is the Mac's Alt key) or right-click → Save selection; right-click → Save image; Alt+Shift+X screenshot an area; paste or drop into the panel; **add a clip by hand** (+ on the home screen: type or paste text or images, then Save); optional **auto-save** of the text and images you copy (asks for site access only when you turn it on, and granting that access is what turns it on; covers tabs that are already open, and keeps working in them after an update; ignores copy events a page fakes; skips password fields, password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites and sites you block; pause anytime).
 - **Collections:** rules sort clips into Research, Links, Code, Shopping, Recipes, Personal, and trips named after the place ("Lisbon trip"). Make your own right in the panel, rename them, and pick any color (presets or a rainbow bar). Drag clips and images onto a collection to file them, and drag collections to reorder them (they stay where you put them).
 - **Images:** save by paste, drop, right-click or screenshot. Drag images within the panel to reorder them or file them, or drag one out onto a page or the desktop.
 - **Find:** word search that forgives small typos, with type, site and date filters.
@@ -39,7 +39,7 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 ## Known limitations
 
 - **Copy buttons on sites aren't auto-saved.** Auto-save notices copy events (Ctrl/Cmd+C, Copy in the menu). Buttons that copy with `navigator.clipboard.writeText` (GitHub code blocks, ChatGPT answers) fire no copy event, so those copies aren't saved. Use **Grab clipboard** in the panel instead.
-- **Shortcut labels show the defaults.** The panel, popup, onboarding and quick-paste box show Alt+Shift+S, Alt+Shift+V and Alt+Shift+X. If you change a shortcut at `chrome://extensions/shortcuts`, or Chrome couldn't assign one because another extension uses it, the labels still show the default.
+- **Chrome blocks extensions on some pages.** `chrome://` pages, the Chrome Web Store, other extensions' pages and the PDF viewer can't be read by any extension, so auto-save and the shortcuts can't work there. A shortcut on such a page opens the side panel to say so, with **Grab clipboard** to save what you copied (or, if you turn that off in Settings, shows × on the toolbar icon).
 
 ## Project layout
 

@@ -34,6 +34,8 @@ Preconditions:
 
 ## Gotchas
 
+- On pages Chrome blocks (`chrome://version` works in tests), a shortcut opens the panel with "Chrome doesn't let extensions read this page"; with Settings → "Explain blocked pages in the side panel" off, it shows a × badge.
+- Labels come from `chrome.commands.getAll()` (⌥⇧S on a Mac); compare UI text against it, not against "Alt+Shift".
 - Playwright can't press extension shortcuts or click Chrome's native menus. Report those entry points as substituted (`e2e-command`, `execCommand('copy')`), and press Alt+Shift+S/V/X once by hand.
 - `selectText()` in a frame doesn't move keyboard focus into it. Without a click first, the key goes to the previously focused element.
 - On macOS, Ctrl+C, Ctrl+Insert and Shift+Delete don't copy in Chrome; the Windows/Linux key test skips there.

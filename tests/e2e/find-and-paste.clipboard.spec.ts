@@ -327,19 +327,6 @@ test('quick paste: Tab stays in the box; images are not listed', async ({ contex
   await expect(page.locator('#notes')).toHaveValue('eggs, milk, bread, butter');
 });
 
-test('quick paste on a page that blocks extensions fails quietly', async ({ context, extensionId }) => {
-  const panel = await openPanel(context, extensionId);
-  const page = await context.newPage();
-  await page.goto('chrome://version');
-  const badge = await panel.evaluate(async () => {
-    // Chrome hides chrome:// addresses from extensions; it's the active tab.
-    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    await chrome.runtime.sendMessage({ type: 'e2e-menu', action: 'quick-paste', tabId: tab!.id });
-    return chrome.action.getBadgeText({});
-  });
-  expect(badge).toBe('×');
-});
-
 // ---------- Paste as (side panel) ----------
 
 async function openDetail(panel: Page, name: RegExp) {
