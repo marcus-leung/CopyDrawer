@@ -4,6 +4,7 @@ import { ClipDatabase } from '@/lib/db';
 import { stubImageDecoding } from './imageStubs';
 import {
   deleteClip,
+  deleteClips,
   deleteOlderThan,
   detectKind,
   enforceLimit,
@@ -13,6 +14,7 @@ import {
   markUsed,
   matchesQuery,
   restoreClip,
+  restoreClips,
   saveClip,
   togglePin,
 } from '@/lib/clips';
@@ -120,6 +122,23 @@ describe('list, search, pin, use, delete', () => {
     expect(await db.clips.count()).toBe(0);
     await restoreClip(removed!, db);
     expect((await db.clips.get(clip.id))?.text).toBe('undo me');
+  });
+
+  it('deletes several clips with their images, and restores them all', async () => {
+    const a = (await saveClip({ text: 'first' }, db))!;
+    const b = (await saveClip({ text: 'second' }, db))!;
+    await db.images.put({ id: 'img1', blob: new Blob(['x'], { type: 'image/png' }) });
+    await db.clips.update(b.id, {
+      kind: 'image',
+      image: { imageId: 'img1', thumb: new Blob(), width: 1, height: 1, bytes: 1, mime: 'image/png' },
+    });
+    const removed = await deleteClips([a.id, b.id, 'missing'], db);
+    expect(removed).toHaveLength(2);
+    expect(await db.clips.count()).toBe(0);
+    expect(await db.images.count()).toBe(0);
+    await restoreClips(removed, db);
+    expect((await db.clips.bulkGet([a.id, b.id])).map((c) => c?.text)).toEqual(['first', 'second']);
+    expect(await db.images.get('img1')).toBeDefined();
   });
 });
 

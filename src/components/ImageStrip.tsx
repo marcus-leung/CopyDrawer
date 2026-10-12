@@ -4,13 +4,24 @@ import { colorFormats, parseColor } from '@/lib/actions';
 import { moveInStrip, stripRank } from '@/lib/clips';
 import { useObjectUrl } from '@/lib/useObjectUrl';
 import { useDragOut } from '@/lib/useDragOut';
-import { CLIP_DRAG_TYPE } from './ClipRow';
+import { CLIP_DRAG_TYPE, PickBox, type RowPick } from './ClipRow';
 
 /** Marks a drag that started in the strip, so dropping on another tile reorders. */
 const STRIP_DRAG_TYPE = 'application/x-copydrawer-strip';
 
 /** Recent images and colors, side by side (home, Folders design). Drag to reorder, file or drag out. */
-export function ImageStrip({ clips, onOpen, onSeeAll }: { clips: Clip[]; onOpen: (clip: Clip) => void; onSeeAll: () => void }) {
+export function ImageStrip({
+  clips,
+  onOpen,
+  onSeeAll,
+  pickFor,
+}: {
+  clips: Clip[];
+  onOpen: (clip: Clip) => void;
+  onSeeAll: () => void;
+  /** Picking several clips; given the strip's order for Shift-click ranges. */
+  pickFor?: (clip: Clip, list: string[]) => RowPick;
+}) {
   const items = clips
     .filter((c) => c.kind === 'image' || c.kind === 'color')
     .sort((a, b) => stripRank(b) - stripRank(a))
@@ -32,20 +43,39 @@ export function ImageStrip({ clips, onOpen, onSeeAll }: { clips: Clip[]; onOpen:
       </div>
       <ul className="-mx-[18px] flex gap-2 overflow-x-auto px-[18px] pb-1" aria-label="Images and colors">
         {items.map((c) => (
-          <StripItem key={c.id} clip={c} onOpen={onOpen} onReorder={(id) => void moveInStrip(id, c.id, items)} />
+          <StripItem
+            key={c.id}
+            clip={c}
+            onOpen={onOpen}
+            onReorder={(id) => void moveInStrip(id, c.id, items)}
+            pick={pickFor?.(
+              c,
+              items.map((i) => i.id),
+            )}
+          />
         ))}
       </ul>
     </section>
   );
 }
 
-function StripItem({ clip, onOpen, onReorder }: { clip: Clip; onOpen: (clip: Clip) => void; onReorder: (id: string) => void }) {
+function StripItem({
+  clip,
+  onOpen,
+  onReorder,
+  pick,
+}: {
+  clip: Clip;
+  onOpen: (clip: Clip) => void;
+  onReorder: (id: string) => void;
+  pick?: RowPick;
+}) {
   const dragOut = useDragOut(clip);
   const [over, setOver] = useState(false);
   const isStripDrag = (e: React.DragEvent) => e.dataTransfer.types.includes(STRIP_DRAG_TYPE);
   return (
     <li
-      className="shrink-0 rounded-xl data-[drop-target]:outline-2 data-[drop-target]:outline-offset-2 data-[drop-target]:outline-ink"
+      className="group relative shrink-0 rounded-xl data-[drop-target]:outline-2 data-[drop-target]:outline-offset-2 data-[drop-target]:outline-ink"
       data-drop-target={over || undefined}
       onDragOver={(e) => {
         if (!isStripDrag(e)) return;
@@ -73,12 +103,17 @@ function StripItem({ clip, onOpen, onReorder }: { clip: Clip; onOpen: (clip: Cli
           dragOut.setData(e.dataTransfer);
           e.dataTransfer.effectAllowed = 'copyMove';
         }}
-        onClick={() => onOpen(clip)}
-        className="block cursor-pointer"
+        onMouseDown={(e) => {
+          if (pick && e.shiftKey) e.preventDefault();
+        }}
+        onClick={(e) => (pick && (pick.selecting || e.metaKey || e.ctrlKey || e.shiftKey) ? pick.onPick(e) : onOpen(clip))}
+        aria-pressed={pick?.selecting ? pick.number > 0 : undefined}
+        className={`block cursor-pointer rounded-xl ${pick?.number ? 'outline-2 outline-offset-2 outline-ink' : ''}`}
         aria-label={clip.title}
       >
         {clip.kind === 'image' ? <Thumb clip={clip} /> : <ColorChip text={clip.text} />}
       </button>
+      {pick && <PickBox title={clip.title} pick={pick} className="absolute top-0 left-0 size-9" />}
     </li>
   );
 }

@@ -30,3 +30,6 @@ export function hostOf(url?: string): string | undefined {
 export function modKey(key: string, platform = navigator.platform): string {
   return `${/^Mac/.test(platform) ? 'Cmd' : 'Ctrl'}+${key}`;
 }
+
+export const escapeHtml = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);

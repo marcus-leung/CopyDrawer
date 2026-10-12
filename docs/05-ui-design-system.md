@@ -134,7 +134,7 @@ Rules:
 | **Toast** | Dark (`--ink`) bar for "Clip deleted · Undo"; white card with thumbnail for "Image saved, filed in Research · Open · Undo" (shown on the page, bottom right, 5s). |
 | **Sheet** | Bottom sheet over a scrim, radius 24 top corners, grab handle, close button. |
 | **Drop zone** | 3px dashed `--link`, blue-tint fill at 92%, centered illustration + "Drop to save N images". |
-| **Drag targets** | Images, colors, clip rows and folder tiles are draggable. Dropping on a folder tile or another strip tile shows a 2px `--ink` outline on the target. A folder dropped on another takes its place; folders never reorder themselves. The folder screen has "Folder N of M" with Move earlier / Move later for keyboard users. Internal drags never trigger the drop zone. |
+| **Drag targets** | Images, colors, clip rows and folder tiles are draggable. Dropping on a folder tile or another strip tile shows a 2px `--ink` outline on the target. Dragging a folder reorders the grid live: the dragged tile stays as a faded placeholder and the others slide aside (180 ms, none with reduced motion); dropping keeps that order, letting go elsewhere puts it back. Folders never reorder themselves. Internal drags never trigger the drop zone. |
 | **Key hint** | `<kbd>` pill: Enter paste · Esc close. |
 | **Empty placeholder** | 2px dashed `--border-strong` tile where collections will appear. |
 | **Image placeholder** | Diagonal-stripe fill (`#F1F2F6` / `#E5E7EE`), used until thumbnails load. |

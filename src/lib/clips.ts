@@ -140,19 +140,28 @@ interface DeletedClip {
 }
 
 export async function deleteClip(id: string, db: ClipDatabase = defaultDb): Promise<DeletedClip | undefined> {
+  return (await deleteClips([id], db))[0];
+}
+
+/** Deletes clips and their images. Returns what restoreClips needs to bring them back. */
+export async function deleteClips(ids: string[], db: ClipDatabase = defaultDb): Promise<DeletedClip[]> {
   return db.transaction('rw', db.clips, db.images, async () => {
-    const clip = await db.clips.get(id);
-    if (!clip) return undefined;
-    const image = clip.image ? await db.images.get(clip.image.imageId) : undefined;
-    await removeClips(db, [clip]);
-    return { clip, image };
+    const clips = (await db.clips.bulkGet(ids)).filter((c): c is Clip => !!c);
+    const images = await db.images.bulkGet(clips.flatMap((c) => (c.image ? [c.image.imageId] : [])));
+    const byId = new Map(images.filter((i): i is StoredImage => !!i).map((i) => [i.id, i]));
+    await removeClips(db, clips);
+    return clips.map((clip) => ({ clip, image: clip.image ? byId.get(clip.image.imageId) : undefined }));
   });
 }
 
 export async function restoreClip(deleted: DeletedClip, db: ClipDatabase = defaultDb): Promise<void> {
+  await restoreClips([deleted], db);
+}
+
+export async function restoreClips(deleted: DeletedClip[], db: ClipDatabase = defaultDb): Promise<void> {
   await db.transaction('rw', db.clips, db.images, async () => {
-    if (deleted.image) await db.images.put(deleted.image);
-    await db.clips.put(deleted.clip);
+    await db.images.bulkPut(deleted.flatMap((d) => (d.image ? [d.image] : [])));
+    await db.clips.bulkPut(deleted.map((d) => d.clip));
   });
 }
 

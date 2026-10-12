@@ -1,4 +1,4 @@
-import { dragAndDrop, pasteIntoPanel } from './helpers';
+import { dragAndDrop, dragOver, pasteIntoPanel } from './helpers';
 import { test, expect } from './fixtures';
 
 test('clips sort into collections and trips; moving a clip keeps it there', async ({ context, extensionId }) => {
@@ -81,19 +81,35 @@ test('folders keep their place when clips are dropped in, and move where you put
   await expect(tiles.filter({ hasText: 'Charlie' })).toContainText('2 clips');
   await expect(tiles).toHaveText([/^Alpha/, /^Bravo/, /^Charlie/]);
 
-  // Dragging a folder onto another puts it in that one's place, and it stays there.
-  await dragAndDrop(page, tiles.filter({ hasText: 'Alpha' }), tiles.filter({ hasText: 'Charlie' }));
+  // Dragging a folder over another makes room for it right away; dropping keeps that order.
+  const drag = await page.evaluateHandle(() => new DataTransfer());
+  await tiles.filter({ hasText: 'Alpha' }).dispatchEvent('dragstart', { dataTransfer: drag });
+  await dragOver(tiles.filter({ hasText: 'Charlie' }), drag);
+  await expect(tiles).toHaveText([/^Bravo/, /^Charlie/, /^Alpha/]);
+  await dragOver(tiles.filter({ hasText: 'Alpha' }), drag, 'drop');
+  await tiles.filter({ hasText: 'Alpha' }).dispatchEvent('dragend', { dataTransfer: drag });
   await expect(tiles).toHaveText([/^Bravo/, /^Charlie/, /^Alpha/]);
   await expect(page.getByText('Drop to save')).toHaveCount(0);
   await page.reload();
   await expect(tiles).toHaveText([/^Bravo/, /^Charlie/, /^Alpha/]);
 
-  // From the keyboard: Move earlier / Move later on the folder's own screen.
-  await tiles.filter({ hasText: 'Bravo' }).click();
-  await expect(page.getByText('Folder 1 of 3')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Move earlier' })).toBeDisabled();
-  await page.getByRole('button', { name: 'Move later' }).click();
-  await expect(page.getByText('Folder 2 of 3')).toBeVisible();
-  await page.getByRole('button', { name: 'Back to home' }).click();
+  // Letting go outside the folders (or pressing Esc) puts them back.
+  const cancelled = await page.evaluateHandle(() => new DataTransfer());
+  await tiles.filter({ hasText: 'Alpha' }).dispatchEvent('dragstart', { dataTransfer: cancelled });
+  await dragOver(tiles.filter({ hasText: 'Bravo' }), cancelled);
+  await expect(tiles).toHaveText([/^Alpha/, /^Bravo/, /^Charlie/]);
+  await tiles.filter({ hasText: 'Alpha' }).dispatchEvent('dragend', { dataTransfer: cancelled });
+  await expect(tiles).toHaveText([/^Bravo/, /^Charlie/, /^Alpha/]);
+
+  // The same, with the helper's whole drag: Charlie dropped on Bravo takes its place.
+  await dragAndDrop(page, tiles.filter({ hasText: 'Charlie' }), tiles.filter({ hasText: 'Bravo' }));
   await expect(tiles).toHaveText([/^Charlie/, /^Bravo/, /^Alpha/]);
+  await page.reload();
+  await expect(tiles).toHaveText([/^Charlie/, /^Bravo/, /^Alpha/]);
+
+  // Reordering is by dragging only: the folder screen has no move buttons.
+  await tiles.filter({ hasText: 'Bravo' }).click();
+  await expect(page.getByRole('button', { name: 'Back to home' })).toBeVisible();
+  await expect(page.getByText(/Folder \d of \d/)).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Move (earlier|later)/ })).toHaveCount(0);
 });

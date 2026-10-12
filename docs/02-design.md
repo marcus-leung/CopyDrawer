@@ -69,7 +69,7 @@ Always excluded (hardcoded + user list): `chrome://` pages, the Web Store, and a
 ✅ **Decision: no browser dialogs.** Naming a collection, picking its color and confirming deletes all happen inline in the panel (a small confirm box with the action and Cancel; Esc cancels). The only prompt the user ever sees outside the panel is Chrome's own permission request when turning on auto-save, which Chrome requires.
 
 ### 4.3 Collections
-- Sorted automatically by rules; users can also create their own, rename them, delete them (clips stay in history), move clips by dragging a row or image onto a folder, and reorder folders by dragging one onto another (or Move earlier / later on the folder's screen). Folders keep the order the user set; new ones appear at the end.
+- Sorted automatically by rules; users can also create their own, rename them, delete them (clips stay in history), move clips by dragging a row or image onto a folder, and reorder folders by dragging them: the other folders slide aside while you drag to show where it will land, like apps on a phone's home screen. Folders keep the order the user set; new ones appear at the end.
 - **Colors:** 7 preset swatches plus a rainbow bar for any hue. Custom hues get matching tints and text colors that stay readable in light and dark (checked for every hue in tests).
 
 ### 4.4 Images
