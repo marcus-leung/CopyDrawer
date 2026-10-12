@@ -69,7 +69,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
     try {
       const { added, skipped } = await importFile(file);
       const done = added ? `Imported ${added} ${added === 1 ? 'clip' : 'clips'}.` : 'Nothing new to import.';
-      notify(skipped ? `${done} Skipped ${skipped} that ${skipped === 1 ? 'was' : 'were'} damaged or missing an image.` : done);
+      notify(skipped ? `${done} Skipped ${skipped} that couldn't be read.` : done);
     } catch (e) {
       notify(e instanceof BackupError ? e.message : "Couldn't read that file.");
     }

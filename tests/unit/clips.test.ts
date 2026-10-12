@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import Dexie from 'dexie';
 import { ClipDatabase } from '@/lib/db';
+import { stubImageDecoding } from './imageStubs';
 import {
   deleteClip,
   deleteOlderThan,
@@ -19,6 +20,7 @@ import {
 let db: ClipDatabase;
 
 beforeEach(async () => {
+  stubImageDecoding();
   db = new ClipDatabase(`test-${crypto.randomUUID()}`);
   await db.open();
 });
@@ -127,7 +129,10 @@ describe('backup', () => {
     const { saveClip: save } = await import('@/lib/clips');
     await save({ text: 'Photosynthesis', source: { url: 'https://en.wikipedia.org/wiki/P' } }, db);
     await save({ text: 'just a note' }, db);
-    await db.images.put({ id: 'img1', blob: new Blob(['png-bytes'], { type: 'image/png' }) });
+    await db.images.put({
+      id: 'img1',
+      blob: new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47]), 'png-bytes'], { type: 'image/png' }),
+    });
     await db.clips.add({
       id: 'c-img',
       createdAt: 1,
@@ -156,7 +161,7 @@ describe('backup', () => {
     const research = (await other.clips.toArray()).find((c) => c.text === 'Photosynthesis')!;
     expect((await other.collections.get(research.collectionId!))?.name).toBe('Research');
     const img = (await other.clips.toArray()).find((c) => c.kind === 'image')!;
-    expect(await (await other.images.get(img.image!.imageId))!.blob.text()).toBe('png-bytes');
+    expect(await (await other.images.get(img.image!.imageId))!.blob.slice(4).text()).toBe('png-bytes');
     await expect(importBackup({ nope: 1 }, other)).rejects.toThrow("isn't a Clipboard export");
   });
 

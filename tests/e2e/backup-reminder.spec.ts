@@ -96,3 +96,85 @@ test('a failed export says so and keeps the reminder', async ({ context, extensi
   );
   expect(lastExportAt ?? 0).toBe(0);
 });
+
+test('only one export runs at a time, even across screens', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(page.getByRole('heading', { name: 'Save something to start' })).toBeVisible();
+  // 300 image clips, so the export takes a moment.
+  await page.evaluate(async (due) => {
+    const canvas = new OffscreenCanvas(8, 8);
+    canvas.getContext('2d')!.fillRect(0, 0, 8, 8);
+    const png = await canvas.convertToBlob({ type: 'image/png' });
+    await new Promise<void>((resolve, reject) => {
+      const req = indexedDB.open('clipboard');
+      req.onsuccess = () => {
+        const tx = req.result.transaction(['clips', 'images'], 'readwrite');
+        for (let i = 0; i < 300; i++) {
+          tx.objectStore('images').put({ id: `img${i}`, blob: png });
+          tx.objectStore('clips').put({
+            id: `pic${i}`,
+            createdAt: i,
+            lastUsedAt: i,
+            useCount: 0,
+            kind: 'image',
+            text: '',
+            title: `pic ${i}`,
+            pinned: 0,
+            hash: `img:${i}`,
+            image: { imageId: `img${i}`, mime: 'image/png', width: 8, height: 8, bytes: png.size, thumb: png },
+          });
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      };
+    });
+    const { settings } = await chrome.storage.local.get('settings');
+    await chrome.storage.local.set({ settings: { ...(settings ?? {}), backupRemindAfter: due } });
+  }, Date.now() - DAY);
+  await page.reload();
+  let downloads = 0;
+  page.on('download', () => downloads++);
+  await page.getByRole('button', { name: 'Export now' }).click();
+  await page.getByRole('button', { name: 'Settings' }).click();
+  const exportButton = page.getByRole('button', { name: /^Export/ });
+  await expect(exportButton).toHaveText('Exporting…');
+  await expect(exportButton).toBeDisabled();
+  await expect(exportButton).toHaveText('Export', { timeout: 30_000 });
+  await page.waitForTimeout(500);
+  expect(downloads).toBe(1);
+});
+
+test('an exported image comes back on import with a fresh preview', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(page.getByRole('heading', { name: 'Save something to start' })).toBeVisible();
+  await page.evaluate(async () => {
+    const canvas = new OffscreenCanvas(60, 40);
+    canvas.getContext('2d')!.fillRect(0, 0, 60, 40);
+    const data = new DataTransfer();
+    data.items.add(new File([await canvas.convertToBlob({ type: 'image/png' })], 'square.png', { type: 'image/png' }));
+    data.setData('text/plain', '');
+    window.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true }));
+  });
+  await expect(page.getByRole('list', { name: 'Images and colors' }).getByRole('button')).toHaveCount(1);
+
+  await page.getByRole('button', { name: 'Settings' }).click();
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export' }).click()]);
+  const zip = await download.path();
+  await page.getByRole('button', { name: 'Delete all' }).click();
+  await page.getByRole('button', { name: 'Delete all clips' }).click();
+  await page.locator('input[type=file]').setInputFiles(zip);
+  await expect(page.getByRole('status')).toContainText('Imported 1 clip');
+  await page.getByRole('button', { name: 'Back' }).click();
+  // The strip shows the preview as a background image: it has to decode.
+  const thumb = page.getByRole('list', { name: 'Images and colors' }).locator('span[style*="background-image"]');
+  await expect(thumb).toHaveCount(1);
+  const width = await thumb.evaluate(async (el: HTMLElement) => {
+    const img = new Image();
+    img.src = /url\("(.+)"\)/.exec(el.style.backgroundImage)![1]!;
+    await img.decode();
+    return img.naturalWidth;
+  });
+  expect(width).toBeGreaterThan(0);
+});

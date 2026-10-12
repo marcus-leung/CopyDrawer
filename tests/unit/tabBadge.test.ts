@@ -37,3 +37,12 @@ describe('refusedByChrome: when a failed shortcut gets the ×', () => {
       expect([m, refusedByChrome(new Error(m))]).toEqual([m, false]);
   });
 });
+
+describe('notSavedHere and the badge', () => {
+  it('saving trusts that a page that sent a copy can be seen; only the badge guesses from the address', async () => {
+    const { notSavedHere } = await import('@/lib/exclusions');
+    const viewer = { url: 'https://viewer.example/web/viewer.html?file=report.pdf' };
+    expect(notSavedHere(viewer, on)).toBe(false);
+    expect(copiesHidden(viewer, on)).toBe(true);
+  });
+});

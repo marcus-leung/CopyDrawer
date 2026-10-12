@@ -153,13 +153,34 @@ export function readSelection(): { text: string; html: string } {
   return { text, html };
 }
 
-/** Fetches an image from the page's own context (helps with same-site and CORS-enabled images). Null above `maxBytes`. */
-export async function fetchImageInPage(url: string, maxBytes: number): Promise<string | null> {
+/**
+ * Fetches an image from the page's own context (helps with same-site and CORS-enabled images), as a data URL.
+ * Stops reading past `maxBytes`. Only `types` count as an image. Runs in the page: no outside helpers.
+ */
+export async function fetchImageInPage(
+  url: string,
+  maxBytes: number,
+  types: string[],
+): Promise<string | { tooBig: true } | null> {
   try {
     const res = await fetch(url, { credentials: 'include' });
-    if (!res.ok || Number(res.headers.get('content-length')) > maxBytes) return null;
-    const blob = await res.blob();
-    if (blob.size > maxBytes) return null;
+    const type = (res.headers.get('content-type') ?? '').split(';')[0]!.trim();
+    if (!res.ok || !res.body || !types.includes(type)) return null;
+    if (Number(res.headers.get('content-length')) > maxBytes) return { tooBig: true };
+    const reader = res.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > maxBytes) {
+        await reader.cancel();
+        return { tooBig: true };
+      }
+      chunks.push(value);
+    }
+    const blob = new Blob(chunks as BlobPart[], { type });
     return await new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);

@@ -83,7 +83,11 @@ export function HomeNotice({
         tone="info"
         title="Back up your clips"
         body="They're stored only on this computer, so uninstalling Clipboard deletes them. Export a copy every so often."
-        action={{ label: backup.exporting ? 'Exporting…' : 'Export now', onClick: () => void backup.run() }}
+        action={{
+          label: backup.exporting ? 'Exporting…' : 'Export now',
+          onClick: () => void backup.run(),
+          disabled: backup.exporting,
+        }}
         secondary={{ label: 'Not now', onClick: () => void updateSettings({ backupRemindAfter: Date.now() + BACKUP_SNOOZE }) }}
       />
     );

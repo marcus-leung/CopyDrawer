@@ -20,8 +20,14 @@ export async function imageHash(blob: Blob): Promise<string> {
   return `img:${await sha256Hex(blob)}`;
 }
 
-/** Makes a small preview. Works in pages and in the service worker. */
-async function makeThumbnail(blob: Blob): Promise<{ thumb: Blob; width: number; height: number }> {
+/** Throws unless the blob is an image type we keep and isn't too big. */
+export function checkImage(blob: Blob) {
+  if (!IMAGE_TYPES.includes(blob.type)) throw new ImageError(NOT_AN_IMAGE);
+  if (blob.size > MAX_IMAGE_BYTES) throw new ImageError('Images up to 20 MB can be saved.');
+}
+
+/** Makes a small preview; decoding also proves the bytes are an image. Works in pages and in the service worker. */
+export async function makeThumbnail(blob: Blob): Promise<{ thumb: Blob; width: number; height: number }> {
   const bitmap = await createImageBitmap(blob);
   const { width, height } = bitmap;
   const scale = Math.min(1, THUMB_MAX / Math.max(width, height));
@@ -55,8 +61,7 @@ interface NewImage {
 /** Saves an image clip; duplicates (same bytes) move to the top. */
 export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultDb): Promise<Clip> {
   const { blob } = input;
-  if (!IMAGE_TYPES.includes(blob.type)) throw new ImageError(NOT_AN_IMAGE);
-  if (blob.size > MAX_IMAGE_BYTES) throw new ImageError('Images up to 20 MB can be saved.');
+  checkImage(blob);
 
   const hash = await imageHash(blob);
   const note = input.note?.trim() || undefined;
