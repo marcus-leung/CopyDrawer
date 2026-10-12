@@ -20,6 +20,7 @@ function positions(box: HTMLElement): Map<string, Point> {
 export function useFlip(container: RefObject<HTMLElement | null>, key: string): () => void {
   const last = useRef(new Map<string, Point>());
   const captured = useRef<Map<string, Point> | null>(null);
+  const running = useRef(new Set<Animation>());
   const capture = () => {
     if (container.current) captured.current = positions(container.current);
   };
@@ -30,7 +31,9 @@ export function useFlip(container: RefObject<HTMLElement | null>, key: string): 
     const before = captured.current ?? last.current;
     captured.current = null;
     const els = [...box.querySelectorAll<HTMLElement>('[data-flip-key]')];
-    for (const el of els) for (const a of el.getAnimations()) a.cancel();
+    // Only this hook's own slides: other animations (the tiles' CSS transitions) carry on.
+    for (const a of running.current) a.cancel();
+    running.current.clear();
     const now = positions(box);
     last.current = now;
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -38,10 +41,12 @@ export function useFlip(container: RefObject<HTMLElement | null>, key: string): 
       const from = before.get(el.dataset.flipKey!);
       const to = now.get(el.dataset.flipKey!)!;
       if (!from || (from.x === to.x && from.y === to.y)) continue;
-      el.animate([{ transform: `translate(${from.x - to.x}px, ${from.y - to.y}px)` }, { transform: 'none' }], {
+      const slide = el.animate([{ transform: `translate(${from.x - to.x}px, ${from.y - to.y}px)` }, { transform: 'none' }], {
         duration: 220,
         easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
       });
+      running.current.add(slide);
+      slide.onfinish = () => running.current.delete(slide);
     }
   }, [container, key]);
 

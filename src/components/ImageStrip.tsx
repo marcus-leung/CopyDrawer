@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Clip } from '@/lib/db';
 import { colorFormats, parseColor } from '@/lib/actions';
 import { moveInStrip, stripRank } from '@/lib/clips';
 import { useObjectUrl } from '@/lib/useObjectUrl';
 import { useDragOut } from '@/lib/useDragOut';
-import { CLIP_DRAG_TYPE, PickBox, type RowPick } from './ClipRow';
+import { CLIP_DRAG_TYPE, isPickClick, keepTextUnselected, PickBox } from './ClipRow';
+import { useListPicks, type RowPick, type Selection } from '@/lib/useSelection';
 
 /** Marks a drag that started in the strip, so dropping on another tile reorders. */
 const STRIP_DRAG_TYPE = 'application/x-copydrawer-strip';
@@ -14,18 +15,25 @@ export function ImageStrip({
   clips,
   onOpen,
   onSeeAll,
-  pickFor,
+  selection,
 }: {
   clips: Clip[];
   onOpen: (clip: Clip) => void;
   onSeeAll: () => void;
-  /** Picking several clips; given the strip's order for Shift-click ranges. */
-  pickFor?: (clip: Clip, list: string[]) => RowPick;
+  selection: Selection;
 }) {
-  const items = clips
-    .filter((c) => c.kind === 'image' || c.kind === 'color')
-    .sort((a, b) => stripRank(b) - stripRank(a))
-    .slice(0, 12);
+  const items = useMemo(
+    () =>
+      clips
+        .filter((c) => c.kind === 'image' || c.kind === 'color')
+        .sort((a, b) => stripRank(b) - stripRank(a))
+        .slice(0, 12),
+    [clips],
+  );
+  const pickFor = useListPicks(
+    selection,
+    useMemo(() => items.map((c) => c.id), [items]),
+  );
   if (!items.length) return null;
   return (
     <section aria-labelledby="strip-title" className="pb-4">
@@ -48,10 +56,7 @@ export function ImageStrip({
             clip={c}
             onOpen={onOpen}
             onReorder={(id) => void moveInStrip(id, c.id, items)}
-            pick={pickFor?.(
-              c,
-              items.map((i) => i.id),
-            )}
+            pick={pickFor(c.id)}
           />
         ))}
       </ul>
@@ -103,11 +108,8 @@ function StripItem({
           dragOut.setData(e.dataTransfer);
           e.dataTransfer.effectAllowed = 'copyMove';
         }}
-        onMouseDown={(e) => {
-          if (pick && e.shiftKey) e.preventDefault();
-        }}
-        onClick={(e) => (pick && (pick.selecting || e.metaKey || e.ctrlKey || e.shiftKey) ? pick.onPick(e) : onOpen(clip))}
-        aria-pressed={pick?.selecting ? pick.number > 0 : undefined}
+        onMouseDown={keepTextUnselected(pick)}
+        onClick={(e) => (isPickClick(pick, e) ? pick.onPick(e) : onOpen(clip))}
         className={`block cursor-pointer rounded-xl ${pick?.number ? 'outline-2 outline-offset-2 outline-ink' : ''}`}
         aria-label={clip.title}
       >

@@ -13,7 +13,7 @@ async function openPanel(context: BrowserContext, extensionId: string) {
 }
 
 const clips = (panel: Page) => panel.getByRole('list', { name: 'Clips' });
-const pick = (panel: Page, title: string) => clips(panel).getByRole('checkbox', { name: `Pick ${title}` });
+const pick = (panel: Page, title: string) => clips(panel).getByRole('checkbox', { name: `Pick ${title}`, exact: true });
 const bar = (panel: Page) => panel.getByRole('region', { name: 'Picked clips' });
 const clipboardText = (panel: Page) => panel.evaluate(() => navigator.clipboard.readText().catch(() => 'not focused yet'));
 const clipboardHtml = (panel: Page) =>
@@ -206,4 +206,83 @@ test('quick paste: Tab picks several, Enter pastes them joined (a space in one-l
   await expect
     .poll(async () => Object.fromEntries((await readClips(panel)).map((c) => [c.text, c.useCount])))
     .toEqual({ bread: 2, milk: 2, eggs: 1 });
+});
+
+test('⌘/Ctrl+A picks only what is shown; picks hidden by a search are counted, and deleting them asks first', async ({
+  context,
+  extensionId,
+}) => {
+  const panel = await openPanel(context, extensionId);
+  await expect(panel.getByRole('heading', { name: 'Your clips' })).toBeVisible();
+  await seedClips(panel, ['Apples', 'Bananas', ...Array.from({ length: 118 }, (_, i) => `Note ${i}`)]);
+  await panel.reload();
+  await expect(clips(panel).getByRole('listitem')).toHaveCount(100);
+
+  // Only the 100 rows on screen, not the 20 behind "Show more".
+  await panel.locator('body').click({ position: { x: 5, y: 5 } });
+  await panel.keyboard.press('ControlOrMeta+a');
+  await expect(bar(panel)).toContainText('100 picked');
+  await panel.keyboard.press('Escape');
+  await expect(bar(panel)).toHaveCount(0);
+
+  // Pick two, then search for one: the other is still picked but not shown, and the bar says so.
+  await pick(panel, 'Apples').click({ force: true });
+  await pick(panel, 'Bananas').click();
+  const search = panel.getByLabel('Search your clips');
+  await search.fill('Bananas');
+  await expect(bar(panel)).toContainText('2 picked · 1 not shown');
+  // Esc while typing in the search keeps the picks.
+  await search.press('Escape');
+  await expect(bar(panel)).toContainText('2 picked');
+  await search.fill('Bananas');
+  await expect(bar(panel)).toContainText('2 picked · 1 not shown');
+
+  await bar(panel).getByRole('button', { name: 'More for picked clips' }).click();
+  await bar(panel).getByRole('button', { name: 'Delete 2' }).click();
+  const confirm = bar(panel).getByRole('alertdialog');
+  await expect(confirm).toContainText('1 of these isn’t shown in the list. Delete all 2?');
+  await confirm.getByRole('button', { name: 'Cancel' }).click();
+  await expect.poll(async () => (await readClips(panel)).length).toBe(120);
+  await bar(panel).getByRole('button', { name: 'Delete 2' }).click();
+  await bar(panel).getByRole('alertdialog').getByRole('button', { name: 'Delete 2' }).click();
+  await expect(panel.getByRole('status')).toContainText('2 clips deleted');
+  await expect.poll(async () => (await readClips(panel)).length).toBe(118);
+});
+
+test('in a collection, ⌘/Ctrl+A numbers clips in the order the screen shows them', async ({ context, extensionId }) => {
+  const panel = await openPanel(context, extensionId);
+  await expect(panel.getByRole('heading', { name: 'Your clips' })).toBeVisible();
+  await seedClips(panel, ['Newest', 'Middle', 'Oldest'], { id: 'shop', name: 'Shopping' });
+  await panel.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const req = indexedDB.open('clipboard');
+        req.onsuccess = () => {
+          const tx = req.result.transaction('clips', 'readwrite');
+          const store = tx.objectStore('clips');
+          const uses: Record<string, number> = { 'seed-shop-0': 0, 'seed-shop-1': 3, 'seed-shop-2': 5 };
+          for (const [id, useCount] of Object.entries(uses)) {
+            const get = store.get(id);
+            get.onsuccess = () => store.put({ ...get.result, useCount });
+          }
+          tx.oncomplete = () => {
+            req.result.close();
+            resolve();
+          };
+        };
+      }),
+  );
+  await panel.reload();
+  await panel
+    .getByRole('list', { name: 'Collections' })
+    .getByRole('button', { name: /Shopping/ })
+    .click();
+  await panel.getByLabel('Sort').selectOption('Most used');
+  const list = panel.getByRole('list', { name: 'Clips in Shopping' });
+  await expect(list.getByRole('listitem')).toHaveText([/Oldest/, /Middle/, /Newest/]);
+  await panel.locator('body').click({ position: { x: 5, y: 5 } });
+  await panel.keyboard.press('ControlOrMeta+a');
+  await expect(list.getByRole('checkbox')).toHaveText(['1', '2', '3']);
+  await bar(panel).getByRole('button', { name: 'Copy all' }).click();
+  await expect.poll(() => clipboardText(panel)).toBe('Oldest\nMiddle\nNewest');
 });

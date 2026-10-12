@@ -140,7 +140,10 @@ function open() {
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-label', 'Quick paste');
   let joinWith: JoinWith = 'line';
-  void getSettings().then((s) => {
+  // A failed read leaves the defaults; it must not stop the box from loading.
+  const settings = getSettings().catch(() => null);
+  void settings.then((s) => {
+    if (!s) return;
     joinWith = s.joinWith;
     if (s.theme !== 'system') box.dataset.theme = s.theme;
     if (s.font !== 'default') box.style.fontFamily = FONT_STACKS[s.font];
@@ -294,7 +297,8 @@ function open() {
   document.documentElement.append(host);
   input.focus();
   render();
-  void safeSend<{ clips: QuickClip[]; shortcut: string }>({ type: 'qp-clips' }).then((res) => {
+  // Keys pressed early wait for the separator too, so an instant Enter joins clips the way Settings says.
+  void Promise.all([safeSend<{ clips: QuickClip[]; shortcut: string }>({ type: 'qp-clips' }), settings]).then(([res]) => {
     clips = res?.clips ?? [];
     shortcut = res?.shortcut ?? '';
     loaded = true;

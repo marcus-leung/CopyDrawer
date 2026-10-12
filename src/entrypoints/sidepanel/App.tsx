@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ClipboardPaste, ImagePlus, MoreHorizontal, Plus, SlidersHorizontal } from 'lucide-react';
 import type { Clip } from '@/lib/db';
-import { deleteClip, deleteClips, listClips, markUsed, restoreClip, restoreClips, saveClip } from '@/lib/clips';
+import { deleteClip, listClips, markUsed, restoreClip, saveClip } from '@/lib/clips';
 import { NO_FILTERS, topSites, type SearchFilters } from '@/lib/search';
 import { copyClipToClipboard, readClipboard, type ClipboardContents } from '@/lib/clipboard';
 import { saveImages } from '@/lib/images';
@@ -12,16 +12,14 @@ import { useAppearance } from '@/lib/useAppearance';
 import { useSearch } from '@/lib/useSearch';
 import { cancelViewRequest, requestView, useOpenViewRequests, type OpenViewRequest, type View } from '@/lib/openView';
 import { modKey } from '@/lib/format';
-import { listCollections, moveClip, moveClips, moveCollection } from '@/lib/collections';
-import { COLLECTION_DRAG_TYPE, CollectionTile } from '@/components/CollectionTile';
-import { useFlip } from '@/lib/useFlip';
+import { listCollections, moveClip } from '@/lib/collections';
+import { CollectionTile } from '@/components/CollectionTile';
 import { NewCollectionForm } from '@/components/NewCollectionForm';
 import { AddClipForm } from '@/components/AddClipForm';
 import { ImageStrip } from '@/components/ImageStrip';
-import { ClipRow, type RowPick } from '@/components/ClipRow';
+import { ClipRow } from '@/components/ClipRow';
 import { SelectionBar } from '@/components/SelectionBar';
-import { copyClips } from '@/lib/multiCopy';
-import { useSelection } from '@/lib/useSelection';
+import { useListPicks, useSelection } from '@/lib/useSelection';
 import { Button, IconButton, SearchField } from '@/components/ui';
 import { Notice } from '@/components/Notice';
 import { ExpandButton, ExpandContext } from '@/components/ExpandButton';
@@ -33,6 +31,8 @@ import { FilterBar } from './FilterBar';
 import { Onboarding } from './Onboarding';
 import { EmptyState } from './EmptyState';
 import { usePanelInput } from './usePanelInput';
+import { useFolderReorder } from './useFolderReorder';
+import { usePickActions } from './usePickActions';
 import { HomeNotice } from './HomeNotice';
 import { usePaged } from '@/lib/usePaged';
 import { ShowMore } from '@/components/ShowMore';
@@ -113,46 +113,12 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
     [notify],
   );
 
-  // Reordering folders: while dragging, the grid shows where the folder would land.
-  const [folderDrag, setFolderDrag] = useState<{ id: string; order: string[]; dropped?: boolean } | null>(null);
-  const savedOrder = useMemo(() => summaries?.map((s) => s.collection.id) ?? [], [summaries]);
-  // After a drop, the dropped order stays on screen until the saved order catches up, so tiles don't flick back.
-  const preview = folderDrag && !(folderDrag.dropped && folderDrag.order.join() === savedOrder.join()) ? folderDrag : null;
-  const shownSummaries = useMemo(() => {
-    if (!preview || !summaries) return summaries;
-    const byId = new Map(summaries.map((s) => [s.collection.id, s]));
-    return preview.order.flatMap((id) => byId.get(id) ?? []);
-  }, [preview, summaries]);
-  const folderGrid = useRef<HTMLUListElement>(null);
-  const captureFolders = useFlip(folderGrid, (shownSummaries ?? []).map((s) => s.collection.id).join());
-  /**
-   * The slot under the pointer, from the tiles' layout boxes (offset*), which ignore the slide animations:
-   * a tile sliding under the pointer must not count, or the order flips back and forth.
-   */
-  const hoverFolders = (e: React.DragEvent<HTMLUListElement>) => {
-    const d = folderDrag;
-    if (!d || d.dropped) return;
-    const grid = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - grid.left;
-    const y = e.clientY - grid.top;
-    const slot = [...e.currentTarget.children].findIndex((li) => {
-      const el = li as HTMLElement;
-      return x >= el.offsetLeft && x < el.offsetLeft + el.offsetWidth && y >= el.offsetTop && y < el.offsetTop + el.offsetHeight;
-    });
-    if (slot < 0 || d.order[slot] === d.id) return;
-    const order = d.order.filter((id) => id !== d.id);
-    order.splice(slot, 0, d.id);
-    captureFolders();
-    setFolderDrag({ ...d, order });
-  };
-  const dropFolder = () => {
-    if (!folderDrag || folderDrag.dropped) return;
-    const target = savedOrder[folderDrag.order.indexOf(folderDrag.id)];
-    setFolderDrag({ ...folderDrag, dropped: true });
-    void moveCollection(folderDrag.id, target ?? folderDrag.id).finally(() =>
-      setTimeout(() => setFolderDrag((d) => (d?.dropped ? null : d)), 1000),
-    );
-  };
+  const {
+    shown: shownFolders,
+    gridRef: folderGrid,
+    grid: folderGridDrag,
+    tile: folderTile,
+  } = useFolderReorder(summaries, notify);
 
   const clipsById = useMemo(() => new Map(clips?.map((c) => [c.id, c])), [clips]);
   const exists = useCallback((id: string) => clipsById.has(id), [clipsById]);
@@ -160,49 +126,13 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   const { clear: clearPicks } = selection;
   useEffect(() => clearPicks(), [view, clearPicks]);
   const pickedClips = selection.ids.map((id) => clipsById.get(id)!);
-  const pickFor = useCallback(
-    (clip: Clip, list: string[]): RowPick => ({
-      number: selection.numberOf(clip.id),
-      selecting: selection.selecting,
-      onPick: (e) => (e.shiftKey ? selection.range(clip.id, list) : selection.toggle(clip.id)),
-    }),
-    [selection],
-  );
-
-  const copyPicked = async (plain: boolean) => {
-    const n = pickedClips.length;
-    try {
-      const result = await copyClips(pickedClips, settings?.joinWith ?? 'line', { plain });
-      if (!result.ok) {
-        notify(
-          result.reason === 'too-big'
-            ? 'Too big to copy together (20 MB max). Pick fewer images.'
-            : 'Nothing to copy as plain text.',
-        );
-        return;
-      }
-      await Promise.all(pickedClips.map((c) => markUsed(c.id)));
-      const what = n === 1 ? 'Copied' : `Copied ${n} clips`;
-      if (plain) notify(result.skippedImages ? `${what} as plain text. Images left out.` : `${what} as plain text.`);
-      else notify(result.skippedImages ? `${what}. Images paste where pictures are allowed.` : `${what}. Paste anywhere.`);
-    } catch {
-      notify("Couldn't copy. Click the panel and try again.");
-    }
-  };
-
-  const movePicked = async (collectionId: string | undefined) => {
-    const n = pickedClips.length;
-    await moveClips(selection.ids, collectionId);
-    const name = collectionId ? summaries?.find((s) => s.collection.id === collectionId)?.collection.name : undefined;
-    notify(`${n === 1 ? 'Moved 1 clip' : `Moved ${n} clips`} ${name ? `to ${name}` : 'out of their collections'}`);
-    selection.clear();
-  };
-
-  const deletePicked = async () => {
-    const removed = await deleteClips(selection.ids);
-    selection.clear();
-    notify(removed.length === 1 ? 'Clip deleted' : `${removed.length} clips deleted`, () => void restoreClips(removed));
-  };
+  const pickActions = usePickActions({
+    selection,
+    picked: pickedClips,
+    joinWith: settings?.joinWith ?? 'line',
+    summaries,
+    notify,
+  });
 
   /** Saves whatever came in from a paste, drop or the clipboard. */
   const saveContents = useCallback(
@@ -250,53 +180,34 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
     return (clips ?? []).filter((c) => c.collectionId && c.createdAt >= midnight).length;
   }, [clips, now]);
 
-  const listIds =
-    view.name === 'home'
-      ? visible.map((c) => c.id)
-      : view.name === 'collection'
-        ? (clips ?? []).filter((c) => c.collectionId === view.id).map((c) => c.id)
-        : null;
-  const { all: pickAll } = selection;
-  const picking = listIds !== null && selection.selecting;
-  useEffect(() => {
-    if (!listIds) return;
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement;
-      const typing = t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName);
-      if (e.key === 'Escape' && picking) {
-        e.preventDefault();
-        clearPicks();
-      } else if (e.key.toLowerCase() === 'a' && (e.metaKey || e.ctrlKey) && !typing && listIds.length) {
-        e.preventDefault();
-        pickAll(listIds);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [listIds, picking, clearPicks, pickAll]);
+  const shownIds = useMemo(() => paged.shown.map((c) => c.id), [paged.shown]);
+  const homePick = useListPicks(selection, shownIds, view.name === 'home');
+  const picking = (view.name === 'home' || view.name === 'collection') && selection.selecting;
+  // Picks stay while the search changes, so the bar says how many the list isn't showing.
+  const listed = view.name === 'home' && selection.selecting ? new Set(visible.map((c) => c.id)) : null;
+  const notShown = listed ? selection.ids.filter((id) => !listed.has(id)).length : 0;
 
   const shell = (children: React.ReactNode) => (
     <ExpandContext value={surface === 'popup' ? expand : null}>
       <div className="relative flex h-full flex-col overflow-hidden bg-bg text-ink">
         {children}
         {dragging && <DropOverlay />}
-        {picking ? (
-          <div className="relative">
-            <Toast toast={toast} onDone={() => setToast(null)} above />
+        <div className="relative">
+          <Toast toast={toast} onDone={() => setToast(null)} above={picking} />
+          {picking && (
             <SelectionBar
               count={pickedClips.length}
               hasText={pickedClips.some((c) => c.kind !== 'image')}
               joinWith={settings?.joinWith ?? 'line'}
               onJoinWith={(joinWith) => void updateSettings({ joinWith })}
-              onCopy={(plain) => void copyPicked(plain)}
-              onMove={(id) => void movePicked(id)}
-              onDelete={() => void deletePicked()}
+              notShown={notShown}
+              onCopy={(plain) => void pickActions.copy(plain)}
+              onMove={(id) => void pickActions.move(id)}
+              onDelete={() => void pickActions.remove()}
               onClear={clearPicks}
             />
-          </div>
-        ) : (
-          <Toast toast={toast} onDone={() => setToast(null)} />
-        )}
+          )}
+        </div>
       </div>
     </ExpandContext>
   );
@@ -326,7 +237,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
         onOpen={(c) => setView({ name: 'detail', id: c.id, from: here })}
         onCopy={copy}
         notify={notify}
-        pickFor={pickFor}
+        selection={selection}
       />,
     );
   }
@@ -448,23 +359,8 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
                     />
                   </div>
                 )}
-                <ul
-                  ref={folderGrid}
-                  className="relative grid grid-cols-2 gap-2.5"
-                  aria-label="Collections"
-                  onDragOver={(e) => {
-                    if (!folderDrag || !e.dataTransfer.types.includes(COLLECTION_DRAG_TYPE)) return;
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    hoverFolders(e);
-                  }}
-                  onDrop={(e) => {
-                    if (!folderDrag || !e.dataTransfer.types.includes(COLLECTION_DRAG_TYPE)) return;
-                    e.preventDefault();
-                    dropFolder();
-                  }}
-                >
-                  {(shownSummaries ?? summaries).map((s) => (
+                <ul ref={folderGrid} className="relative grid grid-cols-2 gap-2.5" aria-label="Collections" {...folderGridDrag}>
+                  {(shownFolders ?? summaries).map((s) => (
                     <CollectionTile
                       key={s.collection.id}
                       summary={s}
@@ -472,11 +368,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
                       onDropClip={(clipId) => {
                         void moveClip(clipId, s.collection.id).then(() => notify(`Moved to ${s.collection.name}`));
                       }}
-                      reorder={{
-                        dragging: !!preview && !preview.dropped && preview.id === s.collection.id,
-                        onStart: () => setFolderDrag({ id: s.collection.id, order: savedOrder }),
-                        onEnd: () => setFolderDrag((d) => (d?.dropped ? d : null)),
-                      }}
+                      reorder={folderTile(s.collection.id)}
                     />
                   ))}
                 </ul>
@@ -486,7 +378,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
               <ImageStrip
                 clips={clips}
                 onOpen={(c) => setView({ name: 'detail', id: c.id })}
-                pickFor={pickFor}
+                selection={selection}
                 onSeeAll={() => {
                   setFilters({ ...NO_FILTERS, kind: 'image' });
                   setFiltersOpen(true);
@@ -522,10 +414,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
                   collection={clip.collectionId ? collectionsById.get(clip.collectionId) : undefined}
                   onOpen={(c) => setView({ name: 'detail', id: c.id })}
                   onCopy={copy}
-                  pick={pickFor(
-                    clip,
-                    visible.map((c) => c.id),
-                  )}
+                  pick={homePick(clip.id)}
                 />
               ))}
             </ul>

@@ -189,16 +189,13 @@ export async function recolorCollection(id: string, color: string, db: ClipDatab
   await db.collections.update(id, { color });
 }
 
-/** Puts a collection where `targetId` is now; the ones in between shift over by one. */
-export async function moveCollection(id: string, targetId: string, db: ClipDatabase = defaultDb): Promise<void> {
-  if (id === targetId) return;
+/** Saves the folder order shown to the user. Folders missing from `ids` (made meanwhile) keep their order after these. */
+export async function setCollectionOrder(ids: string[], db: ClipDatabase = defaultDb): Promise<void> {
   await db.transaction('rw', db.collections, async () => {
     const all = await db.collections.orderBy('order').toArray();
-    const from = all.findIndex((c) => c.id === id);
-    const to = all.findIndex((c) => c.id === targetId);
-    if (from < 0 || to < 0) return;
-    all.splice(to, 0, ...all.splice(from, 1));
-    await Promise.all(all.map((c, order) => (c.order === order ? null : db.collections.update(c.id, { order }))));
+    const rank = (id: string) => (ids.includes(id) ? ids.indexOf(id) : ids.length);
+    const sorted = all.map((c, i) => ({ c, i })).sort((a, b) => rank(a.c.id) - rank(b.c.id) || a.i - b.i);
+    await Promise.all(sorted.map(({ c }, order) => (c.order === order ? null : db.collections.update(c.id, { order }))));
   });
 }
 

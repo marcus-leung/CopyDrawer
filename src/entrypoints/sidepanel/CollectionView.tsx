@@ -3,7 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
 import { deleteCollection, MAX_COLLECTION_NAME, recolorCollection, renameCollection } from '@/lib/collections';
-import { ClipRow, type RowPick } from '@/components/ClipRow';
+import { ClipRow } from '@/components/ClipRow';
+import { useListPicks, type Selection } from '@/lib/useSelection';
 import { hostOf } from '@/lib/format';
 import { collectionVars } from '@/components/CollectionTile';
 import { IconButton } from '@/components/ui';
@@ -28,14 +29,14 @@ export function CollectionView({
   onOpen,
   onCopy,
   notify,
-  pickFor,
+  selection,
 }: {
   id: string;
   onBack: () => void;
   onOpen: (clip: Clip) => void;
   onCopy: (clip: Clip) => void;
   notify: (message: string) => void;
-  pickFor?: (clip: Clip, list: string[]) => RowPick;
+  selection: Selection;
 }) {
   const collection = useLiveQuery(() => db.collections.get(id), [id]);
   const clips = useLiveQuery(() => db.clips.where('collectionId').equals(id).toArray(), [id]);
@@ -44,6 +45,11 @@ export function CollectionView({
   const [panel, setPanel] = useState<'color' | 'delete' | null>(null);
   const sorted = useMemo(() => [...(clips ?? [])].sort(SORTS[sort]), [clips, sort]);
   const paged = usePaged(sorted, `${id}\n${sort}`);
+  const pickFor = useListPicks(
+    selection,
+    useMemo(() => paged.shown.map((c) => c.id), [paged.shown]),
+    true,
+  );
 
   if (collection === undefined || clips === undefined) return null;
   if (collection === null) return null;
@@ -157,16 +163,7 @@ export function CollectionView({
           <>
             <ul aria-label={`Clips in ${collection.name}`}>
               {paged.shown.map((clip) => (
-                <ClipRow
-                  key={clip.id}
-                  clip={clip}
-                  onOpen={onOpen}
-                  onCopy={onCopy}
-                  pick={pickFor?.(
-                    clip,
-                    sorted.map((c) => c.id),
-                  )}
-                />
+                <ClipRow key={clip.id} clip={clip} onOpen={onOpen} onCopy={onCopy} pick={pickFor(clip.id)} />
               ))}
             </ul>
             <ShowMore rest={paged.rest} pageSize={paged.pageSize} onMore={paged.more} />
