@@ -10,53 +10,33 @@ export type CategoryId = 'research' | 'links' | 'code' | 'shopping' | 'recipes' 
 interface CategoryDef {
   id: CategoryId;
   name: string;
-  /** Phrases describing the category, embedded to compare with clips. */
-  prototypes: string[];
 }
 
 export const CATEGORIES: Record<CategoryId, CategoryDef> = {
   research: {
     id: 'research',
     name: 'Research',
-    prototypes: [
-      'a definition or quote from an encyclopedia article',
-      'notes from a lecture or academic paper',
-      'a scientific fact and its explanation',
-    ],
   },
-  links: { id: 'links', name: 'Links', prototypes: ['a web address to visit later'] },
+  links: { id: 'links', name: 'Links' },
   code: {
     id: 'code',
     name: 'Code',
-    prototypes: ['a snippet of programming source code', 'a terminal command', 'an SQL query'],
   },
   shopping: {
     id: 'shopping',
     name: 'Shopping',
-    prototypes: ['a product to buy with its price', 'an online store listing', 'a gift idea and where to buy it'],
   },
   recipes: {
     id: 'recipes',
     name: 'Recipes',
-    prototypes: [
-      'cooking ingredients and quantities',
-      'recipe instructions: preheat the oven and bake',
-      'a dish to cook for dinner',
-    ],
   },
   travel: {
     id: 'travel',
     name: 'Travel',
-    prototypes: [
-      'a hotel or apartment to stay in on a trip',
-      'a flight booking with departure time',
-      'things to do and places to eat in a city',
-    ],
   },
   personal: {
     id: 'personal',
     name: 'Personal',
-    prototypes: ['a home address', 'an email address or phone number', 'contact details'],
   },
 };
 
@@ -104,12 +84,7 @@ function domainMatches(url: string | undefined, list: string[] = []): boolean {
   if (!url) return false;
   const host = hostOf(url);
   if (!host) return false;
-  let path = '';
-  try {
-    path = new URL(url).pathname;
-  } catch {
-    // ignore
-  }
+  const path = URL.canParse(url) ? new URL(url).pathname : '';
   return list.some((d) => {
     const [dHost, ...rest] = d.split('/');
     const dPath = rest.length ? `/${rest.join('/')}` : '';
@@ -160,11 +135,14 @@ const CITIES = [
 /** Neighborhoods and day-trip spots that belong to a bigger destination. */
 const PARENT: Record<string, string> = { Sintra: 'Lisbon', Belém: 'Lisbon', Alfama: 'Lisbon', Chiado: 'Lisbon' };
 
+// Case-sensitive (cities are proper nouns: "Nice" the city, not "a nice day"), Unicode-aware edges.
+const CITY_PATTERNS = CITIES.map(
+  (city) => [city, new RegExp(`(?<![\\p{L}])${city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}])`, 'gu')] as const,
+);
+
 export function detectDestination(text: string): string | undefined {
   const counts = new Map<string, number>();
-  for (const city of CITIES) {
-    // Case-sensitive (cities are proper nouns: "Nice" the city, not "a nice day"), Unicode-aware edges.
-    const re = new RegExp(`(?<![\\p{L}])${city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}])`, 'gu');
+  for (const [city, re] of CITY_PATTERNS) {
     const n = text.match(re)?.length ?? 0;
     if (n) {
       const key = PARENT[city] ?? city;

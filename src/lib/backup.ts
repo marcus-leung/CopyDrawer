@@ -6,9 +6,10 @@
 import { strFromU8, strToU8, unzipSync, Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import { db as defaultDb, type Clip, type ClipDatabase, type Collection } from './db';
 import { CLIP_KINDS, detectKind } from './kinds';
-import { checkImage, dataUrlToBlob, imageHash, makeThumbnail } from './images';
-import { enforceLimit, hashText, makeTitle } from './clips';
+import { checkImage, dataUrlToBlob, imageHash, makeThumbnail, MAX_IMAGE_BYTES } from './images';
+import { findSameText, hashText, makeTitle, MAX_CLIPS } from './clips';
 import { cleanName, nextOrder } from './collections';
+import { MAX_HTML, MAX_TEXT } from './limits';
 import { updateSettings, type Settings } from './settings';
 import { renderBackupPage } from './backupPage';
 
@@ -19,7 +20,7 @@ export interface ExportedClip extends Omit<Clip, 'image'> {
   image?: Omit<NonNullable<Clip['image']>, 'thumb'> & { thumb?: string; data?: string };
 }
 
-/** Exports write the first; the second is from before the rename, and still imports. */
+/** Exports write the first; files marked with the second (the app's working name) import too. */
 const APPS: unknown[] = ['copydrawer', 'clipboard-extension'];
 
 export interface BackupFile {
@@ -42,7 +43,7 @@ export async function exportBackup(db: ClipDatabase = defaultDb): Promise<{ file
   const images = new Map<string, Blob>();
   const out: ExportedClip[] = [];
   let n = 0;
-  for (const { image, title, text, kind, ...rest } of clips) {
+  for (const { image, title, text, kind, source, ...rest } of clips) {
     // Readable fields first.
     const clip: ExportedClip = {
       title,
@@ -50,6 +51,7 @@ export async function exportBackup(db: ClipDatabase = defaultDb): Promise<{ file
       kind,
       collection: rest.collectionId ? names.get(rest.collectionId) : undefined,
       ...rest,
+      source: source && { url: source.url, title: source.title },
     };
     if (image) {
       const stored = await db.images.get(image.imageId);
@@ -103,11 +105,17 @@ async function zipBackup({ file, images }: { file: BackupFile; images: Map<strin
   return new Blob(parts, { type: 'application/zip' });
 }
 
-export interface ImportResult {
+interface ImportResult {
   added: number;
   /** Damaged, or an image that's missing, not an image, or too big. Clips already here aren't counted. */
   skipped: number;
+  /** Left out because the history was full: import never deletes clips to make room. */
+  noRoom: number;
 }
+
+/** What unzipping may hold in memory: clips.json, and images within the size a saved image may have. */
+const MAX_JSON_BYTES = 200 * 1024 * 1024;
+const MAX_ZIP_ENTRIES = MAX_CLIPS + 10;
 
 /** Imports an export: a .zip, or an older .json. */
 export async function importFile(blob: Blob, db: ClipDatabase = defaultDb): Promise<ImportResult> {
@@ -115,8 +123,15 @@ export async function importFile(blob: Blob, db: ClipDatabase = defaultDb): Prom
   const notExport = () => new BackupError("This file isn't a CopyDrawer export.");
   if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
     let files: Record<string, Uint8Array>;
+    let entries = 0;
     try {
-      files = unzipSync(bytes);
+      files = unzipSync(bytes, {
+        filter: (f) => {
+          if (++entries > MAX_ZIP_ENTRIES) return false;
+          if (f.name === 'clips.json' || f.name.endsWith('/clips.json')) return f.originalSize <= MAX_JSON_BYTES;
+          return /\.(png|jpe?g|gif|webp)$/i.test(f.name) && f.originalSize <= MAX_IMAGE_BYTES;
+        },
+      });
     } catch {
       throw notExport();
     }
@@ -148,7 +163,10 @@ export async function importFile(blob: Blob, db: ClipDatabase = defaultDb): Prom
 
 /** An image from the file: a data URL (version 1) or a path in the zip (version 2). */
 function imageBlob(ref: string, files?: Map<string, Uint8Array>): Blob {
-  if (ref.startsWith('data:')) return dataUrlToBlob(ref);
+  if (ref.startsWith('data:')) {
+    if (ref.length > (MAX_IMAGE_BYTES / 3) * 4 + 100) throw new Error('too big');
+    return dataUrlToBlob(ref);
+  }
   const bytes = files?.get(ref);
   if (!bytes) throw new Error(`missing ${ref}`);
   return new Blob([bytesPart(bytes)], { type: MIME[ref.split('.').pop() ?? ''] ?? '' });
@@ -173,19 +191,24 @@ export async function importBackup(
   }
   let added = 0;
   let skipped = 0;
+  let noRoom = 0;
   await db.transaction('rw', [db.clips, db.images, db.collections], async () => {
     // Match collections by key so "Research" isn't duplicated.
     const idMap = new Map<string, string>();
-    for (const c of data.collections ?? []) {
-      if (!c?.id || !c.key || !c.name) continue;
+    for (const raw of Array.isArray(data.collections) ? data.collections : []) {
+      const c = importedCollection(raw);
+      if (!c) continue;
+      // Clips point at the collection by the id in the file.
+      const fileId = (raw as Collection).id;
       const existing = await db.collections.where('key').equals(c.key).first();
-      if (existing) idMap.set(c.id, existing.id);
+      if (existing) idMap.set(fileId, existing.id);
       else {
         const id = (await db.collections.get(c.id)) ? crypto.randomUUID() : c.id;
-        await db.collections.add({ ...c, id, name: cleanName(c.name) || 'Collection', order: await nextOrder(db) });
-        idMap.set(c.id, id);
+        await db.collections.add({ ...c, id, order: await nextOrder(db) });
+        idMap.set(fileId, id);
       }
     }
+    let room = MAX_CLIPS - (await db.clips.count());
     const now = Date.now();
     for (const c of data.clips!) {
       if (!c || typeof c.text !== 'string' || !CLIP_KINDS.includes(c.kind)) {
@@ -200,8 +223,13 @@ export async function importBackup(
         continue;
       }
       // Hashes are recomputed so a hand-edited file can't sneak in duplicates.
-      const hash = img ? img.hash : hashText(c.text);
-      if (await db.clips.where('hash').equals(hash).first()) continue;
+      const text = c.text.slice(0, MAX_TEXT);
+      const hash = img ? img.hash : hashText(text);
+      if (!img && (await findSameText(text, db))) continue;
+      if (room <= 0) {
+        noRoom++;
+        continue;
+      }
       const blob = img ? imageBlob(c.image!.data!, files) : undefined;
       const image: Clip['image'] = img
         ? {
@@ -215,32 +243,58 @@ export async function importBackup(
           }
         : undefined;
       const keepId = typeof c.id === 'string' && SAFE_ID.test(c.id) && !(await db.clips.get(c.id));
-      const { collection: _name, ...fields } = c;
+      // Built field by field: the file is untrusted, and a wrong type in one field would break export later.
+      const str = (v: unknown, max = MAX_TEXT) => (typeof v === 'string' && v ? v.slice(0, max) : undefined);
+      const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+      const source =
+        c.source && typeof c.source === 'object' ? { url: str(c.source.url), title: str(c.source.title) } : undefined;
+      const titleFromFile = str(c.title, 500)?.trim();
       const clip: Clip = {
-        ...fields,
         id: keepId ? c.id : crypto.randomUUID(),
         hash,
-        // Types are re-detected, so older exports get the newer types too.
-        kind: isImage ? 'image' : detectKind(c.text),
-        title: typeof c.title === 'string' && c.title.trim() ? c.title : makeTitle(c.text, c.kind),
-        createdAt: Number.isFinite(c.createdAt) ? Math.min(c.createdAt, now) : now,
-        lastUsedAt: Number.isFinite(c.lastUsedAt) ? c.lastUsedAt : 0,
-        useCount: Number.isFinite(c.useCount) ? c.useCount : 0,
+        kind: isImage ? 'image' : detectKind(text),
+        text,
+        html: isImage ? undefined : str(c.html, MAX_HTML),
+        title: titleFromFile || makeTitle(text, c.kind),
+        titleSource: c.titleSource === 'user' ? 'user' : 'heuristic',
+        source: source?.url || source?.title ? source : undefined,
+        createdAt: Math.min(num(c.createdAt) ?? now, now),
+        lastUsedAt: num(c.lastUsedAt) ?? 0,
+        useCount: Math.max(0, Math.floor(num(c.useCount) ?? 0)),
         pinned: c.pinned === 1 ? 1 : 0,
-        collectionId: c.collectionId ? idMap.get(c.collectionId) : undefined,
+        collectionId: typeof c.collectionId === 'string' ? idMap.get(c.collectionId) : undefined,
+        collectionLocked: c.collectionLocked === 1 ? 1 : undefined,
+        stripRank: num(c.stripRank),
         image,
-        note: isImage && typeof c.note === 'string' && c.note.trim() ? c.note : undefined,
+        note: isImage ? str(c.note, 2000)?.trim() || undefined : undefined,
       };
       if (image) await db.images.put({ id: image.imageId, blob: blob! });
       await db.clips.add(clip);
       added++;
+      room--;
     }
   });
-  await enforceLimit(db);
-  return { added, skipped };
+  return { added, skipped, noRoom };
 }
 
 const SAFE_ID = /^[\w-]{1,64}$/;
+const COLLECTION_KINDS: Collection['kind'][] = ['smart', 'trip', 'manual'];
+
+/** A collection from the file, with every field checked; null when it can't be used. */
+function importedCollection(c: unknown): Omit<Collection, 'order'> | null {
+  const r = c as Partial<Record<keyof Collection, unknown>> | null;
+  if (!r || typeof r.id !== 'string' || typeof r.key !== 'string' || typeof r.name !== 'string') return null;
+  const name = cleanName(r.name);
+  const color = typeof r.color === 'string' && /^(hue:\d{1,3}|[a-z]{1,16})$/.test(r.color) ? r.color : 'grey';
+  return {
+    id: SAFE_ID.test(r.id) ? r.id : crypto.randomUUID(),
+    key: r.key.slice(0, 200),
+    name: name || 'Collection',
+    color,
+    kind: COLLECTION_KINDS.includes(r.kind as Collection['kind']) ? (r.kind as Collection['kind']) : 'manual',
+    createdAt: typeof r.createdAt === 'number' && Number.isFinite(r.createdAt) ? r.createdAt : Date.now(),
+  };
+}
 
 interface PreparedImage {
   hash: string;

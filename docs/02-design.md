@@ -60,7 +60,7 @@ Always excluded (hardcoded + user list): `chrome://` pages, the Web Store, and a
 
 ### 4.1 Surfaces
 1. **Side panel (main home):** search bar, collection folders, images & colors strip, recent clips.
-2. **Quick-paste box:** `Alt+Shift+V` overlay (user-changeable; see §9) injected on the current page (via activeTab). Type to filter, Enter to paste, Esc to close.
+2. **Quick-paste box:** `Alt+Shift+V` overlay (user-changeable; see §9) injected on the current page (via activeTab). Type to filter, Enter to paste, Tab to pick several and paste them joined, Esc to close.
 3. **Context menu:** Save selection · Save image · Screenshot an area · Don't save on this site.
 4. **Toolbar popup:** the full app (small, medium or large); an expand button opens the same screen and search in the side panel.
 5. **Onboarding:** 3 steps: privacy promise → turn on auto-save (recommended; explains page access) → the two shortcuts to know.
@@ -90,12 +90,12 @@ Keyboard-first · zero setup · instant (local, < 100 ms search) · calm (no nag
 | Area | In MVP | Later |
 |---|---|---|
 | Capture | Text, rich text (stored as HTML + plain), links, images (context menu, paste/drop, region screenshot), **auto-capture opt-in** via onboarding (pause + site blocklist) | OS-wide (desktop companion) |
-| Organize | Pins, rule-sorted collections, user collections with colors, drag to file, duplicate merge, retention setting | Shareable boards |
+| Organize | Pins, rule-sorted collections, user collections with colors, drag to file, drag folders to reorder, duplicate merge, retention setting; move or delete several picked clips at once | Shareable boards |
 | Find | Word search with typo tolerance, filters (type, site, date) | |
-| Paste | Quick-paste box, **Paste as** (plain text, Markdown, bullets, checklist, one line, case) | Paste stack |
+| Paste | Quick-paste box, **Paste as** (as is or plain text), **copy several at once**: pick clips (numbered in pick order, which is paste order) and Copy all as one clipboard item, joined with a new line, blank line, space or comma, with formatting and images in order; quick paste picks several with Tab | Paste stack |
 | Smart | Types + actions (URL clean, color, JSON, code, date, tracking, email/phone) | More detectors |
 | Guard | Site blocklist + seed exclusions only | Secret detection/masking (post-MVP) |
-| Data | Local only, export/import JSON, wipe all | Sync between devices |
+| Data | Local only (a few settings sync through Chrome sync), export/import .zip, wipe all | Sync between devices |
 
 Limit: 5,000 clips **including pins** (images limited by local storage).
 
@@ -113,7 +113,7 @@ Limit: 5,000 clips **including pins** (images limited by local storage).
 │  Storage: IndexedDB (Dexie) clips, images, collections · chrome.storage settings │
 │  Logic: rules (type detection, sorting, smart actions, transforms)               │
 └──────────────────────────────────────────────────────────────────────────────────┘
-No server. The extension makes no network requests of its own.
+No server. The only network requests download images the user saves; clips are never uploaded.
 ```
 
 ### 6.1 Data model (IndexedDB)
@@ -173,7 +173,7 @@ Chrome extension code is shipped as JavaScript that **anyone can download and re
 | 9 | Main surface | ✅ Side panel + quick-paste box |
 | 10 | Passwords/keys handling | ✅ **Out of scope for MVP** (no detection/masking). Only the seed site exclusions from §3 |
 | 11 | Analytics | ✅ None |
-| 12 | Browsers | ✅ Chrome + Edge at launch · **Safari fast-follow** after v1.0 (see §10) · Firefox removed from scope |
+| 12 | Browsers | ✅ Chrome only at launch · **Safari fast-follow** after v1.0 (see §10) · Firefox removed from scope |
 | 13 | Language | ✅ English only for launch, i18n-ready strings |
 | 14 | User interviews | ✅ No pre-build interviews; feedback comes from the private beta |
 
@@ -183,7 +183,7 @@ Safari supports Web Extensions, but it's a different distribution path:
 - Requires a **Mac + Xcode** and an **Apple Developer Program membership ($99/yr)**. Distributed via the **Mac App Store** (and iOS/iPadOS if desired), with Apple's App Review.
 - The extension is wrapped in a small native app (WXT can build the Safari target; Apple's `safari-web-extension-converter` packages it).
 - **Missing APIs vs Chrome:** no Side Panel API (use the popup + a full-page tab view instead), and stricter clipboard and permission behavior.
-- ✅ **Decision:** ship Safari as a **fast-follow after the Chrome/Edge v1.0**. Building on WXT from day one keeps it cheap, and code is written with browser-specific APIs behind small adapters.
+- ✅ **Decision:** ship Safari as a **fast-follow after the Chrome v1.0**. Building on WXT from day one keeps it cheap, and code is written with browser-specific APIs behind small adapters.
 
 ## 11. Visual direction
 

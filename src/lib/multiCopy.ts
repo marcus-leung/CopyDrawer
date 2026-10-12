@@ -4,7 +4,7 @@ import { escapeHtml } from './format';
 import { blobToDataUrl, getImageBlob, MAX_IMAGE_BYTES } from './images';
 import { joinTexts, type JoinWith } from './join';
 
-export interface Combined {
+interface Combined {
   text: string;
   /** Undefined when nothing needs formatting or pictures. */
   html?: string;
@@ -56,7 +56,7 @@ export function encodedImageBytes(clips: Clip[]): number {
   return clips.reduce((sum, c) => sum + (c.kind === 'image' && c.image ? Math.ceil(c.image.bytes / 3) * 4 : 0), 0);
 }
 
-export type CopyResult = { ok: true; skippedImages: number } | { ok: false; reason: 'too-big' | 'nothing' };
+type CopyResult = { ok: true; skippedImages: number } | { ok: false; reason: 'too-big' | 'nothing' };
 
 /** Copies clips together. One clip copies exactly like its own Copy button. */
 export async function copyClips(clips: Clip[], joinWith: JoinWith, { plain = false } = {}): Promise<CopyResult> {

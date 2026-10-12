@@ -21,7 +21,13 @@ export function AddClipForm({ onSaved, onCancel }: { onSaved: () => void; onCanc
         setImages(failed);
         return setError(error);
       }
-    } else await saveClip({ text });
+    } else {
+      try {
+        await saveClip({ text });
+      } catch {
+        return setError("Couldn't save that. Try again.");
+      }
+    }
     onSaved();
   }
 

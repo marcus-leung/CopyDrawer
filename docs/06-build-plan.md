@@ -2,7 +2,7 @@
 
 _Process: Research → Design → **Plan** → Build. Inputs: [02-design.md](02-design.md) (features, architecture, decisions), [05-ui-design-system.md](05-ui-design-system.md) (UI), [mockups/](mockups/) (screens), [04-design-resources.md](04-design-resources.md) (approved libraries)._
 
-Assumptions: solo developer, ~20 h/week, AI coding help. Chrome + Edge only. English. GPL-3.0.
+Assumptions: solo developer, ~20 h/week, AI coding help. Chrome only. English. Closed source, all rights reserved.
 
 ---
 
@@ -11,7 +11,7 @@ Assumptions: solo developer, ~20 h/week, AI coding help. Chrome + Edge only. Eng
 | | **Barebones (v0.1)** | **MVP (v1.0, public launch)** |
 |---|---|---|
 | Goal | Prove the core loop works end to end: **copy → saved → find → paste** | A product people install, understand in 60 seconds, and keep using |
-| Who uses it | You + a few friends (unlisted store listing) | Public: Chrome Web Store + Edge Add-ons |
+| Who uses it | You + a few friends (unlisted store listing) | Public: Chrome Web Store |
 | Length | ~1.5 weeks | +5 weeks after barebones (≈ 6.5 weeks total) |
 | Screens | Home list, clip detail (minimal), settings (minimal) | All MVP screens in the design system inventory |
 
@@ -21,7 +21,7 @@ Assumptions: solo developer, ~20 h/week, AI coding help. Chrome + Edge only. Eng
 
 | Area | Choice | Why |
 |---|---|---|
-| Extension framework | **WXT** (MV3, Vite, hot reload, Chrome/Edge/Safari targets) | Fast dev; Safari later is cheap |
+| Extension framework | **WXT** (MV3, Vite, hot reload, Chrome and Safari targets) | Fast dev; Safari later is cheap |
 | UI | **React + TypeScript (strict)** | Decided |
 | Styling | **Tailwind CSS v4** with the design tokens as CSS variables | Tokens from doc 05; light/dark themes |
 | Components | **shadcn/ui (Radix)** copied into the repo | Accessible, MIT, ours to edit |
@@ -84,7 +84,7 @@ Settings { autoSave, blockedSites[], retentionDays, theme, analytics, shortcutsS
 
 | # | Task | Done when |
 |---|---|---|
-| B1 | Scaffold WXT + React + TS + Tailwind v4, lint/format, GPL-3.0 `LICENSE`, `THIRD_PARTY_NOTICES` | `pnpm dev` loads the extension; lint + build pass |
+| B1 | Scaffold WXT + React + TS + Tailwind v4, lint/format, `LICENSE`, `THIRD_PARTY_NOTICES` | `pnpm dev` loads the extension; lint + build pass |
 | B2 | Design tokens + fonts + base components (button, icon button, search field, clip row, toast) | Matches doc 05 light theme |
 | B3 | Dexie schema + clip repository (add, list, search, pin, delete, limit enforcement) | Vitest covers add/limit/delete |
 | B4 | Service worker: context menu "Save selection", command Alt+Shift+S, message router | Selected text appears in DB with source |
@@ -125,24 +125,26 @@ Built on top of v0.1, in this order. Each week ends with a usable build.
 - **Onboarding** 3 steps: privacy promise, auto-save, the two shortcuts. _Screens 1.1–1.2._
 - **Settings** complete: auto-save, blocked sites, shortcuts, history and auto-delete, theme, export/import/delete all. _Screen 5.1._
 - **Notices:** paused, site blocked, history full. _Screen 5.3._
-- Privacy policy, store listing assets, permission justifications, Edge package, performance + accessibility pass.
+- Privacy policy, store listing assets, permission justifications, performance + accessibility pass.
 
 ### Added after trying the MVP ✅
 - **No browser dialogs:** naming a collection and confirming deletes happen inline in the panel.
 - **Collection colors:** 7 presets plus a rainbow bar for any hue, readable in light and dark.
 - **Image drag and drop:** reorder the images & colors strip, drop an image on a collection, drag an image out to a page or the desktop.
-- **AI and Pro removed:** no on-device model, no Chrome built-in AI, no waitlist. The extension makes no network requests and is under 1 MB.
+- **AI and Pro removed:** no on-device model, no Chrome built-in AI, no waitlist. The package is under 1 MB. Its only network requests download images the user saves (through the page first, else directly without cookies, refusing local-network hosts unless the page itself is local). Clips are never uploaded; a few settings sync through Chrome sync.
+- **Copy several, paste in order:** pick clips in the panel or popup (checkbox on hover, Cmd/Ctrl-click, Shift-click range, Cmd/Ctrl+A for the rows on screen, Esc clears). Picks are numbered in pick order, which is paste order. A bar at the bottom shows "N picked" ("· M not shown" when a search hides some), Copy all and a ⋯ sheet: Join with (New line, Blank line, Space, Comma; remembered), Move to a collection, Copy as plain text, Delete (with Undo; asks first when some picks are hidden). Copy all writes one clipboard item: plain text joined with the separator plus HTML with each clip's formatting and images in order. Google Docs, Gmail and Notion paste all of it; chat apps such as Discord and Slack take only plain text or one image.
+- **Quick paste picks several:** Tab picks clips (numbered), Enter pastes them joined; one-line inputs get a space instead of line breaks.
+- **Folder reorder by dragging:** the other tiles slide aside live, the dragged tile stays as a faded placeholder, dropping saves, Esc or letting go elsewhere puts it back. No keyboard reorder.
 
 ### Moved out of MVP (later)
 - Emoji and symbols board (screen 3.5)
-- Copy several, paste in order
 - Safari → after v1.0
 
 **MVP exit criteria (= launch):**
 - All MVP screens built to the design system, light and dark.
 - Activation in private beta ≥ 40% (5 clips saved + 1 paste from history within 24 h).
 - No P0 bugs; Lighthouse-style accessibility check passes; panel < 300 ms, quick-paste < 150 ms to open.
-- Store listings approved on Chrome and Edge.
+- Store listing approved on Chrome.
 
 ---
 
@@ -157,7 +159,7 @@ Built on top of v0.1, in this order. Each week ends with a usable build.
 | 5.5 | MVP week 4 | Smart actions, home, popup, dark mode |
 | 6.5 | MVP week 5 | Onboarding, settings, launch prep |
 | 7.5–8.5 | Private beta | Fixes from 30–50 testers |
-| ~9 | Public launch v1.0 | Chrome + Edge |
+| ~9 | Public launch v1.0 | Chrome |
 
 ---
 
@@ -184,4 +186,4 @@ Built on top of v0.1, in this order. Each week ends with a usable build.
 
 ## 9. Status
 
-v0.1 and MVP weeks 1–5 are built and merged to `main` (`package.json` version 1.0.0). Not yet done: the unlisted store submission, the 20-site capture test, private beta, and the store approvals in the MVP exit criteria. Next steps are in [03-plan.md](03-plan.md) §6.
+v0.1, MVP weeks 1–5 and the additions above (including copying several clips at once) are built and merged to `main` (`package.json` version 1.0.0). Not yet done: the unlisted store submission, the 20-site capture test, private beta, and the store approvals in the MVP exit criteria. Next steps are in [03-plan.md](03-plan.md) §6.

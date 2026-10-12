@@ -139,18 +139,6 @@ async function currentTrip(db: ClipDatabase, now: number): Promise<Collection | 
   return best?.trip;
 }
 
-/** Assigns a clip to a category found by the AI model (when the rules had no answer). */
-export async function assignCategory(clipId: string, category: CategoryId, db: ClipDatabase = defaultDb): Promise<void> {
-  await db.transaction('rw', db.clips, db.collections, async () => {
-    const clip = await db.clips.get(clipId);
-    if (!clip || clip.collectionLocked || clip.collectionId) return;
-    const target = targetFor(category, clip);
-    const trip = target.key === 'cat:travel' ? await currentTrip(db, clip.createdAt) : undefined;
-    const collection = trip ?? (await ensureCollection(db, target.key, target));
-    await db.clips.update(clipId, { collectionId: collection.id });
-  });
-}
-
 /** The user moves a clip; it stays there. Pass undefined to remove it from any collection. */
 export async function moveClip(clipId: string, collectionId: string | undefined, db: ClipDatabase = defaultDb): Promise<void> {
   await moveClips([clipId], collectionId, db);
@@ -216,6 +204,15 @@ export interface CollectionSummary {
 /** Collections with clip counts, in the user's order; empty ones hidden. "New" = saved in the last 24 h. */
 export async function listCollections(db: ClipDatabase = defaultDb, now = Date.now()): Promise<CollectionSummary[]> {
   const [collections, clips] = await Promise.all([db.collections.toArray(), db.clips.toArray()]);
+  return summarizeCollections(collections, clips, now);
+}
+
+/** The same, from clips already loaded: the panel has them all, so it doesn't read the table twice. */
+export function summarizeCollections(
+  collections: Collection[],
+  clips: Pick<Clip, 'collectionId' | 'createdAt'>[],
+  now = Date.now(),
+): CollectionSummary[] {
   const counts = new Map<string, { count: number; newCount: number }>();
   for (const clip of clips) {
     if (!clip.collectionId) continue;

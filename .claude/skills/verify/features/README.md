@@ -30,5 +30,6 @@ This directory is the maintained source for verifying the user-facing behavior o
 - [Add and find clips](./add-and-find.md): pasting into the panel, search, filters, copy back, delete and undo.
 - [Copy shortcuts](./copy-shortcuts.md): copy/cut keys, menu Copy, Alt+Shift+S/V/X, and pasting back.
 - [Export](./export.md): the .zip export: clips.html reads well, clips.json and images import back.
-- [Folders order](./folders.md): folders stay where the user put them, reorder by drag or Move buttons.
+- [Folders order](./folders.md): folders stay where the user put them and reorder by dragging, with a live preview.
+- [Copy several at once](./multi-copy.md): pick clips, copy them joined in pick order, move or delete them; Tab-pick in quick paste.
 - [Quick paste](./quick-paste.md): the Alt+Shift+V box that pastes a clip into a field on any page.

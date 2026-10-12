@@ -207,12 +207,46 @@ export function notSavedHere(
   return isBlocked(copiedFrom, s.blockedSites) || isBlocked(page.url, s.blockedSites) || (!!page.incognito && !s.saveInIncognito);
 }
 
-/** This computer or the local network: localhost, private IPv4 ranges, link-local, ::1, *.local. */
+/** Names that only resolve on a home or office network. */
+const LOCAL_SUFFIXES = ['localhost', 'local', 'lan', 'home', 'home.arpa', 'internal', 'intranet', 'corp'];
+
+function privateIpv4(a: number, b: number): boolean {
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168)
+  );
+}
+
+function privateIpv6(h: string): boolean {
+  if (h === '::' || h === '::1') return true;
+  // IPv4 inside IPv6, as the URL parser writes it: ::ffff:7f00:1 is 127.0.0.1.
+  const mapped = /^::ffff:([0-9a-f]{1,4}):[0-9a-f]{1,4}$/.exec(h);
+  if (mapped) {
+    const high = parseInt(mapped[1]!, 16);
+    return privateIpv4(high >> 8, high & 0xff);
+  }
+  const first = parseInt(h.split(':')[0] || '0', 16);
+  return (first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80; // unique local fc00::/7, link-local fe80::/10
+}
+
+/**
+ * This computer or the local network, judged from the address alone: names that resolve to private addresses
+ * through public DNS can't be told apart here. Takes a hostname as `URL` gives it (IPv4 normalized, IPv6 in brackets).
+ */
 export function isPrivateHost(host: string): boolean {
-  const h = host.toLowerCase().replace(/^\[|\]$/g, '');
-  if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h === '::1') return true;
+  const h = host
+    .toLowerCase()
+    .replace(/^\[|\]$/g, '')
+    .replace(/\.$/, '');
+  if (h.includes(':')) return privateIpv6(h);
+  // A single word ("router", "nas") only resolves on a local network.
+  if (!h.includes('.')) return true;
+  if (LOCAL_SUFFIXES.some((s) => h === s || h.endsWith(`.${s}`))) return true;
   const ip = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(h);
-  if (!ip) return false;
-  const [a, b] = [Number(ip[1]), Number(ip[2])];
-  return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254);
+  return !!ip && privateIpv4(Number(ip[1]), Number(ip[2]));
 }

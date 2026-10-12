@@ -5,7 +5,7 @@ export type View =
   { name: 'home' } | { name: 'detail'; id: string; from?: View } | { name: 'settings' } | { name: 'collection'; id: string };
 
 /** Session-storage key the popup and background use to ask the side panel to show a screen. */
-export const OPEN_VIEW_KEY = 'openView';
+const OPEN_VIEW_KEY = 'openView';
 
 export interface OpenViewRequest {
   view: View;

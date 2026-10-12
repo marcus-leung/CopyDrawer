@@ -8,7 +8,13 @@ import { forgetRefused, markRefused, refreshAllTabBadges, refreshTabBadge, refus
 import { getShortcuts, NOT_SET } from '@/lib/shortcuts';
 import { getSettings, isPaused, pullSyncedSettings, settingsItem, syncedSettingsItem, updateSettings } from '@/lib/settings';
 import { isPrivateHost, notSavedHere } from '@/lib/exclusions';
-import { injectIntoOpenTabs, onPermissionsAdded, syncAutosaveRegistration } from '@/lib/autosave';
+import {
+  hasAllSitesAccess,
+  injectIntoOpenTabs,
+  onPermissionsAdded,
+  onPermissionsRemoved,
+  syncAutosaveRegistration,
+} from '@/lib/autosave';
 import { blobToDataUrl, dataUrlToBlob, IMAGE_TYPES, ImageError, MAX_IMAGE_BYTES, saveImageClip } from '@/lib/images';
 import { BACKUP_EVERY } from '@/lib/backup';
 import { fetchImageInPage, readSelection, selectArea, showSavedToast } from '@/lib/injected';
@@ -29,7 +35,7 @@ async function cleanup() {
 
 function sourceOf(tab?: Browser.tabs.Tab): ClipSource | undefined {
   if (!tab) return undefined;
-  return { url: tab.url, title: tab.title, favicon: tab.favIconUrl };
+  return { url: tab.url, title: tab.title };
 }
 
 /** A short mark on the toolbar icon, for pages where the in-page card can't show. Then the tab's own mark returns. */
@@ -48,15 +54,28 @@ async function flashBadge(text: string, color: string, tabId?: number) {
 const badgeOk = (tabId?: number) => flashBadge('✓', '#0E7A62', tabId);
 const badgeError = (tabId?: number) => flashBadge('!', '#B42318', tabId);
 
-/** Shows the in-page "saved" card. Needs scripting access to the tab (activeTab or all sites). */
-async function toastInTab(tabId: number | undefined, clip: Clip, title: string) {
+/**
+ * Shows the in-page "saved" card. Needs scripting access to the tab (activeTab or all sites). Undo is offered
+ * only for a clip this save created: for one already in the history it would delete the user's existing clip.
+ */
+async function toastInTab(tabId: number | undefined, { clip, created }: { clip: Clip; created: boolean }, title: string) {
   if (tabId == null) return;
+  if (created) await browser.storage.session.set({ [LAST_SAVED]: { tabId, clipId: clip.id } });
   try {
     const thumbUrl = clip.image ? await blobToDataUrl(clip.image.thumb) : undefined;
     await browser.scripting.executeScript({
       target: { tabId },
       func: showSavedToast,
-      args: [{ title, detail: clip.title, clipId: clip.id, thumbUrl, openShadow: __E2E__ }],
+      args: [
+        {
+          title: created ? title : 'Already in your clips',
+          detail: clip.title,
+          clipId: clip.id,
+          undo: created,
+          thumbUrl,
+          openShadow: __E2E__,
+        },
+      ],
     });
   } catch {
     await badgeOk(tabId);
@@ -133,7 +152,8 @@ async function fetchImage(
     const pageHost = hostOf(tab?.url);
     if (isPrivateHost(host) && !(pageHost && isPrivateHost(pageHost))) return null;
     try {
-      return await readImage(await fetch(srcUrl, { credentials: 'omit' }));
+      // A redirect could lead to this computer or the local network; it ends here, and the page gets a try.
+      return await readImage(await fetch(srcUrl, { credentials: 'omit', redirect: 'manual' }));
     } catch {
       return null;
     }
@@ -141,7 +161,7 @@ async function fetchImage(
   const fromPage = (): Promise<Fetched> | null => (tab?.id == null ? null : fetchImageFromPage(srcUrl, tab.id, frameId));
   const [first, second] = pageFirst ? [fromPage, fromExtension] : [fromExtension, fromPage];
   const got = (await first()) ?? (await second());
-  return got === TOO_BIG ? null : got;
+  return got;
 }
 
 async function fetchImageFromPage(srcUrl: string, tabId: number, frameId?: number): Promise<Fetched> {
@@ -159,16 +179,49 @@ async function fetchImageFromPage(srcUrl: string, tabId: number, frameId?: numbe
   }
 }
 
+/** The image's file name from its address. A stray "%" in it must not stop the save. */
+function fileNameOf(srcUrl: string, pageUrl?: string): string | undefined {
+  try {
+    const last = new URL(srcUrl, pageUrl).pathname.split('/').pop() ?? '';
+    try {
+      return decodeURIComponent(last) || undefined;
+    } catch {
+      return last || undefined;
+    }
+  } catch {
+    return undefined;
+  }
+}
+
+/** The in-page card for an image that couldn't be saved, saying why. The ! badge when the card can't show. */
+async function imageNotSaved(tab: Browser.tabs.Tab | undefined, detail: string) {
+  if (tab?.id == null) return;
+  try {
+    await browser.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: showSavedToast,
+      args: [{ title: 'Image not saved', detail, openShadow: __E2E__ }],
+    });
+  } catch {
+    await badgeError(tab.id);
+  }
+}
+
 async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
   const blob = await fetchImage(srcUrl, tab);
+  if (blob === TOO_BIG) return imageNotSaved(tab, 'This image is over 20 MB.');
   if (!blob) {
-    await badgeError(tab?.id);
-    return;
+    // Without all-sites access, Chrome blocks downloading images that another site hosts (most of them).
+    return imageNotSaved(
+      tab,
+      (await hasAllSitesAccess())
+        ? "Couldn't download it."
+        : "Turn on auto-save in CopyDrawer's Settings to save images from other sites.",
+    );
   }
   try {
-    const fileName = decodeURIComponent(new URL(srcUrl, tab?.url).pathname.split('/').pop() ?? '') || undefined;
-    const clip = await saveImageClip({ blob, source: sourceOf(tab), srcUrl, fileName });
-    await toastInTab(tab?.id, clip, 'Image saved');
+    const fileName = fileNameOf(srcUrl, tab?.url);
+    await toastInTab(tab?.id, await saveImageClip({ blob, source: sourceOf(tab), srcUrl, fileName }), 'Image saved');
   } catch (e) {
     console.warn('Image not saved', e instanceof ImageError ? e.message : e);
     await badgeError(tab?.id);
@@ -178,7 +231,7 @@ async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
 /** Auto-save of a copied image: quiet like text auto-save, ! when it couldn't be fetched. */
 async function autosaveImage(srcUrl: string, tab?: Browser.tabs.Tab, frameId?: number) {
   const blob = await fetchImage(srcUrl, tab, { frameId, pageFirst: true });
-  if (!blob) return badgeError(tab?.id);
+  if (!blob || blob === TOO_BIG) return badgeError(tab?.id);
   try {
     await saveImageClip({ blob, source: sourceOf(tab), srcUrl });
     await badgeOk(tab?.id);
@@ -252,7 +305,7 @@ async function handleAutosave(msg: { text: string; html?: string; title?: string
     const clip = await saveClip({
       text: msg.text,
       html: msg.html,
-      source: { url: tab?.url ?? allowed.url, title: tab?.title ?? msg.title, favicon: tab?.favIconUrl },
+      source: { url: tab?.url ?? allowed.url, title: tab?.title ?? msg.title },
     });
     if (clip) await badgeOk(tab?.id);
   } catch (e) {
@@ -298,8 +351,31 @@ async function openClip(clipId: string, tab: Browser.tabs.Tab | undefined) {
 }
 
 /** Opens the quick-paste box on the page (activeTab from the shortcut grants access). */
+/**
+ * What the page scripts may ask for. Messages from a page's script are treated as untrusted: the clip list goes
+ * only to the tab where quick paste was just opened, and Undo only removes the clip that tab just saved.
+ */
+const QUICK_PASTE_OPENED = 'quickPasteOpened';
+const LAST_SAVED = 'lastSavedInTab';
+const QUICK_PASTE_WINDOW_MS = 30_000;
+
+async function sessionValue<T>(key: string): Promise<T | undefined> {
+  return (await browser.storage.session.get(key))[key] as T | undefined;
+}
+
+async function quickPasteAllowed(sender: Browser.runtime.MessageSender): Promise<boolean> {
+  const opened = await sessionValue<{ tabId: number; at: number }>(QUICK_PASTE_OPENED);
+  return !!opened && sender.tab?.id === opened.tabId && sender.frameId === 0 && Date.now() - opened.at < QUICK_PASTE_WINDOW_MS;
+}
+
+async function undoAllowed(sender: Browser.runtime.MessageSender, clipId: unknown): Promise<boolean> {
+  const last = await sessionValue<{ tabId: number; clipId: string }>(LAST_SAVED);
+  return !!last && sender.tab?.id === last.tabId && clipId === last.clipId;
+}
+
 async function openQuickPaste(tab: Browser.tabs.Tab | undefined) {
   if (!tab?.id) return;
+  await browser.storage.session.set({ [QUICK_PASTE_OPENED]: { tabId: tab.id, at: Date.now() } });
   try {
     await browser.scripting.executeScript({ target: { tabId: tab.id }, files: ['/content-scripts/quickpaste.js'] });
   } catch (e) {
@@ -344,7 +420,7 @@ async function onInstalled(reason: string) {
   if (reason === 'install') {
     void browser.tabs.create({ url: browser.runtime.getURL('/sidepanel.html?onboarding=1') });
   }
-  // The first export reminder comes a month after install, or after this update for earlier installs.
+  // The first export reminder comes a month after the extension is first installed or updated without one set.
   if (!(await getSettings()).backupRemindAfter) await updateSettings({ backupRemindAfter: Date.now() + BACKUP_EVERY });
   const autosaveOn = await syncAutosaveRegistration();
   // An update cuts off the auto-save script in open tabs; give them the new one.
@@ -399,8 +475,7 @@ export default defineBackground(() => {
     if (alarm.name === ALARM_CLEANUP) void cleanup();
   });
 
-  // If the user removes the all-sites permission in Chrome, stop auto-save.
-  browser.permissions.onRemoved.addListener(() => void syncAutosaveRegistration());
+  browser.permissions.onRemoved.addListener((removed) => void onPermissionsRemoved(removed));
   browser.permissions.onAdded.addListener((added) => void onPermissionsAdded(added));
 
   // The toolbar button opens the popup (the full app), which can expand into the panel.
@@ -434,13 +509,17 @@ export default defineBackground(() => {
         void syncAutosaveRegistration().then(sendResponse);
         return true;
       case 'undo-save':
-        void deleteClip(msg.clipId);
+        void undoAllowed(sender, msg.clipId).then(async (ok) => {
+          if (ok) await deleteClip(msg.clipId);
+        });
         return;
       case 'open-clip':
         void openClip(msg.clipId, sender.tab);
         return;
       case 'qp-clips':
-        void quickPasteClips().then(sendResponse);
+        void quickPasteAllowed(sender)
+          .then((ok) => (ok ? quickPasteClips() : { clips: [], shortcut: '' }))
+          .then(sendResponse);
         return true;
       case 'qp-used':
         void markUsed(msg.id);
@@ -478,6 +557,10 @@ export default defineBackground(() => {
     // Test-only: Playwright can't click Chrome's permission prompt.
     if (__E2E__ && msg.type === 'e2e-permissions-added') {
       void onPermissionsAdded({ origins: ['<all_urls>'] }).then(() => sendResponse(true));
+      return true;
+    }
+    if (__E2E__ && msg.type === 'e2e-permissions-removed') {
+      void onPermissionsRemoved({ origins: ['<all_urls>'] }).then(() => sendResponse(true));
       return true;
     }
   });

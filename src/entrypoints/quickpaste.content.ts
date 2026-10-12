@@ -279,7 +279,9 @@ function open() {
   const trap = (e: KeyboardEvent) => {
     if (!host.isConnected) return;
     e.stopPropagation();
-    if (!loaded && e.key !== 'Escape' && !e.isComposing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    // Enter or arrows while typing Chinese, Japanese or Korean belong to the input method, not the box.
+    if (e.isComposing || e.keyCode === 229) return;
+    if (!loaded && e.key !== 'Escape' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
       early.push(e.key);
     } else if (handleKey(e.key)) e.preventDefault();

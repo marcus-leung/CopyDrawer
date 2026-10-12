@@ -1,4 +1,5 @@
 import type { Clip } from '@/lib/db';
+import { markUsed } from '@/lib/clips';
 
 const chip = 'h-8 cursor-pointer rounded-full border border-line-strong bg-bg px-3 text-[13px] font-semibold text-ink';
 
@@ -13,7 +14,12 @@ export function PasteAs({
   notify: (message: string) => void;
 }) {
   async function copyPlain() {
-    await navigator.clipboard.writeText(clip.text);
+    try {
+      await navigator.clipboard.writeText(clip.text);
+    } catch {
+      return notify("Couldn't copy. Click the panel and try again.");
+    }
+    void markUsed(clip.id);
     notify('Copied as plain text');
   }
 

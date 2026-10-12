@@ -144,6 +144,12 @@ test('granting site access turns auto-save on, and tabs already open save withou
   const list = panel.getByRole('list', { name: 'Clips' });
   await expect(list.getByRole('listitem')).toHaveCount(1);
   await expect(list).toContainText('Belém Tower opens at 10:00.');
+
+  // Taking the access away in Chrome turns auto-save off, so the panel stops claiming it saves.
+  await expect(panel.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await panel.evaluate(() => chrome.runtime.sendMessage({ type: 'e2e-permissions-removed' }));
+  expect((await settings())?.autoSave).toBe(false);
+  await expect(panel.getByRole('button', { name: 'Grab clipboard' })).toBeVisible();
 });
 
 test('auto-save ignores copy events the page fakes, and never fetches their images', async ({ context, extensionId }) => {

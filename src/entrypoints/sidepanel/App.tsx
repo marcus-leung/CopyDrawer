@@ -12,7 +12,8 @@ import { useAppearance } from '@/lib/useAppearance';
 import { useSearch } from '@/lib/useSearch';
 import { cancelViewRequest, requestView, useOpenViewRequests, type OpenViewRequest, type View } from '@/lib/openView';
 import { modKey } from '@/lib/format';
-import { listCollections, moveClip } from '@/lib/collections';
+import { moveClip, summarizeCollections } from '@/lib/collections';
+import { db } from '@/lib/db';
 import { CollectionTile } from '@/components/CollectionTile';
 import { NewCollectionForm } from '@/components/NewCollectionForm';
 import { AddClipForm } from '@/components/AddClipForm';
@@ -66,7 +67,11 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   const [creating, setCreating] = useState(false);
   const [adding, setAdding] = useState(false);
   const clips = useLiveQuery(() => listClips(), [], undefined);
-  const summaries = useLiveQuery(() => listCollections(), [], undefined);
+  const collections = useLiveQuery(() => db.collections.toArray(), [], undefined);
+  const summaries = useMemo(
+    () => (clips && collections ? summarizeCollections(collections, clips, now) : undefined),
+    [clips, collections, now],
+  );
   // Every collection a clip is in has clips, so the (non-empty) summaries cover them all.
   const collectionsById = useMemo(() => new Map(summaries?.map((s) => [s.collection.id, s.collection])), [summaries]);
 

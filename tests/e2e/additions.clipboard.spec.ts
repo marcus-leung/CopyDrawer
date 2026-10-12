@@ -142,8 +142,9 @@ test('settings sync with other computers through chrome.storage.sync', async ({ 
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
   const synced = () =>
     panel.evaluate(async () => (await chrome.storage.sync.get('settings')).settings as Record<string, unknown> | undefined);
-  // The first computer publishes its settings.
-  await expect.poll(async () => (await synced())?.theme).toBe('system');
+  // Nothing is published until a setting changes: a new computer's defaults must not overwrite real settings.
+  await panel.waitForTimeout(400);
+  expect(await synced()).toBeUndefined();
 
   // A change here goes to sync; per-computer settings don't.
   await panel.getByRole('button', { name: 'Settings' }).click();

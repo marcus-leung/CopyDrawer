@@ -20,7 +20,11 @@ export function hostOf(url?: string): string | undefined {
   try {
     const u = new URL(url);
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return undefined;
-    return u.hostname.toLowerCase().replace(/^www\./, '');
+    // "bank.com." is the same site as "bank.com": without this, it would slip past the blocked-site list.
+    return u.hostname
+      .toLowerCase()
+      .replace(/\.$/, '')
+      .replace(/^www\./, '');
   } catch {
     return undefined;
   }

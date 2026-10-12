@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, Copy, Pencil, Pin, PinOff, StickyNote, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
@@ -27,9 +27,13 @@ export function ClipDetail({
   onCopy: (clip: Clip) => void;
   onDelete: (id: string) => void;
 }) {
-  const clip = useLiveQuery(() => db.clips.get(id), [id]);
+  // undefined while loading, null once it's gone (deleted from the popup, by Undo on a page, or by auto-delete).
+  const clip = useLiveQuery(async () => (await db.clips.get(id)) ?? null, [id]);
   const [editing, setEditing] = useState(false);
-  if (clip === undefined) return null;
+  useEffect(() => {
+    if (clip === null) onBack();
+  }, [clip, onBack]);
+  if (!clip) return null;
   if (editing) {
     return (
       <EditClip
