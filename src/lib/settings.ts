@@ -1,4 +1,5 @@
 import { storage } from '#imports';
+import type { JoinWith } from './join';
 
 export type ThemePref = 'system' | 'light' | 'dark';
 export type FontPref = 'default' | 'system' | 'mono';
@@ -34,6 +35,8 @@ export interface Settings {
   /** The export reminder shows from this time (0 = not scheduled yet). */
   backupRemindAfter: number;
   backupReminder: boolean;
+  /** What goes between clips copied or pasted together. */
+  joinWith: JoinWith;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -51,6 +54,7 @@ const DEFAULT_SETTINGS: Settings = {
   lastExportAt: 0,
   backupRemindAfter: 0,
   backupReminder: true,
+  joinWith: 'line',
 };
 
 export const PAUSE_MS = 60 * 60 * 1000;

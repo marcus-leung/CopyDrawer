@@ -42,8 +42,14 @@ export function readClips(page: Page) {
 export async function dragAndDrop(page: Page, source: Locator, target: Locator) {
   const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
   await source.dispatchEvent('dragstart', { dataTransfer });
-  for (const type of ['dragenter', 'dragover', 'drop']) await target.dispatchEvent(type, { dataTransfer });
+  for (const type of ['dragenter', 'dragover', 'drop']) await dragOver(target, dataTransfer, type);
   await source.dispatchEvent('dragend', { dataTransfer });
+}
+
+/** A drag event at the middle of `target`, with the pointer position a real drag has. */
+export async function dragOver(target: Locator, dataTransfer: unknown, type = 'dragover') {
+  const box = (await target.boundingBox())!;
+  await target.dispatchEvent(type, { dataTransfer, clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
 }
 
 /** Puts many clips straight into IndexedDB, faster than saving them one by one. Wait for the panel to load first so the database exists. */

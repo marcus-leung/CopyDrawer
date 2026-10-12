@@ -115,7 +115,7 @@ test('search: site filter and "See all" images', async ({ context, extensionId }
   await expect(panel.getByLabel('Type')).toHaveValue('image');
   await expect(list.getByRole('listitem')).toHaveCount(1);
   await panel.getByLabel('Type').selectOption('any');
-  await panel.getByLabel('Site').selectOption('site-a.e2e.test');
+  await panel.getByLabel('Site', { exact: true }).selectOption('site-a.e2e.test');
   await expect(list.getByRole('listitem')).toHaveCount(1);
   await expect(list).toContainText('Notes from site A');
 });

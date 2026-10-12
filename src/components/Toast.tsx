@@ -6,7 +6,8 @@ export interface ToastState {
   onUndo?: () => void;
 }
 
-export function Toast({ toast, onDone }: { toast: ToastState | null; onDone: () => void }) {
+/** `above` sits it just above its parent (a bar pinned to the bottom of the panel) instead of at the bottom. */
+export function Toast({ toast, onDone, above = false }: { toast: ToastState | null; onDone: () => void; above?: boolean }) {
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(onDone, toast.onUndo ? 5000 : 2000);
@@ -18,7 +19,7 @@ export function Toast({ toast, onDone }: { toast: ToastState | null; onDone: () 
     <div
       role="status"
       key={toast.id}
-      className="animate-toast-in pointer-events-none absolute inset-x-[18px] bottom-[18px] z-20 flex items-center justify-between gap-3 rounded-2xl bg-ink py-2.5 pr-2.5 pl-4 text-on-ink shadow-[0_14px_36px_rgba(27,29,42,0.24)]"
+      className={`animate-toast-in pointer-events-none absolute inset-x-[18px] ${above ? 'bottom-full mb-3' : 'bottom-[18px]'} z-20 flex items-center justify-between gap-3 rounded-2xl bg-ink py-2.5 pr-2.5 pl-4 text-on-ink shadow-[0_14px_36px_rgba(27,29,42,0.24)]`}
     >
       <span className="text-[13px]">{toast.message}</span>
       {toast.onUndo && (

@@ -7,6 +7,7 @@ import type { QuickClip } from '@/lib/quickpaste';
 import { modKey } from '@/lib/format';
 import { safeSend } from '@/lib/safeSend';
 import { FONT_STACKS, getSettings } from '@/lib/settings';
+import { joinTexts, type JoinWith } from '@/lib/join';
 
 declare global {
   interface Window {
@@ -30,6 +31,7 @@ const CSS = `
 ul { list-style: none; margin: 0; padding: 6px; max-height: 340px; overflow-y: auto; }
 li { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; cursor: pointer; }
 li[aria-selected="true"] { background: var(--sel); }
+.num { min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px; flex: none; display: grid; place-items: center; background: var(--ink); color: var(--bg); font-weight: 600; font-size: 12px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--line); }
 .txt { min-width: 0; flex: 1; }
 .title, .sub { display: block; }
@@ -137,7 +139,9 @@ function open() {
   const box = el('div', 'box');
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-label', 'Quick paste');
+  let joinWith: JoinWith = 'line';
   void getSettings().then((s) => {
+    joinWith = s.joinWith;
     if (s.theme !== 'system') box.dataset.theme = s.theme;
     if (s.font !== 'default') box.style.fontFamily = FONT_STACKS[s.font];
     if (s.textSize !== 100) box.style.zoom = String(s.textSize / 100);
@@ -162,6 +166,8 @@ function open() {
   let shortcut = '';
   let shown: QuickClip[] = [];
   let selected = 0;
+  /** Clips picked with Tab, in pick order. They stay picked while the filter changes. */
+  let picked: QuickClip[] = [];
   let loaded = false;
   // Keys pressed before the clips arrive (the background may still be waking up), replayed in order.
   const early: string[] = [];
@@ -171,10 +177,19 @@ function open() {
     document.removeEventListener('keydown', trap, true);
   };
 
-  const finish = async (clip: QuickClip) => {
-    const text = clip.text;
+  const togglePick = (c: QuickClip) => {
+    picked = picked.includes(c) ? picked.filter((p) => p !== c) : [...picked, c];
+  };
+
+  const finish = async (chosen: QuickClip[]) => {
+    const singleLine = target.kind === 'field' && target.el instanceof HTMLInputElement;
+    const text = joinTexts(
+      chosen.map((c) => c.text),
+      joinWith,
+      singleLine,
+    );
     close();
-    void safeSend({ type: 'qp-used', id: clip.id });
+    for (const c of chosen) void safeSend({ type: 'qp-used', id: c.id });
     if (!insertAt(target, text)) {
       try {
         await navigator.clipboard.writeText(text);
@@ -200,8 +215,10 @@ function open() {
       const li = el('li');
       li.setAttribute('role', 'option');
       li.setAttribute('aria-selected', String(i === selected));
-      const dot = el('span', 'dot');
-      if (c.color) dot.style.background = c.color;
+      const number = picked.indexOf(c) + 1;
+      li.setAttribute('aria-checked', String(number > 0));
+      const dot = number ? el('span', 'num', String(number)) : el('span', 'dot');
+      if (c.color && !number) dot.style.background = c.color;
       const txt = el('span', 'txt');
       const preview = c.text.replace(/\s+/g, ' ').slice(0, 120);
       txt.append(
@@ -209,14 +226,22 @@ function open() {
         el('span', 'sub', preview === c.title ? [c.collection, c.host].filter(Boolean).join(', ') : preview),
       );
       li.append(dot, txt);
-      if (i === selected) li.append(el('kbd', '', 'Enter'));
+      if (i === selected && !picked.length) li.append(el('kbd', '', 'Enter'));
       li.onmousedown = (e) => {
         e.preventDefault();
-        void finish(c);
+        if (picked.length || e.metaKey || e.ctrlKey) {
+          togglePick(c);
+          render();
+        } else void finish([c]);
       };
       list.append(li);
     });
-    foot.replaceChildren(hint('Enter', 'paste'), hint('Esc', 'close'), el('span', 'r', shortcut));
+    foot.replaceChildren(
+      hint('Tab', 'pick'),
+      hint('Enter', picked.length ? `paste ${picked.length}` : 'paste'),
+      hint('Esc', 'close'),
+      el('span', 'r', shortcut),
+    );
     list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
   };
 
@@ -234,8 +259,16 @@ function open() {
       if (count) selected = (selected + (key === 'ArrowDown' ? 1 : count - 1)) % count;
       render();
     } else if (key === 'Enter') {
-      if (shown[selected]) void finish(shown[selected]!);
-    } else if (key !== 'Tab') return false; // Tab stays in the box, like any dialog.
+      if (picked.length) void finish(picked);
+      else if (shown[selected]) void finish([shown[selected]!]);
+    } else if (key === 'Tab') {
+      // Picks the clip and moves on; focus stays in the box, like any dialog.
+      if (shown[selected]) {
+        togglePick(shown[selected]!);
+        selected = Math.min(selected + 1, count - 1);
+        render();
+      }
+    } else return false;
     return true;
   };
 

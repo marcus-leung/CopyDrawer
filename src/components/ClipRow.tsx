@@ -23,16 +23,27 @@ const KIND_ICON: Record<Exclude<ClipKind, 'image' | 'color'>, typeof Type> = {
   number: Hash,
 };
 
+/** Picking several clips: the row's place in the pick order (0 = not picked) and what a pick does. */
+export interface RowPick {
+  number: number;
+  selecting: boolean;
+  onPick: (e: React.MouseEvent) => void;
+}
+
+const pickKey = (e: React.MouseEvent) => e.metaKey || e.ctrlKey || e.shiftKey;
+
 export function ClipRow({
   clip,
   onOpen,
   onCopy,
   collection,
+  pick,
 }: {
   clip: Clip;
   collection?: Collection;
   onOpen: (clip: Clip) => void;
   onCopy: (clip: Clip) => void;
+  pick?: RowPick;
 }) {
   const host = hostOf(clip.source?.url);
   const from = host ? `from ${host}` : 'saved by hand';
@@ -41,7 +52,7 @@ export function ClipRow({
   const meta = [type, collection?.name, from, shortTime(clip.createdAt)].filter(Boolean).join(', ');
   const dragOut = useDragOut(clip);
   return (
-    <li className="flex min-h-14 items-center gap-3 border-b border-line">
+    <li className="group relative flex min-h-14 items-center gap-3 border-b border-line">
       <button
         type="button"
         draggable
@@ -52,10 +63,19 @@ export function ClipRow({
           dragOut.setData(e.dataTransfer);
           e.dataTransfer.effectAllowed = 'copyMove';
         }}
-        onClick={() => onOpen(clip)}
+        onMouseDown={(e) => {
+          // Shift-click picks a range; without this it also selects the text in between.
+          if (pick && e.shiftKey) e.preventDefault();
+        }}
+        onClick={(e) => (pick && (pick.selecting || pickKey(e)) ? pick.onPick(e) : onOpen(clip))}
+        aria-pressed={pick?.selecting ? pick.number > 0 : undefined}
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-2.5 text-left"
       >
-        <ClipIcon clip={clip} />
+        <span
+          className={`grid size-10 shrink-0 place-items-center ${pick ? (pick.selecting ? 'invisible' : 'group-hover:invisible group-has-[[role=checkbox]:focus-visible]:invisible') : ''}`}
+        >
+          <ClipIcon clip={clip} />
+        </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5 truncate text-sm font-semibold">
             {collection && <CollectionDot collection={collection} />}
@@ -66,14 +86,39 @@ export function ClipRow({
           <span className="block truncate text-xs text-text-3">{meta.charAt(0).toUpperCase() + meta.slice(1)}</span>
         </span>
       </button>
-      <IconButton
-        label={clip.kind === 'image' ? 'Copy image' : 'Copy'}
-        className="size-10 bg-surface hover:opacity-90"
-        onClick={() => onCopy(clip)}
-      >
-        <Copy size={17} aria-hidden />
-      </IconButton>
+      {pick && <PickBox title={clip.title} pick={pick} className="absolute top-1/2 left-0 size-10 -translate-y-1/2" />}
+      {!pick?.selecting && (
+        <IconButton
+          label={clip.kind === 'image' ? 'Copy image' : 'Copy'}
+          className="size-10 bg-surface hover:opacity-90"
+          onClick={() => onCopy(clip)}
+        >
+          <Copy size={17} aria-hidden />
+        </IconButton>
+      )}
     </li>
+  );
+}
+
+/** The checkbox that picks a clip; shows its number once picked. Hidden until hover or focus, then always while picking. */
+export function PickBox({ title, pick, className = '' }: { title: string; pick: RowPick; className?: string }) {
+  const picked = pick.number > 0;
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={picked}
+      aria-label={`Pick ${title}`}
+      onClick={(e) => pick.onPick(e)}
+      className={`grid cursor-pointer place-items-center ${pick.selecting ? '' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'} ${className}`}
+    >
+      <span
+        className={`grid size-[22px] place-items-center rounded-md text-[12px] font-semibold ${picked ? 'bg-ink text-on-ink' : 'border-[1.5px] border-line-strong bg-bg'}`}
+        aria-hidden
+      >
+        {picked ? pick.number : ''}
+      </span>
+    </button>
   );
 }
 

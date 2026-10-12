@@ -27,28 +27,24 @@ export function CollectionTile({
   summary,
   onOpen,
   onDropClip,
-  onDropCollection,
+  reorder,
 }: {
   summary: CollectionSummary;
   onOpen: () => void;
   /** A clip row was dropped on this tile. */
   onDropClip?: (clipId: string) => void;
-  /** Another tile was dropped on this one: it takes this one's place. */
-  onDropCollection?: (collectionId: string) => void;
+  /** Dragging folders to reorder them. Where it lands, and the drop, are worked out by the grid. */
+  reorder?: { dragging: boolean; onStart: () => void; onEnd: () => void };
 }) {
   const { collection, count, newCount } = summary;
   const [over, setOver] = useState(false);
-  const dropType = (e: React.DragEvent) => {
-    const { types } = e.dataTransfer;
-    if (onDropCollection && types.includes(COLLECTION_DRAG_TYPE)) return COLLECTION_DRAG_TYPE;
-    if (onDropClip && types.includes(CLIP_DRAG_TYPE)) return CLIP_DRAG_TYPE;
-    return null;
-  };
+  const isClip = (e: React.DragEvent) => !!onDropClip && e.dataTransfer.types.includes(CLIP_DRAG_TYPE);
   return (
     <li
       style={collectionVars(collection.color)}
+      data-flip-key={collection.id}
       onDragOver={(e) => {
-        if (!dropType(e)) return;
+        if (!isClip(e)) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
         setOver(true);
@@ -56,24 +52,23 @@ export function CollectionTile({
       onDragLeave={() => setOver(false)}
       onDrop={(e) => {
         setOver(false);
-        const type = dropType(e);
-        if (!type) return;
+        if (!isClip(e)) return;
         e.preventDefault();
         e.stopPropagation();
-        const id = e.dataTransfer.getData(type);
-        if (type === COLLECTION_DRAG_TYPE) onDropCollection?.(id);
-        else onDropClip?.(id);
+        onDropClip?.(e.dataTransfer.getData(CLIP_DRAG_TYPE));
       }}
       data-drop-target={over || undefined}
-      className="rounded-xl data-[drop-target]:outline-2 data-[drop-target]:outline-offset-2 data-[drop-target]:outline-ink"
+      className={`rounded-xl transition-opacity data-[drop-target]:outline-2 data-[drop-target]:outline-offset-2 data-[drop-target]:outline-ink ${reorder?.dragging ? 'opacity-40' : ''}`}
     >
       <button
         type="button"
-        draggable={!!onDropCollection}
+        draggable={!!reorder}
         onDragStart={(e) => {
           e.dataTransfer.setData(COLLECTION_DRAG_TYPE, collection.id);
           e.dataTransfer.effectAllowed = 'move';
+          reorder?.onStart();
         }}
+        onDragEnd={() => reorder?.onEnd()}
         onClick={onOpen}
         className="group block w-full cursor-pointer text-left"
       >

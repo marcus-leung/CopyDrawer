@@ -153,7 +153,15 @@ export async function assignCategory(clipId: string, category: CategoryId, db: C
 
 /** The user moves a clip; it stays there. Pass undefined to remove it from any collection. */
 export async function moveClip(clipId: string, collectionId: string | undefined, db: ClipDatabase = defaultDb): Promise<void> {
-  await db.clips.update(clipId, { collectionId, collectionLocked: 1 });
+  await moveClips([clipId], collectionId, db);
+}
+
+export async function moveClips(
+  clipIds: string[],
+  collectionId: string | undefined,
+  db: ClipDatabase = defaultDb,
+): Promise<void> {
+  await db.clips.bulkUpdate(clipIds.map((key) => ({ key, changes: { collectionId, collectionLocked: 1 } })));
 }
 
 /** The first preset no collection uses yet, so new collections look different by default. */

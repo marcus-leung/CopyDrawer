@@ -1,7 +1,5 @@
 import type { BackupFile, ExportedClip } from './backup';
-
-const escape = (s: string) =>
-  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+import { escapeHtml as escape } from './format';
 
 const CSS = `
 :root { color-scheme: light dark; }

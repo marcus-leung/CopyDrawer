@@ -10,6 +10,7 @@ import {
   deleteCollection,
   listCollections,
   moveClip,
+  moveClips,
   moveCollection,
   renameCollection,
 } from '@/lib/collections';
@@ -98,6 +99,20 @@ describe('collections', () => {
     expect((await db.clips.get(c.id))?.collectionId).toBe(mine.id);
     await renameCollection(mine.id, 'Bio essay', db);
     expect((await db.collections.get(mine.id))?.name).toBe('Bio essay');
+  });
+
+  it('moves several clips at once and keeps them there', async () => {
+    const mine = await createCollection('Trip', undefined, db);
+    const a = (await saveClip({ text: 'Hotel Lisboa' }, db))!;
+    const b = (await saveClip({ text: 'Flight TP 1351' }, db))!;
+    await moveClips([a.id, b.id], mine.id, db);
+    const moved = await db.clips.bulkGet([a.id, b.id]);
+    expect(moved.map((c) => [c?.collectionId, c?.collectionLocked])).toEqual([
+      [mine.id, 1],
+      [mine.id, 1],
+    ]);
+    await moveClips([a.id], undefined, db);
+    expect((await db.clips.get(a.id))?.collectionId).toBeUndefined();
   });
 
   it('deleting a collection keeps its clips', async () => {
