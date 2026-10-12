@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Check, Lock } from 'lucide-react';
 import { enableAutosave } from '@/lib/autosave';
-import { updateSettings } from '@/lib/settings';
 import { keyLabel, useShortcuts } from '@/lib/useShortcuts';
 import { COLORS } from '@/lib/collections';
 import { Button } from '@/components/ui';
@@ -13,8 +12,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const [finished, setFinished] = useState(false);
   const keys = useShortcuts();
 
-  async function finish() {
-    await updateSettings({ onboarded: true });
+  function finish() {
     setFinished(true);
   }
 
@@ -68,7 +66,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <div className="mt-6 flex gap-3 rounded-2xl bg-surface p-4">
               <Lock size={18} className="mt-0.5 shrink-0" aria-hidden />
               <p className="text-sm leading-5">
-                <b>Private by design.</b> No account. Your clips stay on this computer. The code is open source.
+                <b>Private by design.</b> No account. Your clips stay on this computer.
               </p>
             </div>
             <Button variant="primary" size="lg" className="mt-8 w-full" onClick={() => setStep(2)}>
@@ -136,7 +134,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             >
               Change shortcuts in Chrome
             </button>
-            <Button variant="primary" size="lg" className="mt-8 w-full" onClick={() => void finish()}>
+            <Button variant="primary" size="lg" className="mt-8 w-full" onClick={finish}>
               Finish
             </Button>
           </section>

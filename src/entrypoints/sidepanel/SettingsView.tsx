@@ -67,9 +67,10 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
   async function importFrom(file: File | undefined) {
     if (!file) return;
     try {
-      const { added, skipped } = await importFile(file);
+      const { added, skipped, noRoom } = await importFile(file);
       const done = added ? `Imported ${added} ${added === 1 ? 'clip' : 'clips'}.` : 'Nothing new to import.';
-      notify(skipped ? `${done} Skipped ${skipped} that couldn't be read.` : done);
+      const full = noRoom ? ` ${noRoom} didn't fit: the history holds ${MAX_CLIPS.toLocaleString()} clips.` : '';
+      notify(`${done}${skipped ? ` Skipped ${skipped} that couldn't be read.` : ''}${full}`);
     } catch (e) {
       notify(e instanceof BackupError ? e.message : "Couldn't read that file.");
     }

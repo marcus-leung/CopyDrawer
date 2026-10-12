@@ -72,9 +72,39 @@ describe('isPrivateHost', () => {
       '169.254.1.1',
       '[::1]',
       'printer.local',
+      'localhost.',
+      '0.0.0.0',
+      '100.64.0.1',
+      'router',
+      'nas.lan',
+      'nas.home.arpa',
+      'db.internal',
+      '[fd00::1]',
+      '[fe80::1]',
+      '[::]',
+      new URL('http://[::ffff:127.0.0.1]/').hostname,
+      new URL('http://[::ffff:192.168.1.1]/').hostname,
     ])
       expect([h, isPrivateHost(h)]).toEqual([h, true]);
-    for (const h of ['example.com', '8.8.8.8', '172.32.0.1', '11.0.0.1', 'cdn.example.local.com'])
+    for (const h of [
+      'example.com',
+      '8.8.8.8',
+      '172.32.0.1',
+      '11.0.0.1',
+      'cdn.example.local.com',
+      '100.128.0.1',
+      '[2001:4860:4860::8888]',
+      new URL('http://[::ffff:8.8.8.8]/').hostname,
+    ])
       expect([h, isPrivateHost(h)]).toEqual([h, false]);
+  });
+});
+
+describe('blocked sites', () => {
+  it('a trailing dot does not get past the list', async () => {
+    const { isBlocked } = await import('@/lib/exclusions');
+    expect(isBlocked('https://chase.com./login', [])).toBe(true);
+    expect(isBlocked('https://mail.google.com./', [])).toBe(true);
+    expect(isBlocked('https://example.com./', ['example.com'])).toBe(true);
   });
 });

@@ -14,7 +14,8 @@ export function usePanelInput(save: (contents: Contents) => void): boolean {
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       if (e.defaultPrevented) return;
-      if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable="true"]')) return;
+      if (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]:not([contenteditable="false"])'))
+        return;
       const contents = fromDataTransfer(e.clipboardData);
       if (!contents.text.trim() && !contents.images.length) return;
       e.preventDefault();

@@ -111,7 +111,7 @@ describe('export file', () => {
     const zip = await exportZip(await sampleDb());
     const other = new ClipDatabase(`test-${crypto.randomUUID()}`);
     await other.open();
-    expect(await importFile(zip, other)).toEqual({ added: 3, skipped: 0 });
+    expect(await importFile(zip, other)).toEqual({ added: 3, skipped: 0, noRoom: 0 });
     const clips = await other.clips.toArray();
     const pinned = clips.find((c) => c.text.startsWith('Lemon'))!;
     expect(pinned.pinned).toBe(1);
@@ -131,6 +131,7 @@ describe('export file', () => {
     expect(await importFile(new Blob([JSON.stringify(v1)], { type: 'application/json' }), other)).toEqual({
       added: 1,
       skipped: 0,
+      noRoom: 0,
     });
   });
 
@@ -195,6 +196,69 @@ describe('import tells you what it could not take', () => {
     clips,
   });
 
+  it('keeps only well-formed fields from the file, so a bad field cannot break a later export', async () => {
+    const { importBackup, exportBackup } = await import('@/lib/backup');
+    const db = await newDb();
+    const file = {
+      ...v2([
+        {
+          id: 'x',
+          kind: 'text',
+          text: 'Hello from a file',
+          title: 42,
+          html: { not: 'a string' },
+          source: { url: 7, title: ['t'] },
+          stripRank: 'high',
+          extra: 'kept?',
+          collectionId: 'c1',
+        },
+      ]),
+      collections: [
+        { id: 'c1', key: { bad: 1 }, name: 'Bad key' },
+        { id: 'c2', key: 'manual:c2', name: 'Fine', color: 7, kind: 'weird' },
+      ],
+    };
+    expect(await importBackup(file, db)).toEqual({ added: 1, skipped: 0, noRoom: 0 });
+    const [clip] = await db.clips.toArray();
+    expect(clip).toMatchObject({ text: 'Hello from a file', title: 'Hello from a file' });
+    expect(clip!.html).toBeUndefined();
+    expect(clip!.source).toBeUndefined();
+    expect(clip!.stripRank).toBeUndefined();
+    expect('extra' in clip!).toBe(false);
+    const cols = await db.collections.toArray();
+    expect(cols.map((c) => [c.name, c.color, c.kind])).toEqual([['Fine', 'grey', 'manual']]);
+    await expect(exportBackup(db)).resolves.toBeTruthy();
+  });
+
+  it('never deletes clips to make room: what does not fit is counted', async () => {
+    const { importBackup } = await import('@/lib/backup');
+    const { MAX_CLIPS } = await import('@/lib/clips');
+    const db = await newDb();
+    await db.clips.bulkAdd(
+      Array.from({ length: MAX_CLIPS - 1 }, (_, i) => ({
+        id: `own-${i}`,
+        kind: 'text' as const,
+        text: `own ${i}`,
+        title: `own ${i}`,
+        hash: `own-${i}`,
+        createdAt: 1,
+        lastUsedAt: 0,
+        useCount: 0,
+        pinned: 0 as const,
+      })),
+    );
+    const incoming = ['a', 'b', 'c'].map((t, i) => ({
+      id: `in-${i}`,
+      kind: 'text',
+      text: `incoming ${t}`,
+      title: t,
+      createdAt: 2,
+    }));
+    expect(await importBackup(v2(incoming), db)).toEqual({ added: 1, skipped: 0, noRoom: 2 });
+    expect(await db.clips.count()).toBe(MAX_CLIPS);
+    expect(await db.clips.get('own-0')).toBeDefined();
+  });
+
   it('finds clips.json in a re-zipped folder', async () => {
     const { zipSync, strToU8 } = await import('fflate');
     const { importFile } = await import('@/lib/backup');
@@ -205,7 +269,7 @@ describe('import tells you what it could not take', () => {
       'clipboard-export-2026-10-11/images/1.png': PNG,
       'clipboard-export-2026-10-11/.thumbnails/1.png': PNG,
     });
-    expect(await importFile(new Blob([zip.slice()]), await newDb())).toEqual({ added: 1, skipped: 0 });
+    expect(await importFile(new Blob([zip.slice()]), await newDb())).toEqual({ added: 1, skipped: 0, noRoom: 0 });
   });
 
   it('asks for the whole .zip when given its clips.json alone', async () => {
@@ -241,7 +305,7 @@ describe('import tells you what it could not take', () => {
       'images/3.png': big,
     });
     const db = await newDb();
-    expect(await importFile(new Blob([zip.slice()]), db)).toEqual({ added: 1, skipped: 3 });
+    expect(await importFile(new Blob([zip.slice()]), db)).toEqual({ added: 1, skipped: 3, noRoom: 0 });
     const [kept] = await db.clips.toArray();
     // The hash comes from the bytes, not from the file.
     expect(kept!.hash).not.toBe('img:ok');
@@ -321,7 +385,7 @@ describe('import rebuilds images instead of trusting the file', () => {
       '.thumbnails/1.png': strToU8('<script>alert(1)</script>'),
       'images/2.png': strToU8('<html>not a picture</html>'),
     });
-    expect(await importFile(new Blob([zip.slice()]), db)).toEqual({ added: 1, skipped: 1 });
+    expect(await importFile(new Blob([zip.slice()]), db)).toEqual({ added: 1, skipped: 1, noRoom: 0 });
     const [kept] = await db.clips.toArray();
     expect(kept!.image).toMatchObject({ width: 2, height: 3, mime: 'image/png', bytes: PNG.length });
     expect(kept!.image!.thumb.type).toBe('image/webp');

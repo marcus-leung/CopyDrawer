@@ -8,3 +8,4 @@ playwright-report/
 .output-e2e/
 verify-evidence/
 bench-results.jsonl
+.DS_Store

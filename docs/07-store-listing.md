@@ -17,13 +17,14 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 >
 > **Saved, sorted, found**
 > • Save text, links, images and screenshots: shortcut, right-click, drag and drop, or automatically when you copy (optional).
-> • Collections fill themselves: Research, Shopping, Recipes, Code… and trips named after the place ("Lisbon trip"). Make your own and pick any color.
+> • Collections fill themselves: Research, Shopping, Recipes, Code… and trips named after the place ("Lisbon trip"). Make your own, pick any color, and drag them into the order you like.
 > • Drag images to reorder them, file them in a collection, or drop them straight onto a page.
 > • Search that forgives typos, with filters for type, site and date.
 >
 > **Paste it back anywhere**
 > • Alt+Shift+V opens quick paste in any text box. Type, press Enter, done.
 > • Clips with formatting paste as is or as plain text.
+> • Pick several clips and copy them together, in the order you choose.
 >
 > **Smart actions**
 > • Tracking number → Track package. Date → Add to calendar. Address → Open in Maps. Flight number → status.
@@ -76,5 +77,7 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 
 ## 5. Before submitting: open items
 
-- [ ] Final name and trademark check.
 - [ ] Screenshots and promo tile.
+- [ ] Trademark check ([08-branding.md](08-branding.md) §4).
+- [ ] Developer account ($5 one-time, non-trader).
+- [ ] Upload the zip.

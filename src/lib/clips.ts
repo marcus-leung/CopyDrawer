@@ -1,7 +1,7 @@
 import { db as defaultDb, type Clip, type ClipDatabase, type ClipKind, type ClipSource, type StoredImage } from './db';
 import { autoAssign } from './collections';
-import { cleanUrl } from './actions';
 import { detectKind, KIND_WORDS } from './kinds';
+import { MAX_HTML, MAX_TEXT } from './limits';
 
 export { detectKind };
 
@@ -14,8 +14,8 @@ interface NewClip {
   source?: ClipSource;
 }
 
+/** FNV-1a, 32-bit, over the text with spacing collapsed. A lookup key only: `findSameText` confirms a match. */
 export function hashText(text: string): string {
-  // FNV-1a, 32-bit. Good enough to spot exact duplicates.
   let h = 0x811c9dc5;
   const s = text.trim().replace(/\s+/g, ' ');
   for (let i = 0; i < s.length; i++) {
@@ -56,22 +56,31 @@ export function saveTime(): number {
  * top instead of creating a new one. Returns the saved clip, or null when the
  * text is empty.
  */
+/** A saved clip with exactly this text (ignoring leading and trailing spaces). Clips that differ in spacing stay separate. */
+export async function findSameText(text: string, db: ClipDatabase = defaultDb): Promise<Clip | undefined> {
+  const same = text.trim();
+  return db.clips
+    .where('hash')
+    .equals(hashText(text))
+    .filter((c) => c.kind !== 'image' && c.text.trim() === same)
+    .first();
+}
+
 export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Promise<Clip | null> {
-  let text = input.text.replace(/\r\n/g, '\n');
+  const text = input.text.replace(/\r\n/g, '\n').slice(0, MAX_TEXT);
   if (!text.trim()) return null;
-  // Links are saved without tracking parameters (utm_*, fbclid…).
-  if (detectKind(text) === 'link') text = cleanUrl(text.trim());
+  const html = input.html?.slice(0, MAX_HTML) || undefined;
   const hash = hashText(text);
   const now = saveTime();
 
   return db.transaction('rw', [db.clips, db.images, db.collections], async () => {
-    const existing = await db.clips.where('hash').equals(hash).first();
+    const existing = await findSameText(text, db);
     if (existing) {
       const updated: Clip = {
         ...existing,
         createdAt: now,
         source: input.source ?? existing.source,
-        html: input.html ?? existing.html,
+        html: html ?? existing.html,
       };
       await db.clips.put(updated);
       return updated;
@@ -84,7 +93,7 @@ export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Pr
       useCount: 0,
       kind,
       text,
-      html: input.html || undefined,
+      html,
       title: makeTitle(text, kind),
       source: input.source,
       pinned: 0,
@@ -98,11 +107,13 @@ export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Pr
   });
 }
 
-/** Deletes clips and any image files they own. */
+/** Deletes clips and any image files they own, together. */
 async function removeClips(db: ClipDatabase, clips: Clip[]): Promise<void> {
-  await db.clips.bulkDelete(clips.map((c) => c.id));
-  const imageIds = clips.flatMap((c) => (c.image ? [c.image.imageId] : []));
-  if (imageIds.length) await db.images.bulkDelete(imageIds);
+  await db.transaction('rw', db.clips, db.images, async () => {
+    await db.clips.bulkDelete(clips.map((c) => c.id));
+    const imageIds = clips.flatMap((c) => (c.image ? [c.image.imageId] : []));
+    if (imageIds.length) await db.images.bulkDelete(imageIds);
+  });
 }
 
 /** Drops the oldest unpinned clips until the history fits MAX_CLIPS. */
@@ -229,15 +240,23 @@ export async function moveInStrip(id: string, beforeId: string, strip: Clip[], d
 }
 
 export async function togglePin(id: string, db: ClipDatabase = defaultDb): Promise<void> {
-  const clip = await db.clips.get(id);
-  if (!clip) return;
-  await db.clips.update(id, { pinned: clip.pinned === 1 ? 0 : 1 });
+  await db.clips
+    .where(':id')
+    .equals(id)
+    .modify((c) => {
+      c.pinned = c.pinned === 1 ? 0 : 1;
+    });
 }
 
 export async function markUsed(id: string, db: ClipDatabase = defaultDb): Promise<void> {
-  const clip = await db.clips.get(id);
-  if (!clip) return;
-  await db.clips.update(id, { lastUsedAt: Date.now(), useCount: clip.useCount + 1 });
+  const now = Date.now();
+  await db.clips
+    .where(':id')
+    .equals(id)
+    .modify((c) => {
+      c.lastUsedAt = now;
+      c.useCount += 1;
+    });
 }
 
 /** Unpinned clips older than `days`. 0 means keep forever. */

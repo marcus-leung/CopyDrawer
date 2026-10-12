@@ -58,8 +58,8 @@ interface NewImage {
   note?: string;
 }
 
-/** Saves an image clip; duplicates (same bytes) move to the top. */
-export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultDb): Promise<Clip> {
+/** Saves an image clip; duplicates (same bytes) move to the top. `created` is false for those. */
+export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultDb): Promise<{ clip: Clip; created: boolean }> {
   const { blob } = input;
   checkImage(blob);
 
@@ -73,7 +73,7 @@ export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultD
     if (existing) {
       const updated = { ...existing, createdAt: now, source: input.source ?? existing.source, note: note ?? existing.note };
       await db.clips.put(updated);
-      return updated;
+      return { clip: updated, created: false };
     }
     const imageId = crypto.randomUUID();
     await db.images.add({ id: imageId, blob });
@@ -94,7 +94,7 @@ export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultD
     await db.clips.add(clip);
     const sorted = await autoAssign(clip, db);
     await enforceLimit(db);
-    return sorted;
+    return { clip: sorted, created: true };
   });
 }
 

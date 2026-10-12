@@ -1,6 +1,6 @@
 # Quick paste
 
-On any page, Alt+Shift+V opens a small box over the focused field. The user filters their clips and presses Enter to paste one into the field.
+On any page, Alt+Shift+V opens a small box over the focused field. The user filters their clips and presses Enter to paste one into the field, or presses Tab on several to pick them (numbered) and Enter to paste them joined.
 
 ## Sub-features
 

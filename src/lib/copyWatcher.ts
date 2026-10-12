@@ -1,4 +1,5 @@
 import { extensionAlive, safeSend } from './safeSend';
+import { MAX_HTML, MAX_TEXT } from './limits';
 
 /**
  * Sends what's copied or cut in `win` (text, or a selected image) to the
@@ -14,7 +15,8 @@ export function watchCopies(win: Window): () => void {
     // Page scripts can dispatch copy events of their own; only the user's count.
     if (!event.isTrusted) return;
     if (!extensionAlive()) return stop();
-    const target = event.target;
+    // The element actually copied from, also inside web components (where `target` is only their outer element).
+    const target = event.composedPath()[0] ?? null;
     // Never read password fields.
     if (target instanceof HTMLInputElement && target.type === 'password') return;
 
@@ -35,8 +37,8 @@ export function watchCopies(win: Window): () => void {
         ? { type: 'autosave-image', srcUrl }
         : {
             type: 'autosave-copy',
-            text: text.slice(0, 200_000),
-            html: html.slice(0, 400_000) || undefined,
+            text: text.slice(0, MAX_TEXT),
+            html: html.slice(0, MAX_HTML) || undefined,
             title: win.document.title,
           },
     );

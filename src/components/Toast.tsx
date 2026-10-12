@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 
 export interface ToastState {
   id: number;
@@ -8,11 +8,13 @@ export interface ToastState {
 
 /** `above` sits it just above its parent (a bar pinned to the bottom of the panel) instead of at the bottom. */
 export function Toast({ toast, onDone, above = false }: { toast: ToastState | null; onDone: () => void; above?: boolean }) {
+  // Timed from when this toast appeared: the panel re-rendering (a new onDone each time) must not restart it.
+  const done = useEffectEvent(onDone);
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(onDone, toast.onUndo ? 5000 : 2000);
+    const t = setTimeout(() => done(), toast.onUndo ? 5000 : 2000);
     return () => clearTimeout(t);
-  }, [toast, onDone]);
+  }, [toast]);
 
   if (!toast) return null;
   return (

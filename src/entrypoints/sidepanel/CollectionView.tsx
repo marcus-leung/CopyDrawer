@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { db, type Clip } from '@/lib/db';
@@ -38,7 +38,8 @@ export function CollectionView({
   notify: (message: string) => void;
   selection: Selection;
 }) {
-  const collection = useLiveQuery(() => db.collections.get(id), [id]);
+  // undefined while loading, null once it's gone (deleted from the popup, for example).
+  const collection = useLiveQuery(async () => (await db.collections.get(id)) ?? null, [id]);
   const clips = useLiveQuery(() => db.clips.where('collectionId').equals(id).toArray(), [id]);
   const [sort, setSort] = useState<Sort>('newest');
   const [editing, setEditing] = useState(false);
@@ -51,8 +52,11 @@ export function CollectionView({
     true,
   );
 
-  if (collection === undefined || clips === undefined) return null;
-  if (collection === null) return null;
+  useEffect(() => {
+    if (collection === null) onBack();
+  }, [collection, onBack]);
+
+  if (!collection || clips === undefined) return null;
 
   async function remove() {
     if (!collection) return;

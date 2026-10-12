@@ -3,8 +3,15 @@
  * They must be self-contained: no imports, no closures over module scope.
  */
 
-/** Shows a small "saved" card at the bottom right of the page, in Shadow DOM. */
-export function showSavedToast(args: { title: string; detail: string; clipId: string; thumbUrl?: string; openShadow?: boolean }) {
+/** Shows a small card at the bottom right of the page, in Shadow DOM: "saved" with Open and Undo, or, without a clip, why nothing was saved. */
+export function showSavedToast(args: {
+  title: string;
+  detail: string;
+  clipId?: string;
+  undo?: boolean;
+  thumbUrl?: string;
+  openShadow?: boolean;
+}) {
   const HOST_ID = '__clipboard_ext_toast__';
   document.getElementById(HOST_ID)?.remove();
   const host = document.createElement('div');
@@ -52,11 +59,16 @@ export function showSavedToast(args: { title: string; detail: string; clipId: st
       // Extension reloaded; nothing to tell.
     }
   };
-  root.querySelector('.undo')!.addEventListener('click', () => {
+  if (!args.clipId) {
+    for (const el of root.querySelectorAll('.thumb, .open')) el.remove();
+    (root.querySelector('.detail') as HTMLElement).style.whiteSpace = 'normal';
+  }
+  if (!args.undo || !args.clipId) root.querySelector('.undo')!.remove();
+  root.querySelector('.undo')?.addEventListener('click', () => {
     send({ type: 'undo-save', clipId: args.clipId });
     remove();
   });
-  root.querySelector('.open')!.addEventListener('click', () => {
+  root.querySelector('.open')?.addEventListener('click', () => {
     send({ type: 'open-clip', clipId: args.clipId });
     remove();
   });
@@ -114,7 +126,9 @@ export function selectArea(): Promise<{ x: number; y: number; w: number; h: numb
       }
     };
     root.querySelector('button')!.addEventListener('click', () => finish(null));
+    // Only the user's own pointer counts: the page can't pick an area to capture with events it makes up.
     host.addEventListener('pointerdown', (e) => {
+      if (!e.isTrusted) return;
       if (bar.contains(e.composedPath()[0] as Node)) return;
       start = { x: e.clientX, y: e.clientY };
       dim.style.display = 'none';
@@ -122,7 +136,7 @@ export function selectArea(): Promise<{ x: number; y: number; w: number; h: numb
       host.setPointerCapture(e.pointerId);
     });
     host.addEventListener('pointermove', (e) => {
-      if (!start) return;
+      if (!start || !e.isTrusted) return;
       rect = {
         x: Math.min(start.x, e.clientX),
         y: Math.min(start.y, e.clientY),
@@ -132,8 +146,8 @@ export function selectArea(): Promise<{ x: number; y: number; w: number; h: numb
       Object.assign(box.style, { left: `${rect.x}px`, top: `${rect.y}px`, width: `${rect.w}px`, height: `${rect.h}px` });
       size.textContent = `${Math.round(rect.w)} × ${Math.round(rect.h)}`;
     });
-    host.addEventListener('pointerup', () => {
-      if (start) finish(rect);
+    host.addEventListener('pointerup', (e) => {
+      if (start && e.isTrusted) finish(rect);
     });
     window.addEventListener('keydown', onKey, true);
     document.documentElement.appendChild(host);

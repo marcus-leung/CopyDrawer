@@ -10,7 +10,7 @@ import { useListPicks, type RowPick, type Selection } from '@/lib/useSelection';
 /** Marks a drag that started in the strip, so dropping on another tile reorders. */
 const STRIP_DRAG_TYPE = 'application/x-copydrawer-strip';
 
-/** Recent images and colors, side by side (home, Folders design). Drag to reorder, file or drag out. */
+/** Recent images and colors, side by side on home. Drag to reorder, file or drag out. */
 export function ImageStrip({
   clips,
   onOpen,

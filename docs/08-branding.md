@@ -1,6 +1,6 @@
 # 08 · Branding
 
-The product name, the checks behind it, and which domains to buy. Store copy: [07-store-listing.md](07-store-listing.md).
+The product name, the checks behind it, and where it lives online. Store copy: [07-store-listing.md](07-store-listing.md).
 
 ## 1. Name
 
@@ -58,10 +58,10 @@ The only other use is "Copy Drawers", a menu command in Thomson Reuters FileCabi
 
 Checks were from search results and DNS. **Before launch:**
 
-- [ ] Buy the domains (confirms they're free).
+- Domains: not buying any (see §5).
 - [ ] Search "copydrawer" at [tmsearch.uspto.gov](https://tmsearch.uspto.gov), class 009 (software).
-- [ ] Search the Chrome Web Store and Edge Add-ons directly.
-- [ ] Claim @copydrawer on X, Instagram and GitHub.
+- [ ] Search the Chrome Web Store directly.
+- [ ] Optional: claim @copydrawer on X and Instagram.
 
 ## 5. Domains
 
@@ -79,7 +79,9 @@ USD per year, 2026. Cloudflare sells at cost, so renewals cost the same as the f
 | copydrawer.io | $50.00 | $34.98 | $75.98 |
 | copydrawer.ai | $80.00 (2-year minimum) | $89.98 | $114.98 |
 
-**Decision:** copydrawer.com (main site) + copydrawer.app (protection) at Cloudflare, about $25/year. Skip .io and .ai: costly, little gain for a browser extension. Cloudflare requires its own DNS, which is free.
+Prices kept for reference.
+
+**Decision:** no domain and no business email. Contact is leungmarcus89@gmail.com. The privacy policy is hosted free on GitHub Pages at https://marcus-leung.github.io/CopyDrawer/privacy, from the public repo `marcus-leung/CopyDrawer`.
 
 ## Sources
 

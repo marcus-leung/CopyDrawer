@@ -17,9 +17,15 @@ test('smart actions, images and colors strip, toolbar popup expands to the panel
   });
   const list = panel.getByRole('list', { name: 'Clips' });
   await expect(list.getByRole('listitem')).toHaveCount(3);
-  // Tracking parameters are gone from the saved link.
+  // The link is kept as copied; the clip offers a copy without the tracking parameters.
   await expect(list).toContainText('shop.test/lamp');
-  await expect(list).not.toContainText('utm_source');
+  await expect
+    .poll(async () => (await readClips(panel)).map((c) => c.text))
+    .toContain('https://shop.test/lamp?utm_source=news&color=warm');
+  await list.getByRole('button', { name: /shop\.test\/lamp/ }).click();
+  await panel.getByRole('button', { name: 'Copy without tracking' }).click();
+  await expect.poll(() => panel.evaluate(() => navigator.clipboard.readText())).toBe('https://shop.test/lamp?color=warm');
+  await panel.getByRole('button', { name: 'Back' }).click();
   await expect(panel.getByRole('list', { name: 'Images and colors' }).getByRole('button')).toHaveCount(1);
   await expect(panel.getByText('Try pasting it back')).toBeVisible();
   await panel.getByRole('button', { name: 'Got it' }).click();

@@ -56,7 +56,7 @@ export function topSites(clips: Clip[], limit = 12): string[] {
 }
 
 /** Edit distance up to `max` (early exit beyond it). */
-export function withinEdits(a: string, b: string, max: number): boolean {
+function withinEdits(a: string, b: string, max: number): boolean {
   if (Math.abs(a.length - b.length) > max) return false;
   let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
   for (let i = 1; i <= a.length; i++) {
@@ -78,7 +78,7 @@ const WORD = /[\p{L}\p{N}]+/gu;
  * Every query word appears in the clip, allowing small typos in longer words
  * ("photosynthsis" finds "Photosynthesis"): 1 edit from 5 letters, 2 from 9.
  */
-export function matchesWithTypos(clip: Clip, query: string): boolean {
+function matchesWithTypos(clip: Clip, query: string): boolean {
   const words = query.toLowerCase().match(WORD) ?? [];
   if (!words.length) return false;
   const hay =

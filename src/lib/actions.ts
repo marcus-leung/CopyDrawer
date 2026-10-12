@@ -207,7 +207,7 @@ function icsDate(d: Date, allDay: boolean): string {
 function icsText(s: string): string {
   return s
     .replace(/\\/g, '\\\\')
-    .replace(/\n/g, '\\n')
+    .replace(/\r\n?|\n/g, '\\n')
     .replace(/[,;]/g, (c) => `\\${c}`);
 }
 
@@ -268,7 +268,7 @@ export function findAddress(text: string): string | null {
   return null;
 }
 
-export interface Tracking {
+interface Tracking {
   carrier: string;
   number: string;
   url: string;
@@ -375,7 +375,7 @@ export function detectActions(clip: { kind: string; text: string }, now = new Da
       out.actions.push({ kind: 'copy', label: 'Copy tidy', text: JSON.stringify(json, null, 2) });
       out.actions.push({ kind: 'copy', label: 'Copy on one line', text: JSON.stringify(json) });
     } catch {
-      // Saved as JSON under older rules; nothing to offer.
+      // Marked JSON but doesn't parse: no JSON actions.
     }
     return out;
   }

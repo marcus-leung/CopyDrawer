@@ -58,14 +58,26 @@ describe('saveClip', () => {
     expect((await db.clips.get(clip!.id))?.source?.url).toBe('https://example.com');
   });
 
-  it('merges exact duplicates (ignoring whitespace) and moves them to the top', async () => {
-    const a = await saveClip({ text: 'Same  text' }, db);
+  it('merges the same text (ignoring leading and trailing spaces) and moves it to the top', async () => {
+    const a = await saveClip({ text: 'Same text' }, db);
     await saveClip({ text: 'Other' }, db);
-    const again = await saveClip({ text: 'Same text\n' }, db);
+    const again = await saveClip({ text: '  Same text\n' }, db);
     expect(again?.id).toBe(a?.id);
     expect(await db.clips.count()).toBe(2);
     expect((await listClips(db))[0]?.id).toBe(a?.id);
-    expect(hashText('Same  text')).toBe(hashText('Same text'));
+  });
+
+  it('keeps text that differs only in spacing, such as re-indented code', async () => {
+    const two = await saveClip({ text: 'def f(x):\n  return x' }, db);
+    const four = await saveClip({ text: 'def f(x):\n    return x' }, db);
+    expect(hashText(two!.text)).toBe(hashText(four!.text));
+    expect(four?.id).not.toBe(two?.id);
+    expect((await db.clips.get(four!.id))?.text).toBe('def f(x):\n    return x');
+  });
+
+  it('keeps a link exactly as copied', async () => {
+    const link = 'https://shop.test/p?utm_source=x&color=red';
+    expect((await saveClip({ text: link }, db))?.text).toBe(link);
   });
 });
 
@@ -175,8 +187,8 @@ describe('backup', () => {
 
     const other = new ClipDatabase(`test-${crypto.randomUUID()}`);
     await other.open();
-    expect(await importFile(zip, other)).toEqual({ added: 3, skipped: 0 });
-    expect(await importFile(zip, other)).toEqual({ added: 0, skipped: 0 });
+    expect(await importFile(zip, other)).toEqual({ added: 3, skipped: 0, noRoom: 0 });
+    expect(await importFile(zip, other)).toEqual({ added: 0, skipped: 0, noRoom: 0 });
     const research = (await other.clips.toArray()).find((c) => c.text === 'Photosynthesis')!;
     expect((await other.collections.get(research.collectionId!))?.name).toBe('Research');
     const img = (await other.clips.toArray()).find((c) => c.kind === 'image')!;
@@ -206,7 +218,7 @@ describe('backup', () => {
         { id: 'future', kind: 'text', text: 'from the future', hash: 'h2', title: 'future', createdAt: now + 1e12 },
       ],
     };
-    expect(await importBackup(file, db)).toEqual({ added: 2, skipped: 4 });
+    expect(await importBackup(file, db)).toEqual({ added: 2, skipped: 4, noRoom: 0 });
     const clips = await db.clips.toArray();
     expect(clips.map((c) => c.text).sort()).toEqual(['from the future', 'no id, no dates']);
     const plain = clips.find((c) => c.text === 'no id, no dates')!;
@@ -269,7 +281,7 @@ describe('settings sync', () => {
         textSize: 115,
         popupSize: 'large',
         retentionDays: 30,
-        blockedSites: ['a.com', 5],
+        blockedSites: ['a.com', 5, 'com', '*.B.com', 'https://www.c.com/x', 'a.com'],
         smartModel: false,
         saveInIncognito: 'yes',
         autoSave: true,
@@ -280,11 +292,20 @@ describe('settings sync', () => {
       textSize: 115,
       popupSize: 'large',
       retentionDays: 30,
-      blockedSites: ['a.com'],
+      blockedSites: ['a.com', 'b.com', 'c.com'],
     });
     expect(validSynced({ font: 'comic', textSize: 200, popupSize: 'huge' })).toEqual({});
     expect(validSynced({ theme: 'neon', retentionDays: 7 })).toEqual({});
     expect(validSynced(null)).toEqual({});
+  });
+
+  it("keeps the synced copy within Chrome sync's item size, dropping the oldest blocked sites", async () => {
+    const { syncedCopy, getSettings } = await import('@/lib/settings');
+    const many = Array.from({ length: 500 }, (_, i) => `site-number-${i}.example.com`);
+    const copy = syncedCopy({ ...(await getSettings()), blockedSites: many }, 1);
+    expect(new TextEncoder().encode(JSON.stringify(copy)).length).toBeLessThanOrEqual(8_000);
+    expect(copy.blockedSites.at(-1)).toBe(many.at(-1));
+    expect(copy.blockedSites.length).toBeGreaterThan(100);
   });
 });
 

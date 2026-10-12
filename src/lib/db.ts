@@ -6,7 +6,6 @@ export type { ClipKind };
 export interface ClipSource {
   url?: string;
   title?: string;
-  favicon?: string;
 }
 
 interface ClipImage {
@@ -16,7 +15,7 @@ interface ClipImage {
   width: number;
   height: number;
   bytes: number;
-  /** Small JPEG/PNG preview shown in lists. */
+  /** Small WebP preview shown in lists. */
   thumb: Blob;
   /** Where the image came from on the web, when known. */
   srcUrl?: string;
@@ -83,7 +82,7 @@ export class ClipDatabase extends Dexie {
       clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId, embeddingModel',
       collections: 'id, &key, order',
     });
-    // Search vectors and AI titles from earlier versions are no longer used.
+    // Drops the embedding fields; titles the AI model wrote count as rule titles.
     this.version(4)
       .stores({ clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId' })
       .upgrade((tx) =>
@@ -96,7 +95,7 @@ export class ClipDatabase extends Dexie {
             if (c.titleSource === 'ai') c.titleSource = 'heuristic';
           }),
       );
-    // Emails, phone numbers, colors, JSON, dates, addresses and numbers became types of their own.
+    // Re-detects text and code clips, giving emails, phone numbers, colors, JSON, dates, addresses and numbers their own types.
     this.version(5)
       .stores({})
       .upgrade((tx) =>
@@ -107,7 +106,7 @@ export class ClipDatabase extends Dexie {
             if (c.kind === 'text' || c.kind === 'code') c.kind = detectKind(c.text);
           }),
       );
-    // A color now needs a #, rgb() or hsl(): bare hex like "2FA" or a git hash goes back to text.
+    // Re-detects colors: without #, rgb() or hsl(), bare hex like "2FA" or a git hash is text.
     this.version(6)
       .stores({})
       .upgrade((tx) =>
@@ -118,7 +117,7 @@ export class ClipDatabase extends Dexie {
             if (c.kind === 'color') c.kind = detectKind(c.text);
           }),
       );
-    // Collections stopped sorting by size: keep the order they were showing in (most clips first).
+    // Sets each collection's order once, most clips first; from then on they keep the order the user gives them.
     this.version(7)
       .stores({})
       .upgrade(async (tx) => {
