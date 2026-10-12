@@ -1,10 +1,10 @@
 # Export
 
-Settings → Export (or Export now on the backup reminder) downloads `clipboard-export-YYYY-MM-DD.zip`: `clips.html` to read in any browser, `clips.json` (version 2, pretty-printed) that Import reads, `images/` with the full-size files and `.thumbnails/` with list previews. Import takes the .zip or an older .json export.
+Settings → Export (or Export now on the backup reminder) downloads `clipboard-export-YYYY-MM-DD.zip`: `clips.html` to read in any browser, `clips.json` (version 2, pretty-printed) that Import reads, and `images/` with the full-size files. Import takes the .zip (also one zipped again as a folder) or an older .json export; it rebuilds previews and sizes from the images, and skips anything that isn't a real image under 20 MB.
 
 ## Sub-features
 
-- `export-zip` the download is a .zip with clips.html, clips.json, images/ and .thumbnails/.
+- `export-zip` the download is a .zip with clips.html, clips.json and images/.
 - `export-page` clips.html groups clips by collection with dates, sources, notes, pins and images; all text is escaped.
 - `import-zip` importing the .zip restores clips, folders, pins, notes and image bytes; nothing is duplicated on a second import.
 - `import-v1` an older single-file .json export still imports.

@@ -1,22 +1,22 @@
 /**
  * Export and import. An export is a .zip: clips.html to read, clips.json (what Import reads),
- * images/ with the full-size files and .thumbnails/ with the list previews.
+ * and images/ with the full-size files. Import rebuilds previews, so an older export's .thumbnails/ is ignored.
  * Older exports were a single .json with images inlined as data URLs; Import still reads those.
  */
 import { strFromU8, strToU8, unzipSync, Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import { db as defaultDb, type Clip, type ClipDatabase, type Collection } from './db';
 import { CLIP_KINDS, detectKind } from './kinds';
-import { dataUrlToBlob, IMAGE_TYPES, imageHash, MAX_IMAGE_BYTES } from './images';
+import { checkImage, dataUrlToBlob, imageHash, makeThumbnail } from './images';
 import { enforceLimit, hashText, makeTitle } from './clips';
 import { cleanName, nextOrder } from './collections';
 import { updateSettings, type Settings } from './settings';
 import { renderBackupPage } from './backupPage';
 
-/** A clip as written to clips.json. `image.data` and `image.thumb` are paths in the zip (version 2) or data URLs (version 1). */
+/** A clip as written to clips.json. `image.data` is a path in the zip (version 2) or a data URL (version 1). */
 export interface ExportedClip extends Omit<Clip, 'image'> {
   /** The collection's name, for people reading the file. */
   collection?: string;
-  image?: Omit<NonNullable<Clip['image']>, 'thumb'> & { thumb: string; data?: string };
+  image?: Omit<NonNullable<Clip['image']>, 'thumb'> & { thumb?: string; data?: string };
 }
 
 export interface BackupFile {
@@ -53,10 +53,9 @@ export async function exportBackup(db: ClipDatabase = defaultDb): Promise<{ file
       // Named by position: a clip's id came from who knows where (an imported file).
       n++;
       const data = stored ? `images/${n}.${extOf(image.mime)}` : undefined;
-      const thumb = `.thumbnails/${n}.${extOf(image.thumb.type)}`;
       if (stored) images.set(data!, stored.blob);
-      images.set(thumb, image.thumb);
-      clip.image = { ...image, thumb, data };
+      const { thumb: _thumb, ...meta } = image;
+      clip.image = { ...meta, data };
     }
     out.push(clip);
   }
@@ -74,13 +73,16 @@ export async function exportZip(db: ClipDatabase = defaultDb): Promise<Blob> {
   return zipBackup(await exportBackup(db));
 }
 
-/** Builds the zip a file at a time, letting the panel paint in between, without one big buffer. */
+/**
+ * Builds the zip a file at a time, letting the panel paint in between. Each piece becomes a Blob as it's made,
+ * which Chrome can keep out of the page's memory, so the bytes read for one image can go before the next.
+ */
 async function zipBackup({ file, images }: { file: BackupFile; images: Map<string, Blob> }): Promise<Blob> {
   const parts: BlobPart[] = [];
   let failed: Error | null = null;
   const zip = new Zip((err, chunk) => {
     if (err) failed = err;
-    else parts.push(bytesPart(chunk));
+    else parts.push(new Blob([bytesPart(chunk)]));
   });
   const add = (entry: ZipDeflate | ZipPassThrough, data: Uint8Array) => {
     zip.add(entry);
@@ -161,10 +163,10 @@ export async function importBackup(
   if (!data || data.app !== 'clipboard-extension' || (data.version !== 1 && data.version !== 2) || !Array.isArray(data.clips)) {
     throw new BackupError("This file isn't a Clipboard export.");
   }
-  // Images are checked and hashed first: hashing can't run inside the database transaction.
-  const images = new Map<ExportedClip, { blob: Blob; thumb: Blob; hash: string } | null>();
+  // Images are checked, hashed and given a preview first: that can't run inside the database transaction.
+  const images = new Map<ExportedClip, PreparedImage | 'duplicate' | null>();
   for (const c of data.clips) {
-    if (c?.kind === 'image') images.set(c, await readImage(c, files));
+    if (c?.kind === 'image') images.set(c, await prepareImport(c, db, files));
   }
   let added = 0;
   let skipped = 0;
@@ -189,6 +191,7 @@ export async function importBackup(
       }
       const isImage = c.kind === 'image';
       const img = isImage ? images.get(c) : undefined;
+      if (img === 'duplicate') continue;
       if (isImage && !img) {
         skipped++;
         continue;
@@ -196,10 +199,18 @@ export async function importBackup(
       // Hashes are recomputed so a hand-edited file can't sneak in duplicates.
       const hash = img ? img.hash : hashText(c.text);
       if (await db.clips.where('hash').equals(hash).first()) continue;
+      const blob = img ? imageBlob(c.image!.data!, files) : undefined;
       const image: Clip['image'] = img
-        ? { ...c.image!, imageId: crypto.randomUUID(), mime: img.blob.type, bytes: img.blob.size, thumb: img.thumb }
+        ? {
+            imageId: crypto.randomUUID(),
+            mime: blob!.type,
+            bytes: blob!.size,
+            width: img.width,
+            height: img.height,
+            thumb: img.thumb,
+            srcUrl: typeof c.image?.srcUrl === 'string' ? c.image.srcUrl : undefined,
+          }
         : undefined;
-      if (image) delete (image as { data?: string }).data;
       const keepId = typeof c.id === 'string' && SAFE_ID.test(c.id) && !(await db.clips.get(c.id));
       const { collection: _name, ...fields } = c;
       const clip: Clip = {
@@ -217,7 +228,7 @@ export async function importBackup(
         image,
         note: isImage && typeof c.note === 'string' && c.note.trim() ? c.note : undefined,
       };
-      if (image) await db.images.put({ id: image.imageId, blob: img!.blob });
+      if (image) await db.images.put({ id: image.imageId, blob: blob! });
       await db.clips.add(clip);
       added++;
     }
@@ -228,15 +239,28 @@ export async function importBackup(
 
 const SAFE_ID = /^[\w-]{1,64}$/;
 
-/** An image clip's file and preview, held to the same rules as saving one: a real image type, not too big. */
-async function readImage(c: ExportedClip, files?: Map<string, Uint8Array>) {
+interface PreparedImage {
+  hash: string;
+  thumb: Blob;
+  width: number;
+  height: number;
+}
+
+/**
+ * An image clip held to the same rules as saving one: a real image type, not too big, and bytes that decode.
+ * The preview and size are rebuilt, not taken from the file. Clips already here are spotted before decoding.
+ * Only this small result is kept; the full image is read again from the file when it's written.
+ */
+async function prepareImport(c: ExportedClip, db: ClipDatabase, files?: Map<string, Uint8Array>) {
   try {
     const blob = imageBlob(c.image!.data!, files);
-    const thumb = imageBlob(c.image!.thumb, files);
-    if (!IMAGE_TYPES.includes(blob.type) || blob.size > MAX_IMAGE_BYTES || thumb.size > MAX_IMAGE_BYTES) return null;
-    return { blob, thumb, hash: await imageHash(blob) };
+    checkImage(blob);
+    const hash = await imageHash(blob);
+    if (await db.clips.where('hash').equals(hash).first()) return 'duplicate' as const;
+    const { thumb, width, height } = await makeThumbnail(blob);
+    return { hash, thumb, width, height };
   } catch {
-    return null; // missing or damaged
+    return null; // missing, damaged, not an image or too big
   }
 }
 

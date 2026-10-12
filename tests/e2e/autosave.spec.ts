@@ -259,3 +259,73 @@ test('copying an image hosted on another site, without CORS headers, saves it', 
     site.close();
   }
 });
+
+test('copies on an HTML page whose address ends in .pdf (a PDF viewer) are saved', async ({ context, extensionId }) => {
+  await context.route('https://viewer.e2e.test/**', (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<p id="t">Quarterly results, page 2</p>' }),
+  );
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await panel.evaluate(async () => {
+    const { settings } = await chrome.storage.local.get('settings');
+    await chrome.storage.local.set({ settings: { ...(settings ?? {}), autoSave: true } });
+    await chrome.runtime.sendMessage({ type: 'autosave-sync' });
+  });
+  const page = await context.newPage();
+  await page.goto('https://viewer.e2e.test/web/viewer.html?file=report.pdf');
+  await page.locator('#t').selectText();
+  await page.keyboard.press('ControlOrMeta+C');
+  await expect.poll(async () => (await readClips(panel)).map((c) => c.text)).toEqual(['Quarterly results, page 2']);
+});
+
+test('a huge copied image is cut off at 20 MB, downloaded once, and not saved', async ({ context, extensionId }) => {
+  let requests = 0;
+  let sent = 0;
+  let closedEarly = false;
+  const TOTAL = 30 * 1024 * 1024;
+  const site = await serve((req, res) => {
+    if (!req.url?.startsWith('/big.png')) {
+      res
+        .writeHead(200, { 'content-type': 'text/html' })
+        .end('<p>Big</p><img id="pic" loading="lazy" style="display:none" src="/big.png">');
+      return;
+    }
+    requests++;
+    // Streamed, so there's no Content-Length to check up front.
+    res.writeHead(200, { 'content-type': 'image/png' });
+    res.on('close', () => (closedEarly = sent < TOTAL));
+    const chunk = Buffer.alloc(256 * 1024, 7);
+    const pump = () => {
+      while (sent < TOTAL) {
+        sent += chunk.length;
+        if (!res.write(chunk)) return void res.once('drain', pump);
+      }
+      res.end();
+    };
+    pump();
+  });
+  try {
+    const panel = await context.newPage();
+    await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+    await panel.evaluate(async () => {
+      const { settings } = await chrome.storage.local.get('settings');
+      await chrome.storage.local.set({ settings: { ...(settings ?? {}), autoSave: true } });
+      await chrome.runtime.sendMessage({ type: 'autosave-sync' });
+    });
+    const page = await context.newPage();
+    await page.goto(`${site.origin}/`);
+    await page.evaluate(() => {
+      const range = document.createRange();
+      range.selectNode(document.getElementById('pic')!);
+      getSelection()!.removeAllRanges();
+      getSelection()!.addRange(range);
+    });
+    await page.keyboard.press('ControlOrMeta+C');
+    await expect.poll(() => closedEarly, { timeout: 10_000 }).toBe(true);
+    await page.waitForTimeout(1000);
+    expect(requests).toBe(1);
+    expect(await readClips(panel)).toEqual([]);
+  } finally {
+    site.close();
+  }
+});

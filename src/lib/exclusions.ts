@@ -195,12 +195,8 @@ export function isBuiltInBlocked(url: string | undefined): boolean {
   return !!host && BUILT_IN_BLOCKED.some((site) => matches(host, site));
 }
 
-// Pages with a web address where Chrome still won't run extension scripts.
-const UNSCRIPTABLE = /^https:\/\/(chromewebstore\.google\.com|chrome\.google\.com\/webstore)\/|\.pdf([?#]|$)/i;
-
 /**
- * Whether copies on a page are never saved: a blocked site, a page Chrome won't let extensions see,
- * or incognito when that's off. `frameUrl` is the frame the copy came from; a blank or srcdoc frame
+ * Whether copies on a page are never saved: a blocked site, or incognito when that's off. `frameUrl` is the frame the copy came from; a blank or srcdoc frame
  * (an editor inside the page) belongs to the page around it.
  */
 export function notSavedHere(
@@ -208,10 +204,15 @@ export function notSavedHere(
   s: { blockedSites: string[]; saveInIncognito: boolean },
 ): boolean {
   const copiedFrom = hostOf(page.frameUrl) ? page.frameUrl : page.url;
-  return (
-    isBlocked(copiedFrom, s.blockedSites) ||
-    isBlocked(page.url, s.blockedSites) ||
-    UNSCRIPTABLE.test(page.url ?? '') ||
-    (!!page.incognito && !s.saveInIncognito)
-  );
+  return isBlocked(copiedFrom, s.blockedSites) || isBlocked(page.url, s.blockedSites) || (!!page.incognito && !s.saveInIncognito);
+}
+
+/** This computer or the local network: localhost, private IPv4 ranges, link-local, ::1, *.local. */
+export function isPrivateHost(host: string): boolean {
+  const h = host.toLowerCase().replace(/^\[|\]$/g, '');
+  if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h === '::1') return true;
+  const ip = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(h);
+  if (!ip) return false;
+  const [a, b] = [Number(ip[1]), Number(ip[2])];
+  return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254);
 }

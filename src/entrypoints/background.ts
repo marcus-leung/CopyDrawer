@@ -7,9 +7,9 @@ import { requestView } from '@/lib/openView';
 import { forgetRefused, markRefused, refreshAllTabBadges, refreshTabBadge, refusedByChrome } from '@/lib/tabBadge';
 import { getShortcuts, NOT_SET } from '@/lib/shortcuts';
 import { getSettings, isPaused, pullSyncedSettings, settingsItem, syncedSettingsItem, updateSettings } from '@/lib/settings';
-import { notSavedHere } from '@/lib/exclusions';
+import { isPrivateHost, notSavedHere } from '@/lib/exclusions';
 import { injectIntoOpenTabs, onPermissionsAdded, syncAutosaveRegistration } from '@/lib/autosave';
-import { blobToDataUrl, dataUrlToBlob, ImageError, MAX_IMAGE_BYTES, saveImageClip } from '@/lib/images';
+import { blobToDataUrl, dataUrlToBlob, IMAGE_TYPES, ImageError, MAX_IMAGE_BYTES, saveImageClip } from '@/lib/images';
 import { BACKUP_EVERY } from '@/lib/backup';
 import { fetchImageInPage, readSelection, selectArea, showSavedToast } from '@/lib/injected';
 import type { Clip, ClipSource } from '@/lib/db';
@@ -80,15 +80,38 @@ async function saveSelectionFromTab(tab: Browser.tabs.Tab | undefined, fallbackT
 
 /** A data URL longer than this decodes to more than an image may be. */
 const MAX_DATA_URL = Math.ceil((MAX_IMAGE_BYTES * 4) / 3) + 100;
+const TOO_BIG = 'too-big';
+type Fetched = Blob | typeof TOO_BIG | null;
+
+/** An image response's bytes, read until the cap. */
+async function readImage(res: Response): Promise<Fetched> {
+  const type = (res.headers.get('content-type') ?? '').split(';')[0]!.trim();
+  if (!res.ok || !res.body || !IMAGE_TYPES.includes(type)) return null;
+  if (Number(res.headers.get('content-length')) > MAX_IMAGE_BYTES) return TOO_BIG;
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return new Blob(chunks as BlobPart[], { type });
+    total += value.length;
+    if (total > MAX_IMAGE_BYTES) {
+      await reader.cancel();
+      return TOO_BIG;
+    }
+    chunks.push(value);
+  }
+}
 
 /**
- * An image's bytes. The page picks the URL, so the extension never sends cookies; fetching from
- * inside the page uses the page's own access. Auto-save asks the page first (where it was copied),
- * the right-click menu asks the extension first. Null if neither works or it's too big.
+ * An image's bytes. The page picks the URL, so the extension never sends cookies, and it won't reach this
+ * computer or the local network unless the page itself is there; fetching from inside the page uses the page's
+ * own access. Auto-save asks the page first (where it was copied), the right-click menu asks the extension
+ * first. Too big ends it: no second download.
  */
 async function fetchImage(
   srcUrl: string,
-  tabId: number | undefined,
+  tab: Browser.tabs.Tab | undefined,
   { frameId, pageFirst = false }: { frameId?: number; pageFirst?: boolean } = {},
 ) {
   if (srcUrl.startsWith('data:')) {
@@ -99,37 +122,40 @@ async function fetchImage(
       return null;
     }
   }
-  const fromExtension = async () => {
-    if (!/^https?:/i.test(srcUrl)) return null;
+  const fromExtension = async (): Promise<Fetched> => {
+    const host = hostOf(srcUrl);
+    if (!/^https?:/i.test(srcUrl) || !host) return null;
+    const pageHost = hostOf(tab?.url);
+    if (isPrivateHost(host) && !(pageHost && isPrivateHost(pageHost))) return null;
     try {
-      const res = await fetch(srcUrl, { credentials: 'omit' });
-      if (!res.ok || Number(res.headers.get('content-length')) > MAX_IMAGE_BYTES) return null;
-      const blob = await res.blob();
-      return blob.size > MAX_IMAGE_BYTES ? null : blob;
+      return await readImage(await fetch(srcUrl, { credentials: 'omit' }));
     } catch {
       return null;
     }
   };
-  const fromPage = () => (tabId == null ? null : fetchImageFromPage(srcUrl, tabId, frameId));
-  return pageFirst ? ((await fromPage()) ?? fromExtension()) : ((await fromExtension()) ?? fromPage());
+  const fromPage = (): Promise<Fetched> | null => (tab?.id == null ? null : fetchImageFromPage(srcUrl, tab.id, frameId));
+  const [first, second] = pageFirst ? [fromPage, fromExtension] : [fromExtension, fromPage];
+  const got = (await first()) ?? (await second());
+  return got === TOO_BIG ? null : got;
 }
 
-async function fetchImageFromPage(srcUrl: string, tabId: number, frameId?: number): Promise<Blob | null> {
+async function fetchImageFromPage(srcUrl: string, tabId: number, frameId?: number): Promise<Fetched> {
   try {
     const [result] = await browser.scripting.executeScript({
       target: { tabId, frameIds: frameId == null ? undefined : [frameId] },
       func: fetchImageInPage,
-      args: [srcUrl, MAX_IMAGE_BYTES],
+      args: [srcUrl, MAX_IMAGE_BYTES, IMAGE_TYPES],
     });
-    const dataUrl = result?.result as string | null;
-    return dataUrl ? dataUrlToBlob(dataUrl) : null;
+    const got = result?.result as string | { tooBig: true } | null;
+    if (got && typeof got === 'object') return TOO_BIG;
+    return got ? dataUrlToBlob(got) : null;
   } catch {
     return null;
   }
 }
 
 async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
-  const blob = await fetchImage(srcUrl, tab?.id);
+  const blob = await fetchImage(srcUrl, tab);
   if (!blob) {
     await badgeError(tab?.id);
     return;
@@ -146,7 +172,7 @@ async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
 
 /** Auto-save of a copied image: quiet like text auto-save, ! when it couldn't be fetched. */
 async function autosaveImage(srcUrl: string, tab?: Browser.tabs.Tab, frameId?: number) {
-  const blob = await fetchImage(srcUrl, tab?.id, { frameId, pageFirst: true });
+  const blob = await fetchImage(srcUrl, tab, { frameId, pageFirst: true });
   if (!blob) return badgeError(tab?.id);
   try {
     await saveImageClip({ blob, source: sourceOf(tab), srcUrl });
@@ -301,7 +327,6 @@ async function onInstalled(reason: string) {
   }
   // The first export reminder comes a month after install, or after this update for earlier installs.
   if (!(await getSettings()).backupRemindAfter) await updateSettings({ backupRemindAfter: Date.now() + BACKUP_EVERY });
-  void refreshAllTabBadges();
   const autosaveOn = await syncAutosaveRegistration();
   // An update cuts off the auto-save script in open tabs; give them the new one.
   if (autosaveOn && reason === 'update') await injectIntoOpenTabs();
@@ -313,7 +338,6 @@ export default defineBackground(() => {
   browser.runtime.onStartup.addListener(() => {
     void cleanup();
     void syncAutosaveRegistration();
-    void refreshAllTabBadges();
   });
 
   // Settings changed on another computer (Chrome sync): apply them here.
@@ -327,6 +351,13 @@ export default defineBackground(() => {
   syncedSettingsItem.watch(applySynced);
 
   // × on the toolbar icon for tabs where auto-save can't see copies.
+  // Once per browser session: session storage starts empty when the browser starts and when the extension
+  // is installed, updated, reloaded or turned back on, which are the times Chrome resets every tab's badge.
+  void browser.storage.session.get('badgesSet').then(({ badgesSet }) => {
+    if (badgesSet) return;
+    void browser.storage.session.set({ badgesSet: true });
+    void refreshAllTabBadges();
+  });
   settingsItem.watch((next, prev) => {
     const affects = (s: typeof next) => JSON.stringify([s?.autoSave, s?.blockedSites, s?.saveInIncognito]);
     if (affects(next) !== affects(prev)) void refreshAllTabBadges();

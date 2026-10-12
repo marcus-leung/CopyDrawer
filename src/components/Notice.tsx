@@ -16,7 +16,7 @@ export function Notice({
   tone: Tone;
   title: string;
   body: string;
-  action?: { label: string; onClick: () => void };
+  action?: { label: string; onClick: () => void; disabled?: boolean };
   secondary?: { label: string; onClick: () => void };
 }) {
   return (
@@ -29,7 +29,8 @@ export function Notice({
             <button
               type="button"
               onClick={action.onClick}
-              className="h-[38px] cursor-pointer rounded-full bg-ink px-3.5 text-[13px] font-semibold text-on-ink"
+              disabled={action.disabled}
+              className="h-[38px] cursor-pointer rounded-full bg-ink px-3.5 text-[13px] font-semibold text-on-ink disabled:cursor-default disabled:opacity-60"
             >
               {action.label}
             </button>

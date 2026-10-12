@@ -2,12 +2,16 @@ import { notSavedHere } from './exclusions';
 import { getSettings, type Settings } from './settings';
 
 const CROSS_COLOR = '#5B6170';
+// Pages with a web address where Chrome still won't run extension scripts. A guess from the address, so it only
+// decides the badge: a page that sends a copy can be seen, whatever its address.
+const UNSCRIPTABLE = /^https:\/\/(chromewebstore\.google\.com|chrome\.google\.com\/webstore)\/|\.pdf([?#]|$)/i;
+
 /** True when auto-save is on but copies on this tab can't be seen or aren't saved: the toolbar icon shows ×. */
 export function copiesHidden(
   tab: { url?: string; incognito?: boolean },
   s: Pick<Settings, 'autoSave' | 'blockedSites' | 'saveInIncognito'>,
 ): boolean {
-  return s.autoSave && notSavedHere(tab, s);
+  return s.autoSave && (notSavedHere(tab, s) || UNSCRIPTABLE.test(tab.url ?? ''));
 }
 
 // Tabs where Chrome refused a shortcut, until they load another page. Session storage outlives the service worker.

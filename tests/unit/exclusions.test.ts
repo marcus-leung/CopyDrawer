@@ -58,3 +58,23 @@ describe('blocked sites', () => {
     expect(normalizeSite('ev*l.com')).toBeUndefined();
   });
 });
+
+describe('isPrivateHost', () => {
+  it('spots this computer and the local network', async () => {
+    const { isPrivateHost } = await import('@/lib/exclusions');
+    for (const h of [
+      'localhost',
+      '127.0.0.1',
+      '10.1.2.3',
+      '172.16.0.1',
+      '172.31.255.1',
+      '192.168.1.1',
+      '169.254.1.1',
+      '[::1]',
+      'printer.local',
+    ])
+      expect([h, isPrivateHost(h)]).toEqual([h, true]);
+    for (const h of ['example.com', '8.8.8.8', '172.32.0.1', '11.0.0.1', 'cdn.example.local.com'])
+      expect([h, isPrivateHost(h)]).toEqual([h, false]);
+  });
+});

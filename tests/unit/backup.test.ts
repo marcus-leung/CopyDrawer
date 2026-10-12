@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { stubImageDecoding } from './imageStubs';
 import { backupDue } from '@/lib/backup';
+
+beforeEach(stubImageDecoding);
 
 const DAY = 86_400_000;
 const now = 100 * DAY;
@@ -85,7 +88,7 @@ describe('export file', () => {
     const { exportZip } = await import('@/lib/backup');
     const zip = await exportZip(await sampleDb());
     const files = unzipSync(new Uint8Array(await zip.arrayBuffer()));
-    expect(Object.keys(files).sort()).toEqual(['.thumbnails/1.webp', 'clips.html', 'clips.json', 'images/1.png']);
+    expect(Object.keys(files).sort()).toEqual(['clips.html', 'clips.json', 'images/1.png']);
 
     const json = strFromU8(files['clips.json']!);
     expect(json).toContain('\n  "clips": [');
@@ -283,5 +286,45 @@ describe('import tells you what it could not take', () => {
     });
     const names = Object.keys(unzipSync(new Uint8Array(await (await exportZip(db)).arrayBuffer())));
     expect(names.filter((n) => n.includes('..'))).toEqual([]);
+  });
+});
+
+describe('import rebuilds images instead of trusting the file', () => {
+  it('skips bytes that are not an image, and makes its own preview and size', async () => {
+    const { zipSync, strToU8 } = await import('fflate');
+    const { importFile } = await import('@/lib/backup');
+    const { ClipDatabase } = await import('@/lib/db');
+    const db = new ClipDatabase(`test-${crypto.randomUUID()}`);
+    await db.open();
+    const PNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1]);
+    const clip = (id: string, data: string, thumb?: string) => ({
+      id,
+      kind: 'image',
+      text: '',
+      title: id,
+      hash: 'x',
+      createdAt: 1,
+      pinned: 0,
+      image: { imageId: id, mime: 'image/png', width: 9999, height: -5, bytes: 1, data, thumb },
+    });
+    const zip = zipSync({
+      'clips.json': strToU8(
+        JSON.stringify({
+          app: 'clipboard-extension',
+          version: 2,
+          exportedAt: new Date(0).toISOString(),
+          collections: [],
+          clips: [clip('real', 'images/1.png', '.thumbnails/1.png'), clip('fake', 'images/2.png')],
+        }),
+      ),
+      'images/1.png': PNG,
+      '.thumbnails/1.png': strToU8('<script>alert(1)</script>'),
+      'images/2.png': strToU8('<html>not a picture</html>'),
+    });
+    expect(await importFile(new Blob([zip.slice()]), db)).toEqual({ added: 1, skipped: 1 });
+    const [kept] = await db.clips.toArray();
+    expect(kept!.image).toMatchObject({ width: 2, height: 3, mime: 'image/png', bytes: PNG.length });
+    expect(kept!.image!.thumb.type).toBe('image/webp');
+    expect(await kept!.image!.thumb.text()).toBe('thumb');
   });
 });
