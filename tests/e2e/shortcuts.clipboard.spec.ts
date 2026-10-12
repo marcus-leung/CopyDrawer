@@ -1,5 +1,5 @@
 /**
- * Every way of copying into Clipboard and pasting back out, with real keypresses where
+ * Every way of copying into CopyDrawer and pasting back out, with real keypresses where
  * Playwright allows them: copy and cut keys (auto-save), the Edit/right-click menu's copy
  * command, the extension's own shortcuts, and pasting back into the panel and the page.
  */
@@ -233,4 +233,12 @@ test('the toolbar icon shows × where copies are not seen, and when a shortcut c
   await settings({ autoSave: false });
   await expect.poll(() => badge(chromeTab)).toBe('');
   await expect.poll(() => badge(siteTab)).toBe('');
+});
+
+test('a shortcut save that the database refuses shows ! on the toolbar icon', async ({ context, extensionId }) => {
+  const { panel, page, tabId } = await setup(context, extensionId, { autoSave: false });
+  await panel.evaluate(() => chrome.runtime.sendMessage({ type: 'e2e-close-db' }));
+  await page.locator('#para').selectText();
+  await panel.evaluate((id) => chrome.runtime.sendMessage({ type: 'e2e-command', command: 'save-selection', tabId: id }), tabId);
+  await expect.poll(() => panel.evaluate((id) => chrome.action.getBadgeText({ tabId: id }), tabId)).toBe('!');
 });

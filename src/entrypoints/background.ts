@@ -74,8 +74,13 @@ async function saveSelectionFromTab(tab: Browser.tabs.Tab | undefined, fallbackT
     if (!fallbackText) return refusedByChrome(e) ? markRefused(tab) : badgeError(tab.id);
   }
   const text = payload?.text?.trim() ? payload.text : (fallbackText ?? '');
-  const clip = await saveClip({ text, html: payload?.html, source: sourceOf(tab) });
-  if (clip) await badgeOk(tab.id);
+  try {
+    const clip = await saveClip({ text, html: payload?.html, source: sourceOf(tab) });
+    if (clip) await badgeOk(tab.id);
+  } catch (e) {
+    console.warn('Selection not saved', e);
+    await badgeError(tab.id);
+  }
 }
 
 /** A data URL longer than this decodes to more than an image may be. */
@@ -183,9 +188,10 @@ async function autosaveImage(srcUrl: string, tab?: Browser.tabs.Tab, frameId?: n
   }
 }
 
+type Area = { x: number; y: number; w: number; h: number; dpr: number };
+
 async function screenshotArea(tab?: Browser.tabs.Tab) {
   if (tab?.id == null || tab.windowId == null) return;
-  type Area = { x: number; y: number; w: number; h: number; dpr: number };
   let area = null as Area | null;
   try {
     const [result] = await browser.scripting.executeScript({ target: { tabId: tab.id }, func: selectArea });
@@ -195,6 +201,15 @@ async function screenshotArea(tab?: Browser.tabs.Tab) {
     return;
   }
   if (!area) return;
+  try {
+    await toastInTab(tab.id, await captureArea(tab, area), 'Screenshot saved');
+  } catch (e) {
+    console.warn('Screenshot not saved', e);
+    await badgeError(tab.id);
+  }
+}
+
+async function captureArea(tab: Browser.tabs.Tab, area: Area) {
   const dataUrl = await browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
   const full = await createImageBitmap(dataUrlToBlob(dataUrl));
   const sx = Math.round(area.x * area.dpr);
@@ -205,12 +220,11 @@ async function screenshotArea(tab?: Browser.tabs.Tab) {
   canvas.getContext('2d')!.drawImage(full, sx, sy, sw, sh, 0, 0, sw, sh);
   full.close();
   const blob = await canvas.convertToBlob({ type: 'image/png' });
-  const clip = await saveImageClip({
+  return saveImageClip({
     blob,
     source: sourceOf(tab),
     fileName: `Screenshot of ${tab.title ?? 'page'}`.slice(0, 80),
   });
-  await toastInTab(tab.id, clip, 'Screenshot saved');
 }
 
 async function blockSiteOf(tab?: Browser.tabs.Tab) {
@@ -234,12 +248,17 @@ async function handleAutosave(msg: { text: string; html?: string; title?: string
   const allowed = await autosaveAllowed(sender);
   if (!allowed) return;
   const tab = sender.tab;
-  const clip = await saveClip({
-    text: msg.text,
-    html: msg.html,
-    source: { url: tab?.url ?? allowed.url, title: tab?.title ?? msg.title, favicon: tab?.favIconUrl },
-  });
-  if (clip) await badgeOk(tab?.id);
+  try {
+    const clip = await saveClip({
+      text: msg.text,
+      html: msg.html,
+      source: { url: tab?.url ?? allowed.url, title: tab?.title ?? msg.title, favicon: tab?.favIconUrl },
+    });
+    if (clip) await badgeOk(tab?.id);
+  } catch (e) {
+    console.warn('Copy not auto-saved', e);
+    await badgeError(tab?.id);
+  }
 }
 
 function createMenus() {
@@ -449,6 +468,12 @@ export default defineBackground(() => {
     if (__E2E__ && msg.type === 'e2e-installed') {
       void onInstalled(msg.reason).then(() => sendResponse(true));
       return true;
+    }
+    // Test-only: a database that refuses writes. Dexie doesn't reopen one closed on purpose.
+    if (__E2E__ && msg.type === 'e2e-close-db') {
+      db.close();
+      sendResponse(true);
+      return;
     }
     // Test-only: Playwright can't click Chrome's permission prompt.
     if (__E2E__ && msg.type === 'e2e-permissions-added') {

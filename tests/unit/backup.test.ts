@@ -92,7 +92,7 @@ describe('export file', () => {
 
     const json = strFromU8(files['clips.json']!);
     expect(json).toContain('\n  "clips": [');
-    expect(JSON.parse(json).version).toBe(2);
+    expect(JSON.parse(json)).toMatchObject({ app: 'copydrawer', version: 2 });
     expect([...files['images/1.png']!]).toEqual([137, 80, 78, 71, 1, 2, 3]);
 
     const html = strFromU8(files['clips.html']!);
@@ -105,7 +105,7 @@ describe('export file', () => {
     expect(html).toContain('Our dog');
   });
 
-  it('imports the zip back, and still imports old .json exports', async () => {
+  it('imports the zip back, and still imports old .json exports from before the rename', async () => {
     const { exportZip, importFile } = await import('@/lib/backup');
     const { ClipDatabase } = await import('@/lib/db');
     const zip = await exportZip(await sampleDb());
@@ -141,10 +141,10 @@ describe('export file', () => {
     const db = new ClipDatabase(`test-${crypto.randomUUID()}`);
     await db.open();
     await expect(importFile(new Blob([zipSync({ 'notes.txt': strToU8('hi') }).slice()]), db)).rejects.toThrow(
-      "isn't a Clipboard export",
+      "isn't a CopyDrawer export",
     );
-    await expect(importFile(new Blob(['{"a":1}']), db)).rejects.toThrow("isn't a Clipboard export");
-    await expect(importFile(new Blob(['not json']), db)).rejects.toThrow("isn't a Clipboard export");
+    await expect(importFile(new Blob(['{"a":1}']), db)).rejects.toThrow("isn't a CopyDrawer export");
+    await expect(importFile(new Blob(['not json']), db)).rejects.toThrow("isn't a CopyDrawer export");
   });
 });
 

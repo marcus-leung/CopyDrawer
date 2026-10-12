@@ -162,7 +162,7 @@ describe('backup', () => {
     expect((await other.collections.get(research.collectionId!))?.name).toBe('Research');
     const img = (await other.clips.toArray()).find((c) => c.kind === 'image')!;
     expect(await (await other.images.get(img.image!.imageId))!.blob.slice(4).text()).toBe('png-bytes');
-    await expect(importBackup({ nope: 1 }, other)).rejects.toThrow("isn't a Clipboard export");
+    await expect(importBackup({ nope: 1 }, other)).rejects.toThrow("isn't a CopyDrawer export");
   });
 
   it('skips broken clips one by one and repairs missing or odd fields', async () => {

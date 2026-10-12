@@ -11,7 +11,7 @@ The toolbar popup is the full app: clips, collections, search, add, settings. A 
 
 ## How to get to it (user POV)
 
-- Click the Clipboard icon in Chrome's toolbar.
+- Click the CopyDrawer icon in Chrome's toolbar.
 
 ## Driving it with Playwright
 

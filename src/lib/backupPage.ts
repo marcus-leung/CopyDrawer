@@ -62,12 +62,12 @@ export function renderBackupPage(file: BackupFile): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Clipboard export</title>
+<title>CopyDrawer export</title>
 <style>${CSS}</style>
 </head>
 <body>
 <h1>Your clips</h1>
-<p class="meta">${count} ${count === 1 ? 'clip' : 'clips'}, exported ${escape(new Date(file.exportedAt).toLocaleString())}. Import the whole .zip in Clipboard's Settings to bring them back.</p>
+<p class="meta">${count} ${count === 1 ? 'clip' : 'clips'}, exported ${escape(new Date(file.exportedAt).toLocaleString())}. Import the whole .zip in CopyDrawer's Settings to bring them back.</p>
 ${sections}
 </body>
 </html>

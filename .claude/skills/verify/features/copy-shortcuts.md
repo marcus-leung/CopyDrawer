@@ -1,6 +1,6 @@
 # Copy shortcuts
 
-Every way a user gets text into Clipboard and back out: the copy and cut keys (with auto-save on), Copy from the right-click or Edit menu, the extension's own shortcuts, and pasting back into the panel or a page.
+Every way a user gets text into CopyDrawer and back out: the copy and cut keys (with auto-save on), Copy from the right-click or Edit menu, the extension's own shortcuts, and pasting back into the panel or a page.
 
 ## Sub-features
 

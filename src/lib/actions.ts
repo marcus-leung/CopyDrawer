@@ -223,7 +223,7 @@ export function makeIcs(
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Clipboard extension//EN',
+    'PRODID:-//CopyDrawer//EN',
     'BEGIN:VEVENT',
     `UID:${crypto.randomUUID()}@clipboard`,
     `DTSTAMP:${now

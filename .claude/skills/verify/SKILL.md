@@ -1,9 +1,9 @@
 ---
 name: verify
-description: Drive the Clipboard Chrome extension (side panel, toolbar popup, auto-save on web pages, quick-paste box) in a real Chromium through Playwright and capture screenshot + ARIA proof. Use to prove a change works in the actual extension, not just unit tests or a green build.
+description: Drive the CopyDrawer Chrome extension (side panel, toolbar popup, auto-save on web pages, quick-paste box) in a real Chromium through Playwright and capture screenshot + ARIA proof. Use to prove a change works in the actual extension, not just unit tests or a green build.
 ---
 
-# Verify the Clipboard extension
+# Verify the CopyDrawer extension
 
 The extension is driven in Playwright's Chromium with the **E2E build** (`.output-e2e/chrome-mv3`) loaded unpacked. The E2E build is the normal extension plus pre-granted `<all_urls>` and a few test hooks (`__E2E__`). It reuses the fixtures in `tests/e2e/fixtures.ts`, which launch a fresh throwaway profile per test, close the first-install setup tab, and fail the test if any browser dialog appears.
 

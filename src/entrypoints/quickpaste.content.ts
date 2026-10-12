@@ -109,7 +109,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return e;
 }
 
-const TOAST_ID = 'clipboard-quick-paste-toast';
+const TOAST_ID = 'copydrawer-quick-paste-toast';
 
 /** A short note at the bottom of the page. A new note replaces the last one. */
 function toast(message: string) {
@@ -126,10 +126,10 @@ function toast(message: string) {
 }
 
 function open() {
-  if (document.getElementById('clipboard-quick-paste')) return;
+  if (document.getElementById('copydrawer-quick-paste')) return;
   const target = captureTarget();
   const host = el('div');
-  host.id = 'clipboard-quick-paste';
+  host.id = 'copydrawer-quick-paste';
   const root = host.attachShadow({ mode: 'open' });
   const style = el('style', '', CSS);
   const scrim = el('div', 'scrim');

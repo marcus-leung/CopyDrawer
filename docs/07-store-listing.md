@@ -4,7 +4,7 @@ Copy for the Chrome Web Store and Microsoft Edge Add-ons, the permission justifi
 
 ## 1. Listing
 
-**Name:** CopyDrawer – Smart Clipboard Manager (see [08-branding.md](08-branding.md); the extension still uses the working name "Clipboard").
+**Name:** CopyDrawer – Smart Clipboard Manager (see [08-branding.md](08-branding.md)).
 
 **Short description (≤132 chars):**
 > Everything you copy, kept and sorted into collections. Find it fast, paste it anywhere with Alt+Shift+V. Private, on your device.
@@ -13,7 +13,7 @@ Copy for the Chrome Web Store and Microsoft Edge Add-ons, the permission justifi
 
 **Detailed description:**
 
-> Clipboard keeps what you copy and sorts it for you, without sending anything to the cloud.
+> CopyDrawer keeps what you copy and sorts it for you, without sending anything to the cloud.
 >
 > **Saved, sorted, found**
 > • Save text, links, images and screenshots: shortcut, right-click, drag and drop, or automatically when you copy (optional).
@@ -68,7 +68,7 @@ Copy for the Chrome Web Store and Microsoft Edge Add-ons, the permission justifi
 
 1. `pnpm compile && pnpm test && pnpm test:e2e` all green.
 2. Bump `version` in `package.json`.
-3. `pnpm zip` → `.output/clipboard-extension-<version>-chrome.zip`; `pnpm zip:edge` → the Edge zip.
+3. `pnpm zip` → `.output/copydrawer-<version>-chrome.zip`; `pnpm zip:edge` → the Edge zip.
 4. Chrome Web Store dashboard: new item → upload zip → listing, privacy, distribution (public, all regions) → submit.
 5. Edge Add-ons (Partner Center): same zip from `zip:edge`, same copy.
 

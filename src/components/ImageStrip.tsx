@@ -7,7 +7,7 @@ import { useDragOut } from '@/lib/useDragOut';
 import { CLIP_DRAG_TYPE } from './ClipRow';
 
 /** Marks a drag that started in the strip, so dropping on another tile reorders. */
-const STRIP_DRAG_TYPE = 'application/x-clipboard-strip';
+const STRIP_DRAG_TYPE = 'application/x-copydrawer-strip';
 
 /** Recent images and colors, side by side (home, Folders design). Drag to reorder, file or drag out. */
 export function ImageStrip({ clips, onOpen, onSeeAll }: { clips: Clip[]; onOpen: (clip: Clip) => void; onSeeAll: () => void }) {

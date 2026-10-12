@@ -159,6 +159,6 @@ The extension has no analytics, so these come from the store dashboard, beta fee
 ## 6. Immediate next steps
 Phases 0–2 are done; next is the **private beta** (Phase 3).
 1. Close the open items in [07-store-listing.md](07-store-listing.md) §5: screenshots and promo tile.
-2. Finish branding in [08-branding.md](08-branding.md): trademark search, buy the domains, claim handles; then rename the extension from "Clipboard" to CopyDrawer.
+2. Finish branding in [08-branding.md](08-branding.md): trademark search, buy the domains, claim handles. The extension is already named CopyDrawer.
 3. Finish the launch checklist (§2.1): developer account, public privacy policy URL, support email and uninstall survey URL.
 4. Submit an unlisted build to the Chrome Web Store and recruit 30–50 beta testers.

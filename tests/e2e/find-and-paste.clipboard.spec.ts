@@ -261,7 +261,7 @@ test('quick paste: Esc, click outside, no matches, page shortcuts, opening twice
     const [tab] = await chrome.tabs.query({ url: 'https://form.e2e.test/*' });
     await chrome.runtime.sendMessage({ type: 'e2e-menu', action: 'quick-paste', tabId: tab!.id });
   });
-  await expect(page.locator('#clipboard-quick-paste')).toHaveCount(1);
+  await expect(page.locator('#copydrawer-quick-paste')).toHaveCount(1);
   await page.keyboard.press('Enter');
   await expect(page.locator('#name')).toHaveValue('the Q3 report');
 
@@ -299,7 +299,7 @@ test('quick paste with no text field (or inside a frame) copies instead and says
   await page.keyboard.press('Enter');
   await expect(page.getByText(/^Copied\. Click where you want it and press (Ctrl|Cmd)\+V\.$/)).toBeVisible();
   // The new note replaced the first one instead of stacking on top of it.
-  await expect(page.locator('#clipboard-quick-paste-toast')).toHaveCount(1);
+  await expect(page.locator('#copydrawer-quick-paste-toast')).toHaveCount(1);
 });
 
 test('quick paste: Tab stays in the box; images are not listed', async ({ context, extensionId }) => {
@@ -369,7 +369,7 @@ test('quick paste follows the theme chosen in Settings, not only the system', as
   const boxBg = () =>
     expect.poll(() =>
       page.evaluate(() => {
-        const box = document.getElementById('clipboard-quick-paste')?.shadowRoot?.querySelector('.box');
+        const box = document.getElementById('copydrawer-quick-paste')?.shadowRoot?.querySelector('.box');
         return box ? getComputedStyle(box).backgroundColor : null;
       }),
     );
@@ -406,7 +406,7 @@ test('quick paste follows the theme chosen in Settings, not only the system', as
   await expect
     .poll(() =>
       page.evaluate(() => {
-        const box = document.getElementById('clipboard-quick-paste')!.shadowRoot!.querySelector('.box') as HTMLElement;
+        const box = document.getElementById('copydrawer-quick-paste')!.shadowRoot!.querySelector('.box') as HTMLElement;
         return [getComputedStyle(box).fontFamily.includes('JetBrains Mono'), box.style.zoom];
       }),
     )

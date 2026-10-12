@@ -40,7 +40,7 @@ test('the home screen reminds you to export, and Export now, Not now and the set
   await page.reload();
   await expect(reminder).toBeVisible();
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export now' }).click()]);
-  expect(download.suggestedFilename()).toMatch(/^clipboard-export-\d{4}-\d{2}-\d{2}\.zip$/);
+  expect(download.suggestedFilename()).toMatch(/^copydrawer-export-\d{4}-\d{2}-\d{2}\.zip$/);
   await expect(page.getByRole('status')).toContainText('Exported 60 clips');
   await expect(reminder).toHaveCount(0);
   const afterExport = await stored();

@@ -15,7 +15,7 @@ export function collectionVars(color: string): CSSProperties {
   } as CSSProperties;
 }
 
-export const COLLECTION_DRAG_TYPE = 'application/x-clipboard-collection';
+export const COLLECTION_DRAG_TYPE = 'application/x-copydrawer-collection';
 
 function countLine(count: number, newCount: number): string {
   const base = `${count} ${count === 1 ? 'clip' : 'clips'}`;

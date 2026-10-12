@@ -39,7 +39,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
               You're all set
             </h1>
             <p className="mt-3 text-[15px] leading-[23px] text-text-2">
-              Click the Clipboard icon in the toolbar to see your recent clips. Tip: pin it from the puzzle-piece menu so it's
+              Click the CopyDrawer icon in the toolbar to see your recent clips. Tip: pin it from the puzzle-piece menu so it's
               always there.
             </p>
             <ul className="mt-5 flex flex-col gap-2.5 text-sm">

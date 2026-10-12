@@ -19,8 +19,11 @@ export interface ExportedClip extends Omit<Clip, 'image'> {
   image?: Omit<NonNullable<Clip['image']>, 'thumb'> & { thumb?: string; data?: string };
 }
 
+/** Exports write the first; the second is from before the rename, and still imports. */
+const APPS: unknown[] = ['copydrawer', 'clipboard-extension'];
+
 export interface BackupFile {
-  app: 'clipboard-extension';
+  app: 'copydrawer' | 'clipboard-extension';
   version: 1 | 2;
   exportedAt: string;
   collections: Collection[];
@@ -60,7 +63,7 @@ export async function exportBackup(db: ClipDatabase = defaultDb): Promise<{ file
     out.push(clip);
   }
   const file: BackupFile = {
-    app: 'clipboard-extension',
+    app: 'copydrawer',
     version: 2,
     exportedAt: new Date().toISOString(),
     collections,
@@ -109,7 +112,7 @@ export interface ImportResult {
 /** Imports an export: a .zip, or an older .json. */
 export async function importFile(blob: Blob, db: ClipDatabase = defaultDb): Promise<ImportResult> {
   const bytes = new Uint8Array(await blob.arrayBuffer());
-  const notExport = () => new BackupError("This file isn't a Clipboard export.");
+  const notExport = () => new BackupError("This file isn't a CopyDrawer export.");
   if (bytes[0] === 0x50 && bytes[1] === 0x4b) {
     let files: Record<string, Uint8Array>;
     try {
@@ -129,7 +132,7 @@ export async function importFile(blob: Blob, db: ClipDatabase = defaultDb): Prom
     return importBackup(parse(strFromU8(files[json]!)), db, new Map(inRoot));
   }
   const data = parse(strFromU8(bytes));
-  if ((data as Partial<BackupFile>)?.app === 'clipboard-extension' && (data as Partial<BackupFile>).version === 2) {
+  if (APPS.includes((data as Partial<BackupFile>)?.app) && (data as Partial<BackupFile>).version === 2) {
     throw new BackupError('This is the clips.json from an export. Import the whole .zip instead.');
   }
   return importBackup(data, db);
@@ -160,8 +163,8 @@ export async function importBackup(
   files?: Map<string, Uint8Array>,
 ): Promise<ImportResult> {
   const data = file as Partial<BackupFile>;
-  if (!data || data.app !== 'clipboard-extension' || (data.version !== 1 && data.version !== 2) || !Array.isArray(data.clips)) {
-    throw new BackupError("This file isn't a Clipboard export.");
+  if (!data || !APPS.includes(data.app) || (data.version !== 1 && data.version !== 2) || !Array.isArray(data.clips)) {
+    throw new BackupError("This file isn't a CopyDrawer export.");
   }
   // Images are checked, hashed and given a preview first: that can't run inside the database transaction.
   const images = new Map<ExportedClip, PreparedImage | 'duplicate' | null>();
@@ -284,7 +287,7 @@ export async function downloadBackup(): Promise<number> {
   const url = URL.createObjectURL(await zipBackup(backup));
   const a = document.createElement('a');
   a.href = url;
-  a.download = `clipboard-export-${new Date().toISOString().slice(0, 10)}.zip`;
+  a.download = `copydrawer-export-${new Date().toISOString().slice(0, 10)}.zip`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
   const now = Date.now();

@@ -42,7 +42,7 @@ export async function refreshTabBadge(tab: Browser.tabs.Tab, settings?: Settings
   const hidden = copiesHidden(tab, settings ?? (await getSettings())) || (refused ?? (await refusedTabs())).includes(tab.id);
   await browser.action.setBadgeBackgroundColor({ tabId: tab.id, color: CROSS_COLOR });
   await browser.action.setBadgeText({ tabId: tab.id, text: hidden ? '×' : '' });
-  await browser.action.setTitle({ tabId: tab.id, title: hidden ? "Clipboard can't work on this page" : '' });
+  await browser.action.setTitle({ tabId: tab.id, title: hidden ? "CopyDrawer can't work on this page" : '' });
 }
 
 export async function refreshAllTabBadges() {

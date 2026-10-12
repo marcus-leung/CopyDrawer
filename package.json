@@ -1,6 +1,6 @@
 {
-  "name": "clipboard-extension",
-  "description": "A private, AI-powered clipboard for Chrome",
+  "name": "copydrawer",
+  "description": "A private clipboard for Chrome",
   "private": true,
   "version": "1.0.0",
   "type": "module",
