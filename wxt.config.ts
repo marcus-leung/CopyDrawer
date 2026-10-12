@@ -21,7 +21,8 @@ export default defineConfig({
     },
   },
   manifest: {
-    name: 'CopyDrawer',
+    name: 'CopyDrawer – Clipboard History',
+    short_name: 'CopyDrawer',
     description: 'Everything you copy, kept and sorted. Private: stored on your device.',
     permissions: [
       'storage',

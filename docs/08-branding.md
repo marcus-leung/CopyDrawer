@@ -8,7 +8,7 @@ The product name, the checks behind it, and which domains to buy. Store copy: [0
 
 - Says what it does: you copy things, they go in a drawer, you take them out again.
 - Stands apart from competitors, which almost all start with "Clip".
-- Store title: **CopyDrawer – Smart Clipboard Manager**. Chrome Web Store search matches the title, so it carries the words people type.
+- Store title: **CopyDrawer – Clipboard History** (the manifest `name`; `short_name` and the app itself say CopyDrawer). Chrome Web Store search matches the title, so it carries the words people type. Not "smart": sorting is by rules, and "Smart Clipboard Manager" is already taken.
 
 ## 2. Competitor names (October 2026)
 

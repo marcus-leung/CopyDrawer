@@ -7,11 +7,8 @@
   "license": "GPL-3.0-only",
   "scripts": {
     "dev": "wxt",
-    "dev:edge": "wxt -b edge",
     "build": "wxt build",
-    "build:edge": "wxt build -b edge",
     "zip": "wxt zip",
-    "zip:edge": "wxt zip -b edge",
     "compile": "tsc --noEmit",
     "lint": "oxlint --deny-warnings",
     "format": "prettier --write .",
