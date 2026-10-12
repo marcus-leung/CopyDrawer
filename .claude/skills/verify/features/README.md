@@ -1,6 +1,6 @@
-# Clipboard verification map
+# CopyDrawer verification map
 
-This directory is the maintained source for verifying the user-facing behavior of the Clipboard extension. Read the index before driving, then use the matching feature file as the recipe.
+This directory is the maintained source for verifying the user-facing behavior of the CopyDrawer extension. Read the index before driving, then use the matching feature file as the recipe.
 
 ## Baseline preconditions
 

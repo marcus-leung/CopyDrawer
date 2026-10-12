@@ -2,7 +2,7 @@
 
 _Last updated: 8 October 2026_
 
-Clipboard is a browser extension that keeps what you copy and sorts it into collections. It is built so that **your clips never leave your computer**.
+CopyDrawer is a browser extension that keeps what you copy and sorts it into collections. It is built so that **your clips never leave your computer**.
 
 ## What the extension stores
 

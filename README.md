@@ -1,4 +1,4 @@
-# Clipboard (working name)
+# CopyDrawer
 
 A private clipboard for Chrome and Edge. Everything you copy is kept, sorted into collections, and ready to paste again. Your clips stay on your device.
 

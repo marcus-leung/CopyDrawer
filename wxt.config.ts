@@ -21,7 +21,7 @@ export default defineConfig({
     },
   },
   manifest: {
-    name: 'Clipboard',
+    name: 'CopyDrawer',
     description: 'Everything you copy, kept and sorted. Private: stored on your device.',
     permissions: [
       'storage',
@@ -34,9 +34,11 @@ export default defineConfig({
       'clipboardWrite',
       'alarms',
     ],
+    // sidePanel.open and runtime.getContexts need Chrome 116.
+    minimum_chrome_version: '116',
     optional_host_permissions: ['<all_urls>'],
     ...(e2e ? { host_permissions: ['<all_urls>'] } : {}),
-    action: { default_title: 'Open Clipboard' },
+    action: { default_title: 'Open CopyDrawer' },
     commands: {
       'save-selection': {
         suggested_key: { default: 'Alt+Shift+S' },

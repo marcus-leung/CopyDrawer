@@ -1,6 +1,6 @@
 # Export
 
-Settings → Export (or Export now on the backup reminder) downloads `clipboard-export-YYYY-MM-DD.zip`: `clips.html` to read in any browser, `clips.json` (version 2, pretty-printed) that Import reads, and `images/` with the full-size files. Import takes the .zip (also one zipped again as a folder) or an older .json export; it rebuilds previews and sizes from the images, and skips anything that isn't a real image under 20 MB.
+Settings → Export (or Export now on the backup reminder) downloads `copydrawer-export-YYYY-MM-DD.zip`: `clips.html` to read in any browser, `clips.json` (version 2, pretty-printed) that Import reads, and `images/` with the full-size files. Import takes the .zip (also one zipped again as a folder) or an older .json export; it rebuilds previews and sizes from the images, and skips anything that isn't a real image under 20 MB.
 
 ## Sub-features
 

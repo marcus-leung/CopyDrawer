@@ -27,5 +27,5 @@ Preconditions:
 ## Gotchas
 
 - The real shortcut can't be pressed from Playwright. The `e2e-menu` message exists only in the E2E build. Report the shortcut itself as unverified.
-- The box lives in a shadow root (`#clipboard-quick-paste`). Role locators pierce it; CSS locators need the shadow root.
+- The box lives in a shadow root (`#copydrawer-quick-paste`). Role locators pierce it; CSS locators need the shadow root.
 - `tests/e2e/find-and-paste.clipboard.spec.ts` (`setupQuickPaste`) has a full working setup to copy from.

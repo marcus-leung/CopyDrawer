@@ -327,7 +327,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
             <Toggle
               id="t-backup-reminder"
               label="Remind me to export every month"
-              hint="Once you have 50 clips or more. Uninstalling Clipboard deletes your clips, so a copy is worth keeping."
+              hint="Once you have 50 clips or more. Uninstalling CopyDrawer deletes your clips, so a copy is worth keeping."
               checked={settings.backupReminder}
               onChange={(on) => void updateSettings({ backupReminder: on })}
             />

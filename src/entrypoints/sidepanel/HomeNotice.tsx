@@ -82,7 +82,7 @@ export function HomeNotice({
       <Notice
         tone="info"
         title="Back up your clips"
-        body="They're stored only on this computer, so uninstalling Clipboard deletes them. Export a copy every so often."
+        body="They're stored only on this computer, so uninstalling CopyDrawer deletes them. Export a copy every so often."
         action={{
           label: backup.exporting ? 'Exporting…' : 'Export now',
           onClick: () => void backup.run(),

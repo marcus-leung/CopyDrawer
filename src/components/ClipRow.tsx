@@ -9,7 +9,7 @@ import { colorFormats, parseColor } from '@/lib/actions';
 import { KIND_LABEL, type ClipKind } from '@/lib/kinds';
 
 /** Drag data type for moving a clip onto a collection (the panel's drop-to-save ignores it). */
-export const CLIP_DRAG_TYPE = 'application/x-clipboard-clip';
+export const CLIP_DRAG_TYPE = 'application/x-copydrawer-clip';
 
 const KIND_ICON: Record<Exclude<ClipKind, 'image' | 'color'>, typeof Type> = {
   text: Type,
