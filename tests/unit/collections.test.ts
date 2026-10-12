@@ -11,7 +11,7 @@ import {
   listCollections,
   moveClip,
   moveClips,
-  moveCollection,
+  setCollectionOrder,
   renameCollection,
 } from '@/lib/collections';
 
@@ -190,12 +190,12 @@ describe('collection order', () => {
     expect(await names()).toEqual(['A', 'B']);
   });
 
-  it('moves a folder into the place of the one it is dropped on', async () => {
+  it('saves the folder order as shown; folders made meanwhile go after', async () => {
     for (const n of ['A', 'B', 'C', 'D']) await createCollection(n, undefined, db);
     const id = async (n: string) => (await listCollections(db)).find((s) => s.collection.name === n)!.collection.id;
-    await moveCollection(await id('A'), await id('C'), db);
+    await setCollectionOrder([await id('B'), await id('C'), await id('A'), await id('D')], db);
     expect(await names()).toEqual(['B', 'C', 'A', 'D']);
-    await moveCollection(await id('D'), await id('B'), db);
+    await setCollectionOrder([await id('D'), await id('B')], db);
     expect(await names()).toEqual(['D', 'B', 'C', 'A']);
   });
 

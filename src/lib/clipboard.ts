@@ -9,20 +9,23 @@ export async function copyClipToClipboard(clip: Clip): Promise<void> {
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': await toPng(blob) })]);
     return;
   }
-  if (clip.html && typeof ClipboardItem !== 'undefined') {
+  await writeClipboard({ text: clip.text, html: clip.html });
+}
+
+/** Writes text with its formatting. If HTML is refused, plain text still goes through. Text may be empty when the HTML holds only images. */
+export async function writeClipboard({ text, html }: { text: string; html?: string }): Promise<void> {
+  if (html && typeof ClipboardItem !== 'undefined') {
     try {
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          'text/plain': new Blob([clip.text], { type: 'text/plain' }),
-          'text/html': new Blob([clip.html], { type: 'text/html' }),
-        }),
-      ]);
+      const parts: Record<string, Blob> = { 'text/html': new Blob([html], { type: 'text/html' }) };
+      if (text) parts['text/plain'] = new Blob([text], { type: 'text/plain' });
+      await navigator.clipboard.write([new ClipboardItem(parts)]);
       return;
-    } catch {
+    } catch (e) {
       // Some pages and browsers reject HTML; plain text below always works.
+      if (!text) throw e;
     }
   }
-  await navigator.clipboard.writeText(clip.text);
+  await navigator.clipboard.writeText(text);
 }
 
 export interface ClipboardContents {

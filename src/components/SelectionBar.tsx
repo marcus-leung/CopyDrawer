@@ -4,12 +4,15 @@ import { Copy, MoreHorizontal, Trash2, X } from 'lucide-react';
 import { db } from '@/lib/db';
 import { JOIN_OPTIONS, type JoinWith } from '@/lib/join';
 import { Button, IconButton } from './ui';
+import { InlineConfirm } from './InlineConfirm';
 
+const NONE = '\u0000none';
 const field = 'h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink';
 
 /** Shown while clips are picked: copy them together, or move or delete them all. */
 export function SelectionBar({
   count,
+  notShown,
   hasText,
   joinWith,
   onJoinWith,
@@ -19,6 +22,8 @@ export function SelectionBar({
   onClear,
 }: {
   count: number;
+  /** Picks the list isn't showing right now (a search or filter hides them). */
+  notShown: number;
   /** False when only images are picked: there's no plain text to copy. */
   hasText: boolean;
   joinWith: JoinWith;
@@ -29,6 +34,7 @@ export function SelectionBar({
   onClear: () => void;
 }) {
   const [more, setMore] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const collections = useLiveQuery(() => db.collections.orderBy('order').toArray(), []);
   return (
     <div className="border-t border-line px-[18px] pt-2.5 pb-4" role="region" aria-label="Picked clips">
@@ -68,11 +74,22 @@ export function SelectionBar({
             <Button size="sm" variant="outline" disabled={!hasText} onClick={() => onCopy(true)}>
               Copy as plain text
             </Button>
-            <Button size="sm" variant="danger" onClick={onDelete}>
+            <Button size="sm" variant="danger" onClick={() => (notShown ? setConfirming(true) : onDelete())}>
               <Trash2 size={15} aria-hidden />
               Delete {count}
             </Button>
           </div>
+          {confirming && (
+            <InlineConfirm
+              message={`${notShown === 1 ? '1 of these isn’t' : `${notShown} of these aren’t`} shown in the list. Delete all ${count}?`}
+              confirmLabel={`Delete ${count}`}
+              onConfirm={() => {
+                setConfirming(false);
+                onDelete();
+              }}
+              onCancel={() => setConfirming(false)}
+            />
+          )}
         </div>
       )}
       <div className="flex items-center gap-2">
@@ -81,6 +98,7 @@ export function SelectionBar({
         </IconButton>
         <span className="min-w-0 flex-1 text-[13px] font-semibold" aria-live="polite">
           {count} picked
+          {notShown > 0 && <span className="font-normal text-text-2"> · {notShown} not shown</span>}
         </span>
         <IconButton
           label="More for picked clips"
@@ -98,5 +116,3 @@ export function SelectionBar({
     </div>
   );
 }
-
-const NONE = '\u0000none';

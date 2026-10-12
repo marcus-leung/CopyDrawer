@@ -1,7 +1,8 @@
+// @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
 import type { Clip } from '@/lib/db';
 import { joinTexts } from '@/lib/join';
-import { buildCombined, fragmentOf } from '@/lib/multiCopy';
+import { buildCombined, encodedImageBytes, fragmentOf } from '@/lib/multiCopy';
 
 const clip = (id: string, text: string, extra: Partial<Clip> = {}): Clip =>
   ({ id, text, title: text || id, kind: 'text', createdAt: 0, lastUsedAt: 0, useCount: 0, pinned: 0, ...extra }) as Clip;
@@ -43,10 +44,10 @@ describe('buildCombined', () => {
     expect(out.skippedImages).toBe(1);
   });
 
-  it('space and comma keep everything on one line', () => {
+  it('space and comma keep everything on one line, formatting included', () => {
     const out = buildCombined([clip('1', 'red', { html: '<i>red</i>' }), clip('2', 'blue\nsky')], 'comma', new Map());
     expect(out.text).toBe('red, blue\nsky');
-    expect(out.html).toBe('red, blue<br>sky');
+    expect(out.html).toBe('<span><i>red</i></span>, <span>blue<br>sky</span>');
   });
 
   it('images only: no plain text', () => {
@@ -97,5 +98,25 @@ describe('fragmentOf', () => {
     expect(out.html).toBe(
       '<div><h2>Pinned heading</h2></div><div><span>Second row text</span></div><div><img src="data:image/png;base64,AA" alt="photo.png"></div>',
     );
+  });
+});
+
+describe('fragmentOf edge cases', () => {
+  it('drops styles, stray titles and unquoted Docs ids, and keeps comment-like text in attributes', () => {
+    expect(fragmentOf('<title>Page</title><style>p{color:red}</style><p>Kept</p>')).toBe('<p>Kept</p>');
+    expect(fragmentOf('<b id=docs-internal-guid-abc>Docs</b>')).toBe('<b>Docs</b>');
+    expect(fragmentOf('<a title="a <!-- b -->" href="#">x</a><!-- note -->')).toBe('<a title="a <!-- b -->" href="#">x</a>');
+  });
+});
+
+describe('encodedImageBytes', () => {
+  it('counts images as the base64 they travel as', () => {
+    const img = (bytes: number) =>
+      clip('i' + bytes, '', {
+        kind: 'image',
+        image: { imageId: 'x', bytes, mime: 'image/png', width: 1, height: 1, thumb: new Blob() },
+      });
+    expect(encodedImageBytes([img(3), img(4), clip('t', 'text')])).toBe(4 + 8);
+    expect(encodedImageBytes([img(16 * 1024 * 1024)])).toBeGreaterThan(20 * 1024 * 1024);
   });
 });

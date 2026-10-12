@@ -7,6 +7,7 @@ import { useObjectUrl } from '@/lib/useObjectUrl';
 import { useDragOut } from '@/lib/useDragOut';
 import { colorFormats, parseColor } from '@/lib/actions';
 import { KIND_LABEL, type ClipKind } from '@/lib/kinds';
+import type { RowPick } from '@/lib/useSelection';
 
 /** Drag data type for moving a clip onto a collection (the panel's drop-to-save ignores it). */
 export const CLIP_DRAG_TYPE = 'application/x-copydrawer-clip';
@@ -23,14 +24,14 @@ const KIND_ICON: Record<Exclude<ClipKind, 'image' | 'color'>, typeof Type> = {
   number: Hash,
 };
 
-/** Picking several clips: the row's place in the pick order (0 = not picked) and what a pick does. */
-export interface RowPick {
-  number: number;
-  selecting: boolean;
-  onPick: (e: React.MouseEvent) => void;
-}
+/** While picking, any click picks; otherwise ⌘/Ctrl- or Shift-click does. */
+export const isPickClick = (pick: RowPick | undefined, e: React.MouseEvent): pick is RowPick =>
+  !!pick && (pick.selecting || e.metaKey || e.ctrlKey || e.shiftKey);
 
-const pickKey = (e: React.MouseEvent) => e.metaKey || e.ctrlKey || e.shiftKey;
+/** Shift-click picks a range; without this it also selects the text in between. */
+export const keepTextUnselected = (pick: RowPick | undefined) => (e: React.MouseEvent) => {
+  if (pick && e.shiftKey) e.preventDefault();
+};
 
 export function ClipRow({
   clip,
@@ -63,12 +64,8 @@ export function ClipRow({
           dragOut.setData(e.dataTransfer);
           e.dataTransfer.effectAllowed = 'copyMove';
         }}
-        onMouseDown={(e) => {
-          // Shift-click picks a range; without this it also selects the text in between.
-          if (pick && e.shiftKey) e.preventDefault();
-        }}
-        onClick={(e) => (pick && (pick.selecting || pickKey(e)) ? pick.onPick(e) : onOpen(clip))}
-        aria-pressed={pick?.selecting ? pick.number > 0 : undefined}
+        onMouseDown={keepTextUnselected(pick)}
+        onClick={(e) => (isPickClick(pick, e) ? pick.onPick(e) : onOpen(clip))}
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-2.5 text-left"
       >
         <span
@@ -109,6 +106,7 @@ export function PickBox({ title, pick, className = '' }: { title: string; pick: 
       role="checkbox"
       aria-checked={picked}
       aria-label={`Pick ${title}`}
+      onMouseDown={keepTextUnselected(pick)}
       onClick={(e) => pick.onPick(e)}
       className={`grid cursor-pointer place-items-center ${pick.selecting ? '' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'} ${className}`}
     >
