@@ -10,7 +10,21 @@ export default defineConfig({
   outDir: e2e ? '.output-e2e' : '.output',
   modules: ['@wxt-dev/module-react'],
   vite: () => ({
-    plugins: [tailwindcss()],
+    plugins: [
+      tailwindcss(),
+      // Chrome reads woff2, so fontsource's .woff fallbacks would only add dead weight to the package.
+      {
+        name: 'woff2-only',
+        enforce: 'post',
+        generateBundle(_, bundle) {
+          for (const [name, file] of Object.entries(bundle)) {
+            if (name.endsWith('.woff')) delete bundle[name];
+            else if (file.type === 'asset' && name.endsWith('.css'))
+              file.source = String(file.source).replace(/,\s*url\([^)]+\.woff\)\s*format\(['"]?woff['"]?\)/g, '');
+          }
+        },
+      },
+    ],
     define: { __E2E__: JSON.stringify(e2e) },
   }),
   hooks: {

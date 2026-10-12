@@ -30,7 +30,7 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 > • Colors in HEX/RGB/HSL, tidy JSON, links without tracking junk.
 >
 > **Private by design**
-> • No account. Clips stay on your computer. The extension sends nothing anywhere.
+> • No account. Clips stay on your computer and are never uploaded. (Saving an image downloads it from where it's hosted, without your cookies.)
 > • Never saves password fields, password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites, or sites you block.
 > • Open source (GPL-3.0).
 
@@ -48,8 +48,12 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 ## 2. Privacy tab answers
 
 - **Single purpose:** "Save what the user copies and help them find and paste it again."
-- **Data collected:** none sent to the developer. Declare "Website content" is *handled locally*; check the box that data is not sold, not used for unrelated purposes, not used for creditworthiness.
-- **Remote code:** No. All code is in the package, and the extension makes no network requests.
+- **Data collected:** nothing is sent to the developer, but Google counts data kept only on the device. Tick:
+  - **Website content:** the text and images the user saves.
+  - **Web history:** each clip keeps the address and title of the page it came from.
+
+  Then tick all three certifications: not sold or transferred to third parties, not used for purposes unrelated to the single purpose, not used for creditworthiness or lending.
+- **Remote code:** No, I am not using remote code. All code is in the package. The only network requests are downloads of images the user chose to save (no cookies sent).
 - **Privacy policy URL:** link to `PRIVACY.md` on GitHub (or a GitHub Pages copy).
 
 ## 3. Permission justifications
