@@ -1,13 +1,14 @@
 # Third-party notices
 
-Bundled in the extension:
+Bundled in the extension (the build ships each one's full license text in `THIRD_PARTY_LICENSES.txt`):
 
 | Package | License |
 |---|---|
-| React, React DOM | MIT |
+| React, React DOM, scheduler | MIT |
 | Dexie, dexie-react-hooks | Apache-2.0 |
 | lucide-react | ISC |
 | fflate | MIT |
+| WXT runtime (wxt, @wxt-dev/browser, @wxt-dev/storage) | MIT |
 | Instrument Sans (via @fontsource) | SIL Open Font License 1.1 |
 | Bricolage Grotesque (via @fontsource) | SIL Open Font License 1.1 |
 | JetBrains Mono (via @fontsource) | SIL Open Font License 1.1 |

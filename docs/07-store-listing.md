@@ -32,7 +32,6 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 > **Private by design**
 > • No account. Clips stay on your computer and are never uploaded. (Saving an image downloads it from where it's hosted, without your cookies.)
 > • Never saves password fields, password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites, or sites you block.
-> • Open source (GPL-3.0).
 
 **Screenshots (1280×800, 5):** take from the side panel docked next to a real page, light theme:
 1. Home with collections and recent clips ("Everything you copy, kept and sorted").
@@ -54,7 +53,7 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 
   Then tick all three certifications: not sold or transferred to third parties, not used for purposes unrelated to the single purpose, not used for creditworthiness or lending.
 - **Remote code:** No, I am not using remote code. All code is in the package. The only network requests are downloads of images the user chose to save (no cookies sent).
-- **Privacy policy URL:** link to `PRIVACY.md` on GitHub (or a GitHub Pages copy).
+- **Privacy policy URL:** https://marcus-leung.github.io/CopyDrawer/privacy, from the public `CopyDrawer` repo (GitHub Pages). `PRIVACY.md` here is the source: copy it there as `privacy.md` after every change.
 
 ## 3. Permission justifications
 
