@@ -1,6 +1,6 @@
 # CopyDrawer
 
-A private clipboard for Chrome and Edge. Everything you copy is kept, sorted into collections, and ready to paste again. Your clips stay on your device.
+A private clipboard for Chrome. Everything you copy is kept, sorted into collections, and ready to paste again. Your clips stay on your device.
 
 > Status: **MVP (v1.0 candidate)**. Built per [docs/06-build-plan.md](docs/06-build-plan.md); launch checklist in [docs/07-store-listing.md](docs/07-store-listing.md).
 
@@ -9,7 +9,6 @@ A private clipboard for Chrome and Edge. Everything you copy is kept, sorted int
 ```bash
 pnpm install
 pnpm dev          # opens Chrome with the extension loaded and hot reload
-pnpm dev:edge     # same for Edge
 ```
 
 Load a production build by hand: `pnpm build`, then in `chrome://extensions` turn on Developer mode → **Load unpacked** → choose `.output/chrome-mv3`.
@@ -23,7 +22,7 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 | `pnpm bench` | Builds a test copy and measures panel open, search, quick paste and saving at 2k–20k clips (about 5 minutes); results in `bench-results.jsonl` |
 | `pnpm test:e2e` | Builds a test copy and runs end-to-end tests with the real extension in Chromium (Playwright), incl. accessibility checks (axe). Specs that read the system clipboard are named `*.clipboard.spec.ts` and run last, one at a time |
 | `pnpm check` | Everything above, plus a production build and a check that all-sites access stays optional. Run it before every push: there is no CI. |
-| `pnpm zip` / `pnpm zip:edge` | Store-ready zip in `.output/` |
+| `pnpm zip` | Store-ready zip in `.output/` |
 
 ## Features
 

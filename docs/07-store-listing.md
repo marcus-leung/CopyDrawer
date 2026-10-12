@@ -1,10 +1,10 @@
 # 07 · Store listing and launch checklist
 
-Copy for the Chrome Web Store and Microsoft Edge Add-ons, the permission justifications reviewers ask for, and the steps to publish. Product decisions behind it: [02-design.md](02-design.md); GTM: [03-plan.md](03-plan.md).
+Copy for the Chrome Web Store, the permission justifications reviewers ask for, and the steps to publish. Product decisions behind it: [02-design.md](02-design.md); GTM: [03-plan.md](03-plan.md).
 
 ## 1. Listing
 
-**Name:** CopyDrawer – Smart Clipboard Manager (see [08-branding.md](08-branding.md)).
+**Name:** CopyDrawer – Clipboard History (see [08-branding.md](08-branding.md)).
 
 **Short description (≤132 chars):**
 > Everything you copy, kept and sorted into collections. Find it fast, paste it anywhere with Alt+Shift+V. Private, on your device.
@@ -68,9 +68,8 @@ Copy for the Chrome Web Store and Microsoft Edge Add-ons, the permission justifi
 
 1. `pnpm compile && pnpm test && pnpm test:e2e` all green.
 2. Bump `version` in `package.json`.
-3. `pnpm zip` → `.output/copydrawer-<version>-chrome.zip`; `pnpm zip:edge` → the Edge zip.
+3. `pnpm zip` → `.output/copydrawer-<version>-chrome.zip`.
 4. Chrome Web Store dashboard: new item → upload zip → listing, privacy, distribution (public, all regions) → submit.
-5. Edge Add-ons (Partner Center): same zip from `zip:edge`, same copy.
 
 ## 5. Before submitting: open items
 
