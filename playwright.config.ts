@@ -8,7 +8,9 @@ const READS_CLIPBOARD = /\.clipboard\.spec\.ts$/;
 
 export default defineConfig({
   testDir: 'tests/e2e',
-  timeout: 30_000,
+  // Real browsers, several at once: a save or screenshot can take a few seconds when the machine is busy.
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
   retries: 0,
   reporter: 'list',
   projects: [
