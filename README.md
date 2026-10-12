@@ -58,4 +58,4 @@ docs/                           research, design, plan, design system, mockups
 
 ## License
 
-GPL-3.0-only. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Proprietary, all rights reserved. See [LICENSE](LICENSE). Third-party licenses: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the build ships their full texts as `THIRD_PARTY_LICENSES.txt` (generated in `wxt.config.ts`).

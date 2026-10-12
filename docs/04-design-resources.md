@@ -7,7 +7,7 @@ Every resource is screened against four rules:
 | Rule | Why |
 |---|---|
 | **Free + commercial use allowed** | We plan paid tiers |
-| **GPL-3.0 compatible** | Our extension is GPL-3.0. Bundled code must be MIT / ISC / BSD / Apache-2.0 / GPL-compatible |
+| **Closed-source compatible** | Our extension is closed source. Bundled code must be permissive (MIT / ISC / BSD / Apache-2.0 / OFL for fonts), with its license added to `BUNDLED` in `wxt.config.ts` |
 | **MV3-safe** | Chrome extensions can't load remote code or use `eval` / `new Function`. Only `'self'` and `'wasm-unsafe-eval'` are allowed in script CSP. Everything is bundled locally |
 | **Secure** | Maintained, popular, minimal dependencies, no telemetry, no CDN fetches at runtime |
 

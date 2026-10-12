@@ -33,7 +33,7 @@ Ranked by marketing strength × feasibility. The first three are the **hero clai
 | 1 | **It sorts itself** | "Never tag a clip again." | Rules sort clips into collections (Research, Links, Code, Shopping, Recipes, Personal) and trips named after the place |
 | 2 | **Find it fast** | "That Airbnb link from last week." | Word search that forgives small typos, plus type, site and date filters |
 | 3 | **Paste it back anywhere** | "Any clip, in any text box." | Quick-paste box → filter → Enter. Clips with formatting paste as is or as plain text |
-| 4 | **Private by design** | "Your clipboard never leaves your device." | No account, no server, no network requests, open-source client |
+| 4 | **Private by design** | "Your clipboard never leaves your device." | No account, no server; the only network requests download images the user saves |
 | 5 | **Smart actions** | "Copy a tracking number, get a Track button." | Rules: tracking, address, color, date, JSON, code, email/phone |
 | 6 | **Clipboard Guard** _(post-MVP)_ | "Catches passwords and keys." | Rule-based secret detection, auto-expiry |
 
@@ -133,7 +133,7 @@ Settings   { retentionDays, theme, font: 'default'|'system'|'mono', textSize: 90
 ### 6.2 Privacy & security design
 - Local-first; no account.
 - Analytics: none.
-- Open-source client (GPL-3.0); Chrome's default strict CSP; no remote code; minimal dependencies.
+- Closed source (all rights reserved); Chrome's default strict CSP; no remote code; minimal dependencies.
 - Supply-chain hygiene: 2FA on the store account, signed releases, lockfile and dependency review. Compromised updates are exactly how 2026's attacks happened.
 
 ---
@@ -145,7 +145,7 @@ Settings   { retentionDays, theme, font: 'default'|'system'|'mono', textSize: 90
 | 1 | Audience | ✅ General: students/researchers + knowledge workers |
 | 2 | Name/brand | ✅ CopyDrawer (see [08-branding.md](08-branding.md)) |
 | 3 | UI framework | ✅ React (+ TypeScript, WXT, Tailwind) |
-| 4 | Source model / license | ✅ **GPL-3.0**; see §8 |
+| 4 | Source model / license | ✅ **Closed source, all rights reserved**; see §8 |
 | 5–14 | Product defaults | ✅ Decided; see §9 |
 | 15 | AI features and paid tier | ✅ Out of scope for now; the app ships without them |
 
@@ -160,7 +160,7 @@ Chrome extension code is shipped as JavaScript that **anyone can download and re
 | **Source-available** (e.g. FSL, BSL) | Code is public, but competing use is banned for ~2 years, after which it becomes MIT/Apache | Transparency + protection from direct clones | Not "open source" by the official definition; fewer contributors |
 | **Closed source** | No public repo | Simplest; maximum legal control | Loses the trust differentiator; code is still inspectable in the store package anyway |
 
-✅ **Decision: GPL-3.0.** Register the **name as a trademark** later, since licenses don't cover branding, so clones can't use your name. Accept outside contributions only with a simple CLA (or not at all initially).
+✅ **Decision: closed source, all rights reserved.** The repo stays private; the privacy policy lives in a separate public repo. Bundled libraries' licenses ship in the package as `THIRD_PARTY_LICENSES.txt`. Register the **name as a trademark** later, since licenses don't cover branding.
 
 ## 9. Product defaults (decided)
 

@@ -130,7 +130,8 @@ function open() {
   const target = captureTarget();
   const host = el('div');
   host.id = 'copydrawer-quick-paste';
-  const root = host.attachShadow({ mode: 'open' });
+  // Closed so the page can't read the clips (open only in the test build, so tests can reach the box).
+  const root = host.attachShadow({ mode: __E2E__ ? 'open' : 'closed' });
   const style = el('style', '', CSS);
   const scrim = el('div', 'scrim');
   const box = el('div', 'box');
