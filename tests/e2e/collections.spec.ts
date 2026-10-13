@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { dragAndDrop, dragOver, pasteIntoPanel } from './helpers';
 import { test, expect } from './fixtures';
 
@@ -58,6 +59,21 @@ test('clips sort into collections and trips; moving a clip keeps it there', asyn
   await expect(tiles).toContainText('Lisbon in October');
 });
 
+/** Folder names in the order saved in IndexedDB; the screen shows a dropped order before it is saved. */
+function savedFolderOrder(page: Page) {
+  return page.evaluate(
+    () =>
+      new Promise<string[]>((resolve, reject) => {
+        const req = indexedDB.open('clipboard');
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          const all = req.result.transaction('collections').objectStore('collections').index('order').getAll();
+          all.onsuccess = () => resolve((all.result as { name: string }[]).map((c) => c.name));
+        };
+      }),
+  );
+}
+
 test('folders keep their place when clips are dropped in, and move where you put them', async ({ context, extensionId }) => {
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
@@ -90,6 +106,7 @@ test('folders keep their place when clips are dropped in, and move where you put
   await tiles.filter({ hasText: 'Alpha' }).dispatchEvent('dragend', { dataTransfer: drag });
   await expect(tiles).toHaveText([/^Bravo/, /^Charlie/, /^Alpha/]);
   await expect(page.getByText('Drop to save')).toHaveCount(0);
+  await expect.poll(() => savedFolderOrder(page)).toEqual(['Bravo', 'Charlie', 'Alpha']);
   await page.reload();
   await expect(tiles).toHaveText([/^Bravo/, /^Charlie/, /^Alpha/]);
 
@@ -104,6 +121,7 @@ test('folders keep their place when clips are dropped in, and move where you put
   // The same, with the helper's whole drag: Charlie dropped on Bravo takes its place.
   await dragAndDrop(page, tiles.filter({ hasText: 'Charlie' }), tiles.filter({ hasText: 'Bravo' }));
   await expect(tiles).toHaveText([/^Charlie/, /^Bravo/, /^Alpha/]);
+  await expect.poll(() => savedFolderOrder(page)).toEqual(['Charlie', 'Bravo', 'Alpha']);
   await page.reload();
   await expect(tiles).toHaveText([/^Charlie/, /^Bravo/, /^Alpha/]);
 
