@@ -2,11 +2,9 @@ import { getSettings, updateSettings } from './settings';
 import { BUILT_IN_BLOCKED, isBuiltInBlocked } from './exclusions';
 
 const ALL_SITES = { origins: ['<all_urls>'] };
-const AUTOSAVE_SCRIPT = {
-  id: 'autosave',
-  js: ['content-scripts/autosave.js'],
+const SCRIPT_OPTIONS = {
   matches: ['<all_urls>'],
-  // Sites never saved from don't get the script at all, so nothing copied there leaves the page.
+  // Sites never saved from don't get the scripts at all, so nothing copied there leaves the page.
   excludeMatches: BUILT_IN_BLOCKED.flatMap((site) => [`*://${site}/*`, `*://*.${site}/*`]),
   allFrames: true,
   // Also about:blank and srcdoc frames, where many rich-text editors live.
@@ -14,6 +12,12 @@ const AUTOSAVE_SCRIPT = {
   runAt: 'document_start' as const,
   persistAcrossSessions: true,
 };
+/** The copy watcher, and the page-world hook that tells it about copy buttons. */
+const AUTOSAVE_SCRIPTS = [
+  { ...SCRIPT_OPTIONS, id: 'autosave', js: ['content-scripts/autosave.js'], world: 'ISOLATED' as const },
+  { ...SCRIPT_OPTIONS, id: 'autosave-main', js: ['content-scripts/clipboardhook.js'], world: 'MAIN' as const },
+];
+const IDS = AUTOSAVE_SCRIPTS.map((s) => s.id);
 
 export async function hasAllSitesAccess(): Promise<boolean> {
   try {
@@ -27,14 +31,16 @@ export async function hasAllSitesAccess(): Promise<boolean> {
 export async function injectIntoOpenTabs() {
   const tabs = await browser.tabs.query({ url: ['http://*/*', 'https://*/*'] });
   await Promise.all(
-    tabs.map((tab) =>
+    tabs.flatMap((tab) =>
       tab.id == null || isBuiltInBlocked(tab.url)
-        ? undefined
-        : browser.scripting
-            .executeScript({ target: { tabId: tab.id, allFrames: true }, files: [AUTOSAVE_SCRIPT.js[0]!] })
-            .catch(() => {
-              // Pages Chrome won't let extensions script (the Web Store, error pages).
-            }),
+        ? []
+        : AUTOSAVE_SCRIPTS.map((script) =>
+            browser.scripting
+              .executeScript({ target: { tabId: tab.id!, allFrames: true }, files: script.js, world: script.world })
+              .catch(() => {
+                // Pages Chrome won't let extensions script (the Web Store, error pages).
+              }),
+          ),
     ),
   );
 }
@@ -54,16 +60,18 @@ export function syncAutosaveRegistration(): Promise<boolean> {
 async function syncNow(): Promise<boolean> {
   const [settings, granted] = await Promise.all([getSettings(), hasAllSitesAccess()]);
   const shouldRun = settings.autoSave && granted;
-  const existing = await browser.scripting.getRegisteredContentScripts({ ids: [AUTOSAVE_SCRIPT.id] });
+  const existing = new Set((await browser.scripting.getRegisteredContentScripts({ ids: IDS })).map((s) => s.id));
   if (shouldRun) {
     // A registration persists across sessions; updating keeps it in step with these options.
-    if (existing.length) await browser.scripting.updateContentScripts([AUTOSAVE_SCRIPT]);
-    else {
-      await browser.scripting.registerContentScripts([AUTOSAVE_SCRIPT]);
+    const fresh = AUTOSAVE_SCRIPTS.filter((s) => !existing.has(s.id));
+    const kept = AUTOSAVE_SCRIPTS.filter((s) => existing.has(s.id));
+    if (kept.length) await browser.scripting.updateContentScripts(kept);
+    if (fresh.length) {
+      await browser.scripting.registerContentScripts(fresh);
       await injectIntoOpenTabs();
     }
-  } else if (existing.length) {
-    await browser.scripting.unregisterContentScripts({ ids: [AUTOSAVE_SCRIPT.id] });
+  } else if (existing.size) {
+    await browser.scripting.unregisterContentScripts({ ids: [...existing] });
   }
   return shouldRun;
 }

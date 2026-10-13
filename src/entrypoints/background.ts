@@ -18,6 +18,9 @@ import {
 import { blobToDataUrl, dataUrlToBlob, IMAGE_TYPES, ImageError, MAX_IMAGE_BYTES, saveImageClip } from '@/lib/images';
 import { BACKUP_EVERY } from '@/lib/backup';
 import { fetchImageInPage, readSelection, selectArea, showSavedToast } from '@/lib/injected';
+import { holdSavesUntil, isDiskFailure, markRebuildNeeded, pauseWrites, REBUILD_ALARM, storageProblem } from '@/lib/storageGuard';
+import { rebuildIfNeeded } from '@/lib/rebuild';
+import { secretKind } from '@/lib/secrets';
 import type { Clip, ClipSource } from '@/lib/db';
 
 const MENU = {
@@ -101,8 +104,7 @@ async function saveSelectionFromTab(tab: Browser.tabs.Tab | undefined, fallbackT
     const clip = await saveClip({ text, html: payload?.html, source: sourceOf(tab) });
     if (clip) await badgeOk(tab.id);
   } catch (e) {
-    console.warn('Selection not saved', e);
-    await badgeError(tab.id);
+    await saveFailed(e, tab.id, 'Selection not saved');
   }
 }
 
@@ -197,18 +199,29 @@ function fileNameOf(srcUrl: string, pageUrl?: string): string | undefined {
   }
 }
 
-/** The in-page card for an image that couldn't be saved, saying why. The ! badge when the card can't show. */
-async function imageNotSaved(tab: Browser.tabs.Tab | undefined, detail: string) {
-  if (tab?.id == null) return;
+/** The in-page card for something that couldn't be saved, saying why. The ! badge when the card can't show. */
+async function notSavedCard(tabId: number | undefined, title: string, detail: string) {
+  if (tabId == null) return;
   try {
     await browser.scripting.executeScript({
-      target: { tabId: tab.id },
+      target: { tabId },
       func: showSavedToast,
-      args: [{ title: 'Image not saved', detail, openShadow: __E2E__, closeAfterMs: TOAST_MS }],
+      args: [{ title, detail, openShadow: __E2E__, closeAfterMs: TOAST_MS }],
     });
   } catch {
-    await badgeError(tab.id);
+    await badgeError(tabId);
   }
+}
+
+const imageNotSaved = (tab: Browser.tabs.Tab | undefined, detail: string) => notSavedCard(tab?.id, 'Image not saved', detail);
+
+/** A save failed: the card says why when the disk is the cause; otherwise the ! badge. */
+async function saveFailed(e: unknown, tabId: number | undefined, label: string) {
+  console.warn(label, e instanceof ImageError ? e.message : e);
+  const problem = storageProblem(e);
+  if (!problem) return badgeError(tabId);
+  if (isDiskFailure(e)) pauseWrites();
+  await notSavedCard(tabId, problem.title, problem.detail);
 }
 
 async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
@@ -227,8 +240,7 @@ async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
     const fileName = fileNameOf(srcUrl, tab?.url);
     await toastInTab(tab?.id, await saveImageClip({ blob, source: sourceOf(tab), srcUrl, fileName }), 'Image saved');
   } catch (e) {
-    console.warn('Image not saved', e instanceof ImageError ? e.message : e);
-    await badgeError(tab?.id);
+    await saveFailed(e, tab?.id, 'Image not saved');
   }
 }
 
@@ -240,8 +252,7 @@ async function autosaveImage(srcUrl: string, tab?: Browser.tabs.Tab, frameId?: n
     await saveImageClip({ blob, source: sourceOf(tab), srcUrl });
     await badgeOk(tab?.id);
   } catch (e) {
-    console.warn('Image not auto-saved', e instanceof ImageError ? e.message : e);
-    await badgeError(tab?.id);
+    await saveFailed(e, tab?.id, 'Image not auto-saved');
   }
 }
 
@@ -261,8 +272,7 @@ async function screenshotArea(tab?: Browser.tabs.Tab) {
   try {
     await toastInTab(tab.id, await captureArea(tab, area), 'Screenshot saved');
   } catch (e) {
-    console.warn('Screenshot not saved', e);
-    await badgeError(tab.id);
+    await saveFailed(e, tab.id, 'Screenshot not saved');
   }
 }
 
@@ -301,10 +311,18 @@ async function autosaveAllowed(sender: Browser.runtime.MessageSender): Promise<{
   return { url: hostOf(sender.url) ? sender.url : tab?.url };
 }
 
+/** Auto-save never keeps passwords, keys or card numbers; the card says how to save one on purpose. */
+async function skipSecret(text: string, tabId?: number): Promise<boolean> {
+  if (!secretKind(text)) return false;
+  await notSavedCard(tabId, 'Not saved: looks like a password or key', 'To keep it anyway, paste it into CopyDrawer.');
+  return true;
+}
+
 async function handleAutosave(msg: { text: string; html?: string; title?: string }, sender: Browser.runtime.MessageSender) {
   const allowed = await autosaveAllowed(sender);
   if (!allowed) return;
   const tab = sender.tab;
+  if (await skipSecret(msg.text, tab?.id)) return;
   try {
     const clip = await saveClip({
       text: msg.text,
@@ -313,8 +331,7 @@ async function handleAutosave(msg: { text: string; html?: string; title?: string
     });
     if (clip) await badgeOk(tab?.id);
   } catch (e) {
-    console.warn('Copy not auto-saved', e);
-    await badgeError(tab?.id);
+    await saveFailed(e, tab?.id, 'Copy not auto-saved');
   }
 }
 
@@ -432,6 +449,8 @@ async function onInstalled(reason: string) {
 }
 
 export default defineBackground(() => {
+  // Before anything else writes: a disk error last session means the database moves to fresh storage now.
+  holdSavesUntil(rebuildIfNeeded().catch((e) => console.warn('Rebuild after disk error failed', e)));
   browser.runtime.onInstalled.addListener((details) => void onInstalled(details.reason));
 
   browser.runtime.onStartup.addListener(() => {
@@ -477,6 +496,7 @@ export default defineBackground(() => {
 
   browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === ALARM_CLEANUP) void cleanup();
+    if (alarm.name === REBUILD_ALARM) void markRebuildNeeded();
   });
 
   browser.permissions.onRemoved.addListener((removed) => void onPermissionsRemoved(removed));

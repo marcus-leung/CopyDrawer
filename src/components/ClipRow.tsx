@@ -69,11 +69,12 @@ export function ClipRow({
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-2.5 text-left"
       >
         <span
+          data-preview
           className={`grid size-10 shrink-0 place-items-center ${pick ? (pick.selecting ? 'invisible' : 'group-hover:invisible group-has-[[role=checkbox]:focus-visible]:invisible') : ''}`}
         >
           <ClipIcon clip={clip} />
         </span>
-        <span className="min-w-0 flex-1">
+        <span data-preview className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5 truncate text-sm font-semibold">
             {collection && <CollectionDot collection={collection} />}
             {clip.pinned === 1 && <Pin size={12} className="shrink-0 text-text-3" aria-label="Pinned" />}

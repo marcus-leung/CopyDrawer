@@ -113,7 +113,9 @@ function StripItem({
         className={`block cursor-pointer rounded-xl ${pick?.number ? 'outline-2 outline-offset-2 outline-ink' : ''}`}
         aria-label={clip.title}
       >
-        {clip.kind === 'image' ? <Thumb clip={clip} /> : <ColorChip text={clip.text} />}
+        <span data-preview className="block">
+          {clip.kind === 'image' ? <Thumb clip={clip} /> : <ColorChip text={clip.text} />}
+        </span>
       </button>
       {pick && <PickBox title={clip.title} pick={pick} className="absolute top-0 left-0 size-9" />}
     </li>

@@ -16,10 +16,10 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 > CopyDrawer keeps what you copy and sorts it for you, without sending anything to the cloud.
 >
 > **Saved, sorted, found**
-> • Save text, links, images and screenshots: shortcut, right-click, drag and drop, or automatically when you copy (optional).
+> • Save text, links, images and screenshots: shortcut, right-click, drag and drop, or automatically when you copy (optional), copy buttons included.
 > • Collections fill themselves: Research, Shopping, Recipes, Code… and trips named after the place ("Lisbon trip"). Make your own, pick any color, and drag them into the order you like.
 > • Drag images to reorder them, file them in a collection, or drop them straight onto a page.
-> • Search that forgives typos, with filters for type, site and date.
+> • Search that finds the best match first, forgives typos, and filters by type, site and date.
 >
 > **Paste it back anywhere**
 > • Alt+Shift+V opens quick paste in any text box. Type, press Enter, done.
@@ -32,7 +32,9 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 >
 > **Private by design**
 > • No account. Clips stay on your computer and are never uploaded. (Saving an image downloads it from where it's hosted, without your cookies.)
-> • Never saves password fields, password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites, or sites you block.
+> • Never saves password fields, password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites, or sites you block. Auto-save skips anything that looks like a password, key or card number.
+> • Hide previews with one click while you share your screen.
+> • Your clips are never wiped: if your disk fills up, CopyDrawer stops saving and tells you, so nothing already saved is lost. Export everything anytime.
 
 **Screenshots (1280×800, 5):** `assets/store/screenshot-1.png` to `-5.png`, the real side panel (light theme) docked next to a sample page, with a tomato caption. Regenerate with `E2E=1 pnpm exec wxt build && node scripts/make-store-art.mjs`:
 1. Home with collections and recent clips ("Everything you copy, kept and sorted").
@@ -68,7 +70,7 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 | `activeTab`, `scripting` | Read the selection, show the "Saved" card, run the screenshot tool and the quick-paste box on the current tab when the user asks. |
 | `clipboardRead`, `clipboardWrite` | "Grab clipboard" reads what the user copied; Copy/Paste writes it back. |
 | `alarms` | Daily cleanup of clips older than the user's chosen limit. |
-| Optional host access `<all_urls>` | Only if the user turns on auto-save: notice copy events on the pages they visit and save the copied text or image. Requested at that moment, never at install. |
+| Optional host access `<all_urls>` | Only if the user turns on auto-save: notice copy events and clicks on copy buttons on the pages they visit, and save the copied text or image. Requested at that moment, never at install. |
 
 ## 4. Publish steps
 

@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import { X } from 'lucide-react';
 import { saveClip } from '@/lib/clips';
+import { storageProblem } from '@/lib/storageGuard';
 import { fromDataTransfer } from '@/lib/clipboard';
 import { IMAGE_TYPES, NOT_AN_IMAGE, saveImages } from '@/lib/images';
 import { modKey } from '@/lib/format';
@@ -24,8 +25,8 @@ export function AddClipForm({ onSaved, onCancel }: { onSaved: () => void; onCanc
     } else {
       try {
         await saveClip({ text });
-      } catch {
-        return setError("Couldn't save that. Try again.");
+      } catch (e) {
+        return setError(storageProblem(e)?.title ?? "Couldn't save that. Try again.");
       }
     }
     onSaved();

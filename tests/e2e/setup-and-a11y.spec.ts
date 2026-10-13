@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { strFromU8, unzipSync } from 'fflate';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
+import { pasteIntoPanel } from './helpers';
 
 async function axe(page: Page, label: string) {
   // Check the settled UI, not a toast halfway through fading in.
@@ -163,4 +164,54 @@ test('font and text size: Settings changes every page, and pages open with them'
   await page.getByLabel('Font').selectOption('default');
   await expect(html).not.toHaveAttribute('data-font');
   expect(await fontOf(page)).toContain('Instrument Sans');
+});
+
+test('hide previews blurs clips until you point at one, in the panel and quick paste', async ({ context, extensionId }) => {
+  await context.route('https://form.e2e.test/**', (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Form</title><input id="field">' }),
+  );
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await pasteIntoPanel(page, 'Booking ref QX7-221', 'Gate B12');
+  const list = page.getByRole('list', { name: 'Clips' });
+  await expect(list.getByRole('listitem')).toHaveCount(2);
+  const blur = (row: number) =>
+    list
+      .getByRole('listitem')
+      .nth(row)
+      .locator('[data-preview]')
+      .first()
+      .evaluate((el) => getComputedStyle(el).filter);
+  expect(await blur(0)).toBe('none');
+
+  const toggle = page.getByRole('button', { name: 'Hide previews' });
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await page.mouse.move(0, 0);
+  await expect.poll(() => blur(0)).toContain('blur');
+  await list.getByRole('listitem').nth(1).hover();
+  await expect.poll(() => blur(1)).toBe('none');
+  expect(await blur(0)).toContain('blur');
+  await axe(page, 'hide previews');
+
+  // Quick paste blurs every clip but the one picked.
+  const form = await context.newPage();
+  await form.goto('https://form.e2e.test/');
+  await form.locator('#field').click();
+  const tabId = await page.evaluate(async () => (await chrome.tabs.query({ url: 'https://form.e2e.test/*' }))[0]!.id!);
+  await page.evaluate((id) => chrome.runtime.sendMessage({ type: 'e2e-command', command: 'quick-paste', tabId: id }), tabId);
+  const options = form.getByRole('option');
+  await expect(options).toHaveCount(2);
+  await form.mouse.move(0, 0);
+  const qpBlur = (n: number) =>
+    options
+      .nth(n)
+      .locator('.txt')
+      .evaluate((el) => getComputedStyle(el).filter);
+  await expect.poll(() => qpBlur(1)).toContain('blur');
+  expect(await qpBlur(0)).toBe('none');
+
+  await page.bringToFront();
+  await toggle.click();
+  await expect.poll(() => blur(0)).toBe('none');
 });

@@ -52,7 +52,7 @@ Problem: auto-capturing copies on every site needs `<all_urls>` content scripts 
 
 Why: a lighter install warning, a likely smoother first review, and a trust story ("we only read pages if you turn it on"), while most users still end up with auto-capture through onboarding. The production build must not list `<all_urls>` in `host_permissions`; `pnpm check` checks this before every push.
 
-Always excluded (hardcoded + user list): `chrome://` pages, the Web Store, and a built-in list of password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites (cheap safety net; full secret detection is out of scope for MVP). Only trusted copy events (made by the user, not dispatched by the page) are saved; a copied image is fetched from inside the page, never with the extension's all-sites access.
+Always excluded (hardcoded + user list): `chrome://` pages, the Web Store, and a built-in list of password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites (cheap safety net). Auto-save also skips text that looks like a password, access key, private key or card number (`src/lib/secrets.ts`). Only trusted copy events (made by the user, not dispatched by the page) are saved, plus copy-button writes (`navigator.clipboard`) reported right after a user click or key press; a copied image is fetched from inside the page, never with the extension's all-sites access.
 
 ---
 
@@ -91,10 +91,10 @@ Keyboard-first · zero setup · instant (local, < 100 ms search) · calm (no nag
 |---|---|---|
 | Capture | Text, rich text (stored as HTML + plain), links, images (context menu, paste/drop, region screenshot), **auto-capture opt-in** via onboarding (pause + site blocklist) | OS-wide (desktop companion) |
 | Organize | Pins, rule-sorted collections, user collections with colors, drag to file, drag folders to reorder, duplicate merge, retention setting; move or delete several picked clips at once | Shareable boards |
-| Find | Word search with typo tolerance, filters (type, site, date) | |
+| Find | Ranked search (best match first) with typo tolerance, filters (type, site, date) | |
 | Paste | Quick-paste box, **Paste as** (as is or plain text), **copy several at once**: pick clips (numbered in pick order, which is paste order) and Copy all as one clipboard item, joined with a new line, blank line, space or comma, with formatting and images in order; quick paste picks several with Tab | Paste stack |
 | Smart | Types + actions (URL clean, color, JSON, code, date, tracking, email/phone) | More detectors |
-| Guard | Site blocklist + seed exclusions only | Secret detection/masking (post-MVP) |
+| Guard | Site blocklist + seed exclusions; auto-save skips passwords, keys and card numbers; Hide previews for screen sharing | Masking secrets saved by hand |
 | Data | Local only (a few settings sync through Chrome sync), export/import .zip, wipe all | Sync between devices |
 
 Limit: 5,000 clips **including pins** (images limited by local storage).

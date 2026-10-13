@@ -1,0 +1,1316 @@
+{
+  "collections": [
+    {
+      "id": "lisbon",
+      "name": "Lisbon trip"
+    },
+    {
+      "id": "kitchen",
+      "name": "Kitchen reno"
+    },
+    {
+      "id": "job",
+      "name": "Job hunt"
+    },
+    {
+      "id": "thesis",
+      "name": "Thesis"
+    },
+    {
+      "id": "recipes",
+      "name": "dinner recipes"
+    },
+    {
+      "id": "react",
+      "name": "react side project"
+    },
+    {
+      "id": "gifts",
+      "name": "Gift ideas"
+    },
+    {
+      "id": "insurance",
+      "name": "Health insurance claim"
+    }
+  ],
+  "clips": [
+    {
+      "id": "c001",
+      "text": "Wall A 3.40m, wall B 2.85m, window 1.20m wide, sill height 95cm",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "kitchen"
+    },
+    {
+      "id": "c002",
+      "text": "Fado night at Clube de Fado, dinner + show €45, book at least two days ahead",
+      "sourceUrl": "https://fado.example.com/book",
+      "sourceTitle": "Fado dinner shows in Alfama",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c003",
+      "text": "Interview Thursday 2pm with engineering manager Dana Okafor, 45 min",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "job"
+    },
+    {
+      "id": "c004",
+      "text": "Dad: noise cancelling headphones, around £150-200",
+      "sourceUrl": "https://audio.example.com/headphones-anc",
+      "sourceTitle": "Over-ear noise cancelling headphones",
+      "collection": "gifts"
+    },
+    {
+      "id": "c005",
+      "text": "https://shop.example.com/products/silk-pillowcase",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "gifts"
+    },
+    {
+      "id": "c006",
+      "text": "Called 0800 555 0147, 40 min hold music. Ask for Gareth, call ref #88231",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "insurance"
+    },
+    {
+      "id": "c007",
+      "text": "Time Out Market is touristy but fine for a quick lunch. Skip the dessert there, the pastry shop near Rossio is better.",
+      "sourceUrl": "https://food.example.com/lisbon-tascas",
+      "sourceTitle": "Where to eat in Bairro Alto",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c008",
+      "text": "Integrated dishwasher 60cm, £449, delivery in 3 days",
+      "sourceUrl": "https://appliances.example.com/dishwasher-integrated",
+      "sourceTitle": "Integrated dishwasher 60cm",
+      "collection": "kitchen"
+    },
+    {
+      "id": "c009",
+      "text": "Mum's birthday 3 March. She likes gardening and mystery novels.",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "gifts"
+    },
+    {
+      "id": "c010",
+      "text": "Deadline to submit a claim: 90 days from the treatment date",
+      "sourceUrl": "https://carewell.example.com/claims/how-to",
+      "sourceTitle": "How to submit a claim - CareWell",
+      "collection": "insurance"
+    },
+    {
+      "id": "c011",
+      "text": "1Z999AA10123456784",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c012",
+      "text": "Salary expectation: say 80-90k as a range, but try not to name a number first",
+      "sourceUrl": "https://advice.example.com/negotiation",
+      "sourceTitle": "How to answer the salary question",
+      "collection": "job"
+    },
+    {
+      "id": "c013",
+      "text": "Theo turns 8 in June. He only talks about space - a beginner telescope?",
+      "sourceUrl": "https://toys.example.com/kids-telescope",
+      "sourceTitle": "Beginner telescope for kids",
+      "collection": "gifts"
+    },
+    {
+      "id": "c014",
+      "text": "Event loop: call stack, microtask queue, then macrotask queue. Promise callbacks run before setTimeout callbacks.",
+      "sourceUrl": "https://prep.example.com/js-interview-questions",
+      "sourceTitle": "50 JavaScript interview questions",
+      "collection": "job"
+    },
+    {
+      "id": "c015",
+      "text": "Lena wants a ceramic pour-over coffee set",
+      "sourceUrl": "https://makers.example.com/pour-over-set",
+      "sourceTitle": "Ceramic pour-over set",
+      "collection": "gifts"
+    },
+    {
+      "id": "c016",
+      "text": "pnpm build && upload dist/ to the static host",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c017",
+      "text": "Reimbursed amount: £482.00 minus £150 excess = £332.00",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "insurance"
+    },
+    {
+      "id": "c018",
+      "text": "Merino wool scarf in mustard, £45 - Gran",
+      "sourceUrl": "https://knitwear.example.com/merino-scarf-mustard",
+      "sourceTitle": "Merino scarf",
+      "collection": "gifts"
+    },
+    {
+      "id": "c019",
+      "text": "ephemeral",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c020",
+      "text": "Physiotherapy: 6 sessions x £55 = £330",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "insurance"
+    },
+    {
+      "id": "c021",
+      "text": "npm i zustand @tanstack/react-query",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c022",
+      "text": "Matt sage green paint, Pale Fern, 2.5L £38",
+      "sourceUrl": "https://paintbox.example.com/pale-fern",
+      "sourceTitle": "Pale Fern matt emulsion",
+      "collection": "kitchen"
+    },
+    {
+      "id": "c023",
+      "text": "Anneliese Vogt, Talent Acquisition, Hollow Pine Studio",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "job"
+    },
+    {
+      "id": "c024",
+      "text": "Zotero export failed again, re-import the .bib",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "thesis"
+    },
+    {
+      "id": "c025",
+      "text": "Induction hob 60cm 4-zone, £389. Needs a 32A supply, check with Ricardo.",
+      "sourceUrl": "https://appliances.example.com/hob-induction-60",
+      "sourceTitle": "Induction hob 60cm",
+      "collection": "kitchen"
+    },
+    {
+      "id": "c026",
+      "text": "Gratin dauphinois : 1 kg de pommes de terre, 50 cl de crème, une gousse d'ail, noix de muscade. Cuire 1h à 160°C.",
+      "sourceUrl": "https://cuisine.example/gratin-dauphinois",
+      "sourceTitle": "Gratin dauphinois traditionnel",
+      "collection": "recipes"
+    },
+    {
+      "id": "c027",
+      "text": "Zoom ID 842 1190 3376",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c028",
+      "text": "export function useLocalStorage<T>(key: string, initial: T) {\n  const [val, setVal] = useState<T>(() => {\n    const raw = localStorage.getItem(key);\n    return raw ? (JSON.parse(raw) as T) : initial;\n  });\n  useEffect(() => localStorage.setItem(key, JSON.stringify(val)), [key, val]);\n  return [val, setVal] as const;\n}",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c029",
+      "text": "Lena's birthday 21 April: pottery class voucher, £65",
+      "sourceUrl": "https://makers.example.com/pottery-taster",
+      "sourceTitle": "Pottery taster session - gift voucher",
+      "collection": "gifts"
+    },
+    {
+      "id": "c030",
+      "text": "Paracetamol 500mg",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c031",
+      "text": "Excess is £150 per claim year, applied to the first claim",
+      "sourceUrl": "https://carewell.example.com/policy/outpatient",
+      "sourceTitle": "Outpatient cover - CareWell",
+      "collection": "insurance"
+    },
+    {
+      "id": "c032",
+      "text": "Weeknight dal: red lentils, turmeric, cumin, finish with a garlic tadka",
+      "sourceUrl": "https://cook.example.com/weeknight-dal",
+      "sourceTitle": "Weeknight dal",
+      "collection": "recipes"
+    },
+    {
+      "id": "c033",
+      "text": "Budget so far: £11,600 of £14,000. Still to pay: worktop, tiling labour, appliances.",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "kitchen"
+    },
+    {
+      "id": "c034",
+      "text": "Regalo para mamá: set de té japonés con tetera de hierro fundido, 58 €",
+      "sourceUrl": "https://tienda.example/set-te-japones",
+      "sourceTitle": "Set de té japonés",
+      "collection": "gifts"
+    },
+    {
+      "id": "c035",
+      "text": "O Miradouro da Senhora do Monte oferece uma das melhores vistas de Lisboa ao pôr do sol, com entrada gratuita.",
+      "sourceUrl": "https://viajar.example.com/miradouros-lisboa",
+      "sourceTitle": "Os melhores miradouros de Lisboa",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c036",
+      "text": "REM sleep and emotional memory: sleep to forget vs sleep to remember hypotheses",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "thesis"
+    },
+    {
+      "id": "c037",
+      "text": "Sleep after learning stabilises newly encoded memories and makes them less vulnerable to interference. Across 31 studies in this review, participants who slept after encoding retained on average 18% more word pairs than participants who stayed awake for the same interval, with the largest benefits for declarative material learned shortly before sleep.",
+      "sourceUrl": "https://journals.example.com/neuro/review-sleep-memory",
+      "sourceTitle": "Sleep and declarative memory: a meta-analysis",
+      "collection": "thesis"
+    },
+    {
+      "id": "c038",
+      "text": "polysomnography",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "thesis"
+    },
+    {
+      "id": "c039",
+      "text": "Cabinet lead time is 8-10 weeks, deposit 30% = £2,400",
+      "sourceUrl": "https://cabinets.example.com/order-terms",
+      "sourceTitle": "Order terms - Hartwell Cabinets",
+      "collection": "kitchen"
+    },
+    {
+      "id": "c040",
+      "text": "Budget: £60 each max, except Dad",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "gifts"
+    },
+    {
+      "id": "c041",
+      "text": "Side project: habit tracker with streaks, local-first, no backend, installable PWA",
+      "sourceUrl": null,
+      "sourceTitle": "notes",
+      "collection": "react"
+    },
+    {
+      "id": "c042",
+      "text": "Reminder: bins out Tuesday night",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c043",
+      "text": "Extractor hood should vent outside via a 150mm duct, max 3m run with no more than two bends, otherwise it loses a lot of airflow.",
+      "sourceUrl": "https://homefit.example.com/extractors",
+      "sourceTitle": "Extractor hoods: ducting rules",
+      "collection": "kitchen"
+    },
+    {
+      "id": "c044",
+      "text": "Bake at 200°C for 35 min until golden and bubbling",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "recipes"
+    },
+    {
+      "id": "c045",
+      "text": "Quote from Ricardo (electrician): rewiring + 8 spot lights + new consumer unit = £1,850. Valid 30 days.",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "kitchen"
+    },
+    {
+      "id": "c046",
+      "text": "#FF6B35",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c047",
+      "text": "Gran's apple cake: 3 eggs, 150g sugar, 125g oil, 200g flour, 4 apples sliced thin",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "recipes"
+    },
+    {
+      "id": "c048",
+      "text": "Day trip to Sintra: trains leave from Rossio about every 20 min, 40 min ride. Buy the Pena Palace ticket online to skip the queue.",
+      "sourceUrl": "https://blog.example.com/sintra-day-trip",
+      "sourceTitle": "Sintra in a day without losing your mind",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c049",
+      "text": "Dr. Amara Singh, Riverside Clinic, +44 20 7946 0321",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "insurance"
+    },
+    {
+      "id": "c050",
+      "text": "We will respond within 10 working days of receiving complete documents.",
+      "sourceUrl": null,
+      "sourceTitle": "Re: your claim",
+      "collection": "insurance"
+    },
+    {
+      "id": "c051",
+      "text": "https://cook.example.com/best-focaccia",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "recipes"
+    },
+    {
+      "id": "c052",
+      "text": "Check-in after 3pm, key is in the lockbox by the blue door, code 4471",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "lisbon"
+    },
+    {
+      "id": "c053",
+      "text": "The Viva Viagem card costs €0.50 and you load it at the machines in the metro station. Zapping credit works on trams, buses and ferries.",
+      "sourceUrl": "https://transit.example.com/lisboa/cards",
+      "sourceTitle": "Lisbon travel cards explained",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c054",
+      "text": "Hallström et al. (2019). Slow oscillation-spindle coupling predicts overnight retention in rats.",
+      "sourceUrl": "https://journals.example.com/sleep/hallstrom2019",
+      "sourceTitle": "Hallström 2019 - Sleep Research Reports",
+      "collection": "thesis"
+    },
+    {
+      "id": "c055",
+      "text": "Pasta water should taste like the sea",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "recipes"
+    },
+    {
+      "id": "c056",
+      "text": "Horário: terça a domingo, 12h–15h e 19h–23h. Encerra à segunda-feira e feriados.",
+      "sourceUrl": "https://restaurante-ginja.example/contactos",
+      "sourceTitle": "Contactos e horário - Restaurante Ginja",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c057",
+      "text": "Policy number: PL 77 3920 114",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "insurance"
+    },
+    {
+      "id": "c058",
+      "text": "Claim reference HC-2026-558213",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "insurance"
+    },
+    {
+      "id": "c059",
+      "text": "£12.99",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c060",
+      "text": "Sleep spindles (12-15 Hz) are thought to support hippocampal-neocortical dialogue during NREM stage 2.",
+      "sourceUrl": "https://journals.example.com/neuro/review-spindles",
+      "sourceTitle": "Spindles and memory: a review",
+      "collection": "thesis"
+    },
+    {
+      "id": "c061",
+      "text": "https://careers.example.com/jobs/platform-engineer-883",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "job"
+    },
+    {
+      "id": "c062",
+      "text": "Plumber can do week of 14 Nov, 2 days",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "kitchen"
+    },
+    {
+      "id": "c063",
+      "text": "42 Hawthorn Road, Leeds LS6 1AB",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c064",
+      "text": "const flat = (arr) => arr.reduce((a, x) => a.concat(Array.isArray(x) ? flat(x) : x), []);",
+      "sourceUrl": "https://prep.example.com/js-interview-questions",
+      "sourceTitle": "50 JavaScript interview questions",
+      "collection": "job"
+    },
+    {
+      "id": "c065",
+      "text": "Wishing you a year full of good books and better tea.",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "gifts"
+    },
+    {
+      "id": "c066",
+      "text": "TypeError: Cannot read properties of undefined (reading 'map')",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c067",
+      "text": "className=\"flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2\"",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c068",
+      "text": "Cast iron Dutch oven, 5.5L, enamelled, £89 - for Mum?",
+      "sourceUrl": "https://homeware.example.com/dutch-oven-5-5l",
+      "sourceTitle": "Enamelled cast iron casserole 5.5L",
+      "collection": "gifts"
+    },
+    {
+      "id": "c069",
+      "text": "Splashback idea: 10x10 zellige tiles, handmade so expect slight variation in colour and edges. £78/m²",
+      "sourceUrl": "https://tilemart.example.com/p/zellige-10x10",
+      "sourceTitle": "Handmade zellige tile 10x10",
+      "collection": "kitchen"
+    },
+    {
+      "id": "c070",
+      "text": "doi:10.1234/example.5521",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "thesis"
+    },
+    {
+      "id": "c071",
+      "text": "https://github.example.com/marcus/habit-tracker",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c072",
+      "text": "Demolition + skip hire: £420",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "kitchen"
+    },
+    {
+      "id": "c073",
+      "text": "Your claim has been declined under clause 7.2 (pre-existing conditions). Treatment relating to a condition for which you received advice or treatment in the 24 months before the policy start date is not covered.",
+      "sourceUrl": null,
+      "sourceTitle": "Decision on claim HC-2026-558213",
+      "collection": "insurance"
+    },
+    {
+      "id": "c074",
+      "text": "useMemo caches a computed value, useCallback caches a function identity. Neither is free, so only reach for them when a child is memoised or the calculation is expensive.",
+      "sourceUrl": "https://prep.example.com/react-interview",
+      "sourceTitle": "React interview questions you will be asked",
+      "collection": "job"
+    },
+    {
+      "id": "c075",
+      "text": "Sleep deprivation right after learning impaired retention by roughly 20% in the word-pair task",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "thesis"
+    },
+    {
+      "id": "c076",
+      "text": "Chickpea and spinach curry - 25 min, serves 4",
+      "sourceUrl": "https://cook.example.com/chickpea-spinach-curry",
+      "sourceTitle": "Chickpea and spinach curry",
+      "collection": "recipes"
+    },
+    {
+      "id": "c077",
+      "text": "Azulejos hidráulicos 20x20, 24 € la unidad, entrega en 15 días laborables",
+      "sourceUrl": "https://azulejos.example/hidraulicos",
+      "sourceTitle": "Azulejos hidráulicos - catálogo",
+      "collection": "kitchen"
+    },
+    {
+      "id": "c078",
+      "text": "https://news.example.com/article/12345-city-bans-leaf-blowers",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c079",
+      "text": "Bilhete ida e volta Lisboa–Sintra: 5,60 €. Validade: dia da compra.",
+      "sourceUrl": "https://comboios.example/bilhetes",
+      "sourceTitle": "Bilhetes e preços",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c080",
+      "text": "server: { proxy: { '/api': 'http://localhost:8787' } },",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c081",
+      "text": "8 piece knife block set, £120. Dad has been using the same blunt knife for years.",
+      "sourceUrl": "https://homeware.example.com/knife-block-8pc",
+      "sourceTitle": "Knife block set 8 piece",
+      "collection": "gifts"
+    },
+    {
+      "id": "c082",
+      "text": "I am writing to dispute the decision dated 4 September regarding claim HC-2026-558213. My GP confirms the knee problem first appeared after the policy start date, and I enclose her letter.",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "insurance"
+    },
+    {
+      "id": "c083",
+      "text": "Pull-out larder unit 300mm, soft close, £265",
+      "sourceUrl": "https://cabinets.example.com/larder-300",
+      "sourceTitle": "Pull out larder 300mm",
+      "collection": "kitchen"
+    },
+    {
+      "id": "c084",
+      "text": "\\cite{hallstrom2019}",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "thesis"
+    },
+    {
+      "id": "c085",
+      "text": "Portugal uses type C and F plugs, 230V. Bring one adapter per person.",
+      "sourceUrl": "https://travel.example.com/portugal/practical",
+      "sourceTitle": "Portugal practical info",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c086",
+      "text": "Why do we forget? Interference theory vs decay theory",
+      "sourceUrl": "https://study.example.com/psych/forgetting",
+      "sourceTitle": "Theories of forgetting",
+      "collection": "thesis"
+    },
+    {
+      "id": "c087",
+      "text": "export function useDebounce<T>(value: T, delay = 300) {\n  const [v, setV] = useState(value);\n  useEffect(() => {\n    const id = setTimeout(() => setV(value), delay);\n    return () => clearTimeout(id);\n  }, [value, delay]);\n  return v;\n}",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c088",
+      "text": "function debounce(fn, ms) {\n  let t;\n  return (...args) => {\n    clearTimeout(t);\n    t = setTimeout(() => fn(...args), ms);\n  };\n}",
+      "sourceUrl": "https://prep.example.com/js-interview-questions",
+      "sourceTitle": "50 JavaScript interview questions",
+      "collection": "job"
+    },
+    {
+      "id": "c089",
+      "text": "Blank recipe book, linen cover, £22.50",
+      "sourceUrl": "https://stationery.example.com/recipe-book-linen",
+      "sourceTitle": "Linen recipe journal",
+      "collection": "gifts"
+    },
+    {
+      "id": "c090",
+      "text": "Take-home: build a paginated table with sorting and filtering, 4 hours max, due Sunday midnight",
+      "sourceUrl": null,
+      "sourceTitle": "Take-home assignment",
+      "collection": "job"
+    },
+    {
+      "id": "c091",
+      "text": "lol",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c092",
+      "text": "I am excited about Northwind Labs because of your commitment to accessible design systems. At my current company I led the migration of 40 components to a tokenised system, cutting visual regressions by half, and I would love to bring that experience to your platform team.",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "job"
+    },
+    {
+      "id": "c093",
+      "text": "Soft-close hinges 110°, pack of 10, £24.99",
+      "sourceUrl": "https://diyhub.example.com/hinges-soft-close",
+      "sourceTitle": "Soft close cabinet hinges 110 degree",
+      "collection": "kitchen"
+    },
+    {
+      "id": "c094",
+      "text": "Resume v7 final FINAL.pdf",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "job"
+    },
+    {
+      "id": "c095",
+      "text": "Bacalhau com natas: soak the salt cod for 24h changing the water, layer with fried potatoes and onion, pour over cream and bake 25 min",
+      "sourceUrl": "https://cook.example.com/bacalhau-com-natas",
+      "sourceTitle": "Bacalhau com natas",
+      "collection": "recipes"
+    },
+    {
+      "id": "c096",
+      "text": "El sueño de ondas lentas favorece la consolidación de la memoria declarativa, mientras que el sueño REM se asocia con la memoria procedimental.",
+      "sourceUrl": "https://revista.example/neurociencia/sueno-memoria",
+      "sourceTitle": "Sueño y memoria - Revista de Neurociencia",
+      "collection": "thesis"
+    },
+    {
+      "id": "c097",
+      "text": "Salmon glaze: 1 tbsp miso + 1 tbsp honey + 2 tbsp soy, brush on and grill 8 min",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "recipes"
+    },
+    {
+      "id": "c098",
+      "text": "Bonjour, je suis consultante chez TalentBridge. Nous recherchons un développeur frontend senior pour une scale-up à Paris, télétravail 3 jours par semaine. Seriez-vous disponible pour un appel jeudi ?",
+      "sourceUrl": null,
+      "sourceTitle": "Opportunité - Développeur Frontend Senior",
+      "collection": "job"
+    },
+    {
+      "id": "c099",
+      "text": "Buttermilk substitute: 1 cup milk + 1 tbsp lemon juice, rest 5 minutes",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "recipes"
+    },
+    {
+      "id": "c100",
+      "text": "Frontend developer | React, TypeScript, design systems, accessibility",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "job"
+    },
+    {
+      "id": "c101",
+      "text": "pick up dry cleaning",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c102",
+      "text": "vitest run --coverage",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c103",
+      "text": "Happy birthday Jake!! hope it's a good one",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c104",
+      "text": "Linguine al limone: 400g linguine, 3 lemons, 60g butter, parmigiano, lots of black pepper",
+      "sourceUrl": "https://cook.example.com/linguine-al-limone",
+      "sourceTitle": "Linguine al limone - 20 minute dinner",
+      "collection": "recipes"
+    },
+    {
+      "id": "c105",
+      "text": "Shakshuka: eggs poached in spiced tomato and pepper sauce, serve with crusty bread",
+      "sourceUrl": "https://cook.example.com/shakshuka",
+      "sourceTitle": "Easy shakshuka",
+      "collection": "recipes"
+    },
+    {
+      "id": "c106",
+      "text": "https://youtube.example.com/watch?v=abc123xyz",
+      "sourceUrl": "https://youtube.example.com/watch?v=abc123xyz",
+      "sourceTitle": "Video",
+      "collection": null
+    },
+    {
+      "id": "c107",
+      "text": "Targeted memory reactivation (TMR): replaying cue sounds that were present during learning while participants are in slow-wave sleep boosts later recall.",
+      "sourceUrl": "https://journals.example.com/neuro/tmr-primer",
+      "sourceTitle": "Targeted memory reactivation primer",
+      "collection": "thesis"
+    },
+    {
+      "id": "c108",
+      "text": "Engraved watch case, delivery 7 working days, order by 20 Feb",
+      "sourceUrl": "https://engrave.example.com/watch-case",
+      "sourceTitle": "Personalised watch case",
+      "collection": "gifts"
+    },
+    {
+      "id": "c109",
+      "text": "MRI scan invoice £620, paid 12 Aug",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "insurance"
+    },
+    {
+      "id": "c110",
+      "text": "Section 4 of the claim form requires itemised receipts from the provider, not just card statements.",
+      "sourceUrl": "https://carewell.example.com/claims/how-to",
+      "sourceTitle": "How to submit a claim - CareWell",
+      "collection": "insurance"
+    },
+    {
+      "id": "c111",
+      "text": "git checkout -b feature/drag-and-drop-list",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c112",
+      "text": "Pastéis de Belém - Rua de Belém 84-92. Go before 10am to avoid the queue",
+      "sourceUrl": "https://blog.example.com/lisbon-first-timers",
+      "sourceTitle": "Lisbon for first timers: 12 things worth the hype",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c113",
+      "text": "Meeting at 4, bring laptop",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c114",
+      "text": "Tortilla de patatas: 6 huevos, 800 g de patatas, 1 cebolla, aceite de oliva. Fríe las patatas a fuego lento y mézclalas con el huevo batido.",
+      "sourceUrl": "https://cocina.example/tortilla-de-patatas",
+      "sourceTitle": "Tortilla de patatas clásica",
+      "collection": "recipes"
+    },
+    {
+      "id": "c115",
+      "text": "Senior Frontend Engineer, remote EU, €75-90k. Apply by 30 Nov.",
+      "sourceUrl": "https://careers.example.com/jobs/frontend-platform-4412",
+      "sourceTitle": "Senior Frontend Engineer - Northwind Labs",
+      "collection": "job"
+    },
+    {
+      "id": "c116",
+      "text": "me when the build passes on the first try",
+      "sourceUrl": null,
+      "sourceTitle": "r/devhumor",
+      "collection": null
+    },
+    {
+      "id": "c117",
+      "text": "Alfama loft, 2 bedrooms, 5 min walk from Castelo de São Jorge, €118/night",
+      "sourceUrl": "https://stays.example.com/listing/alfama-loft-2br",
+      "sourceTitle": "Bright Alfama loft with terrace - Stays",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c118",
+      "text": "Tell me about a time you disagreed with a designer. Use STAR: situation, task, action, result. Keep it under 2 minutes.",
+      "sourceUrl": "https://prep.example.com/behavioral",
+      "sourceTitle": "Behavioral interview cheat sheet",
+      "collection": "job"
+    },
+    {
+      "id": "c119",
+      "text": "07700 900123",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c120",
+      "text": "Rua das Flores 27, 1200-195 Lisboa",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "lisbon"
+    },
+    {
+      "id": "c121",
+      "text": "Quartz vs butcher block: quartz is £210/m, needs templating (2 weeks wait) and is basically bulletproof. Oak is £95/m but needs oiling every few months.",
+      "sourceUrl": "https://homefit.example.com/worktops/guide",
+      "sourceTitle": "Choosing a worktop - the honest guide",
+      "collection": "kitchen"
+    },
+    {
+      "id": "c122",
+      "text": "Warning: Each child in a list should have a unique \"key\" prop.",
+      "sourceUrl": null,
+      "sourceTitle": "localhost",
+      "collection": "react"
+    },
+    {
+      "id": "c123",
+      "text": "https://meet.example.com/standup-9am",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c124",
+      "text": "Reverse a linked list: iterative with prev/curr/next pointers, O(n) time, O(1) space",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "job"
+    },
+    {
+      "id": "c125",
+      "text": "Cohen's d = 0.62 for the nap group vs control",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "thesis"
+    },
+    {
+      "id": "c126",
+      "text": "n = 48 (24 per group), mixed ANOVA, alpha .05",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "thesis"
+    },
+    {
+      "id": "c127",
+      "text": "The cleanup function from useEffect runs before the next effect and on unmount",
+      "sourceUrl": "https://docs.example.com/react/effects",
+      "sourceTitle": "Synchronizing with Effects",
+      "collection": "react"
+    },
+    {
+      "id": "c128",
+      "text": "Appointment 18 Oct 9:40, bring referral letter and photo ID",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "insurance"
+    },
+    {
+      "id": "c129",
+      "text": "claims@carewell.example.com",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "insurance"
+    },
+    {
+      "id": "c130",
+      "text": "Can you send me the file?",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c131",
+      "text": "Prescription receipt £14.80",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "insurance"
+    },
+    {
+      "id": "c132",
+      "text": "Chapter 3 draft due 15 Jan. Prof. Lindqvist wants the methods section tightened and the power analysis moved to an appendix.",
+      "sourceUrl": null,
+      "sourceTitle": "Re: thesis chapter 3 feedback",
+      "collection": "thesis"
+    },
+    {
+      "id": "c133",
+      "text": "Participants slept in the lab for two nights. The first night was an adaptation night to reduce the first-night effect and was excluded from analysis.",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "thesis"
+    },
+    {
+      "id": "c134",
+      "text": "const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000 } } });",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c135",
+      "text": "+351 912 345 678",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "lisbon"
+    },
+    {
+      "id": "c136",
+      "text": "ssh -i ~/.ssh/id_ed25519 admin@192.168.1.20",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c137",
+      "text": "Wrapping: kraft paper + twine + sprig of rosemary",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "gifts"
+    },
+    {
+      "id": "c138",
+      "text": "Bacalhau à Brás at Tasca do Chico is the one everyone mentions. No reservations, cash preferred, small place so go early.",
+      "sourceUrl": "https://food.example.com/lisbon-tascas",
+      "sourceTitle": "Where to eat in Bairro Alto",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c139",
+      "text": "Gift cards are lazy, get something with a handwritten note",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "gifts"
+    },
+    {
+      "id": "c140",
+      "text": "const [todos, setTodos] = useState<Todo[]>([]);",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "react"
+    },
+    {
+      "id": "c141",
+      "text": "Mushroom risotto - 1.2L hot stock, add it a ladle at a time, finish with butter off the heat",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "recipes"
+    },
+    {
+      "id": "c142",
+      "text": "Sunday ragu: brown the meat properly, simmer 3 hours, do not forget the bay leaf and a splash of milk at the end",
+      "sourceUrl": "https://cook.example.com/sunday-ragu",
+      "sourceTitle": "Slow Sunday ragu",
+      "collection": "recipes"
+    },
+    {
+      "id": "c143",
+      "text": "Porcelain tile 60x60 matte grey, €34/m² — 12 pack min order",
+      "sourceUrl": "https://tilemart.example.com/p/porcelain-60x60-grey",
+      "sourceTitle": "Matte grey porcelain tile 60x60",
+      "collection": "kitchen"
+    },
+    {
+      "id": "c144",
+      "text": "Rx7!kQ2-pLm9",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": null
+    },
+    {
+      "id": "c145",
+      "text": "React.memo only helps if the props are referentially stable, otherwise you pay for the comparison and re-render anyway",
+      "sourceUrl": "https://blog.example.com/react-memo-myths",
+      "sourceTitle": "Stop wrapping everything in React.memo",
+      "collection": "react"
+    },
+    {
+      "id": "c146",
+      "text": "Caldo verde: batata, couve galega, chouriço, azeite. Cozer a batata, triturar, juntar a couve em tiras finas.",
+      "sourceUrl": "https://receitas.example/caldo-verde",
+      "sourceTitle": "Caldo verde tradicional",
+      "collection": "recipes"
+    },
+    {
+      "id": "c147",
+      "text": "Tram 28 gets packed after 9. Take it from Martim Moniz at 8am or just walk it.",
+      "sourceUrl": "https://blog.example.com/lisbon-first-timers",
+      "sourceTitle": "Lisbon for first timers: 12 things worth the hype",
+      "collection": "lisbon"
+    },
+    {
+      "id": "c148",
+      "text": "Booking ref: QX7R2M",
+      "sourceUrl": null,
+      "sourceTitle": null,
+      "collection": "lisbon"
+    }
+  ],
+  "queries": [
+    {
+      "q": "alfama loft",
+      "targets": ["c117"],
+      "style": "exact"
+    },
+    {
+      "q": "useDebounce",
+      "targets": ["c087"],
+      "style": "exact"
+    },
+    {
+      "q": "HC-2026-558213",
+      "targets": ["c058", "c082"],
+      "style": "exact"
+    },
+    {
+      "q": "linguine",
+      "targets": ["c104"],
+      "style": "exact"
+    },
+    {
+      "q": "pastéis de belém",
+      "targets": ["c112"],
+      "style": "exact"
+    },
+    {
+      "q": "zellige",
+      "targets": ["c069"],
+      "style": "exact"
+    },
+    {
+      "q": "spindles",
+      "targets": ["c060"],
+      "style": "exact"
+    },
+    {
+      "q": "excess",
+      "targets": ["c031", "c017"],
+      "style": "exact"
+    },
+    {
+      "q": "dutch oven",
+      "targets": ["c068"],
+      "style": "exact"
+    },
+    {
+      "q": "shakshuka",
+      "targets": ["c105"],
+      "style": "exact"
+    },
+    {
+      "q": "tram 28",
+      "targets": ["c147"],
+      "style": "exact"
+    },
+    {
+      "q": "STAR format",
+      "targets": ["c118"],
+      "style": "exact"
+    },
+    {
+      "q": "staleTime",
+      "targets": ["c134"],
+      "style": "exact"
+    },
+    {
+      "q": "pale fern",
+      "targets": ["c022"],
+      "style": "exact"
+    },
+    {
+      "q": "talentbridge",
+      "targets": ["c098"],
+      "style": "exact"
+    },
+    {
+      "q": "pasta with lemon",
+      "targets": ["c104"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "apartment near the castle",
+      "targets": ["c117"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "cooking pot for mum",
+      "targets": ["c068"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "how much i pay before insurer covers",
+      "targets": ["c031"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "egg and potato omelette",
+      "targets": ["c114"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "hook that delays input",
+      "targets": ["c087"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "countertop options",
+      "targets": ["c121"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "cod and cream bake",
+      "targets": ["c095"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "train to the palace town",
+      "targets": ["c048"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "how to answer salary question",
+      "targets": ["c012"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "replaying sounds during sleep",
+      "targets": ["c107"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "extractor fan rules",
+      "targets": ["c043"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "email in french from recruiter",
+      "targets": ["c098"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "metro card",
+      "targets": ["c053"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "scarf for grandmother",
+      "targets": ["c018"],
+      "style": "paraphrase"
+    },
+    {
+      "q": "that sleep paper about rats",
+      "targets": ["c054"],
+      "style": "vague"
+    },
+    {
+      "q": "the guy from the recruiting company",
+      "targets": ["c023", "c098"],
+      "style": "vague"
+    },
+    {
+      "q": "tile prices",
+      "targets": ["c143", "c069", "c077"],
+      "style": "vague"
+    },
+    {
+      "q": "physio costs",
+      "targets": ["c020"],
+      "style": "vague"
+    },
+    {
+      "q": "number for the doctor",
+      "targets": ["c049"],
+      "style": "vague"
+    },
+    {
+      "q": "react error with arrays",
+      "targets": ["c066", "c122"],
+      "style": "vague"
+    },
+    {
+      "q": "lisbon food",
+      "targets": ["c138", "c007"],
+      "style": "vague"
+    },
+    {
+      "q": "kitchen budget",
+      "targets": ["c033"],
+      "style": "vague"
+    },
+    {
+      "q": "opening hours thing",
+      "targets": ["c056"],
+      "style": "vague"
+    },
+    {
+      "q": "dinner with chickpeas",
+      "targets": ["c076"],
+      "style": "vague"
+    },
+    {
+      "q": "the appeal",
+      "targets": ["c082"],
+      "style": "vague"
+    },
+    {
+      "q": "gift for my sister",
+      "targets": ["c029", "c015"],
+      "style": "vague"
+    },
+    {
+      "q": "tax return deadline",
+      "targets": [],
+      "style": "none"
+    },
+    {
+      "q": "gym membership",
+      "targets": [],
+      "style": "none"
+    },
+    {
+      "q": "flight to tokyo",
+      "targets": [],
+      "style": "none"
+    },
+    {
+      "q": "car insurance renewal",
+      "targets": [],
+      "style": "none"
+    },
+    {
+      "q": "python pandas groupby",
+      "targets": [],
+      "style": "none"
+    },
+    {
+      "q": "wedding venue",
+      "targets": [],
+      "style": "none"
+    }
+  ]
+}

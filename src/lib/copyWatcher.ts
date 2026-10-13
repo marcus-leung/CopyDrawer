@@ -1,16 +1,41 @@
 import { extensionAlive, safeSend } from './safeSend';
 import { MAX_HTML, MAX_TEXT } from './limits';
+import { CLIPBOARD_WRITE_EVENT } from './clipboardHook';
 
 /**
- * Sends what's copied or cut in `win` (text, or a selected image) to the
- * background. Stops listening once the extension is reloaded or updated, since
+ * Sends what's copied or cut in `win` (text, or a selected image), and what the page's copy buttons write,
+ * to the background. Stops listening once the extension is reloaded or updated, since
  * this copy of the script can no longer reach it. Returns a function that stops it.
  */
 export function watchCopies(win: Window): () => void {
   const stop = () => {
     win.removeEventListener('copy', onCopy);
     win.removeEventListener('cut', onCopy);
+    win.removeEventListener(CLIPBOARD_WRITE_EVENT, onWrite);
   };
+  const send = (text: string, html: string | undefined) =>
+    void safeSend({
+      type: 'autosave-copy',
+      text: text.slice(0, MAX_TEXT),
+      html: html?.slice(0, MAX_HTML) || undefined,
+      title: win.document.title,
+    });
+
+  // A copy button wrote to the clipboard (reported by the page-world hook). The page could send this event
+  // itself, so it only counts right after the user clicked or pressed a key, which the page can't fake.
+  function onWrite(event: Event) {
+    if (!win.navigator.userActivation?.isActive) return;
+    if (!extensionAlive()) return stop();
+    let data: unknown;
+    try {
+      data = JSON.parse(String((event as CustomEvent).detail));
+    } catch {
+      return;
+    }
+    const { text, html } = (data ?? {}) as { text?: unknown; html?: unknown };
+    if (typeof text === 'string' && text.trim()) send(text, typeof html === 'string' ? html : undefined);
+  }
+
   function onCopy(event: ClipboardEvent) {
     // Page scripts can dispatch copy events of their own; only the user's count.
     if (!event.isTrusted) return;
@@ -32,19 +57,12 @@ export function watchCopies(win: Window): () => void {
     const srcUrl = text.trim() ? undefined : selectedImage(target);
     if (!text.trim() && !srcUrl) return;
 
-    void safeSend(
-      srcUrl
-        ? { type: 'autosave-image', srcUrl }
-        : {
-            type: 'autosave-copy',
-            text: text.slice(0, MAX_TEXT),
-            html: html.slice(0, MAX_HTML) || undefined,
-            title: win.document.title,
-          },
-    );
+    if (srcUrl) void safeSend({ type: 'autosave-image', srcUrl });
+    else send(text, html);
   }
   win.addEventListener('copy', onCopy);
   win.addEventListener('cut', onCopy);
+  win.addEventListener(CLIPBOARD_WRITE_EVENT, onWrite);
   return stop;
 }
 

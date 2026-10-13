@@ -31,10 +31,15 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.`;
 
-/** A package's folder, looked up the way Node would from here or from inside its parent (pnpm nests them). */
+/**
+ * A package's folder, looked up the way Node would from here or from inside its parent. pnpm keeps a package's
+ * own dependencies next to its real folder, so the lookup starts there, and never leaves this project.
+ */
 function packageDir(name: string, from = process.cwd()): string | undefined {
-  return createRequire(path.join(from, 'x'))
+  const root = fs.realpathSync(process.cwd());
+  return createRequire(path.join(fs.realpathSync(from), 'x'))
     .resolve.paths(name)!
+    .filter((p) => p.startsWith(root))
     .map((p) => path.join(p, name))
     .find((d) => fs.existsSync(path.join(d, 'package.json')));
 }
