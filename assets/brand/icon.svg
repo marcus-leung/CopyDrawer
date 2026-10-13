@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="28" fill="#1B1D2A"/>
-  <rect x="24" y="30" width="38" height="16" rx="7" fill="#7EA6FF"/>
-  <rect x="24" y="40" width="80" height="58" rx="12" fill="#7EA6FF"/>
-  <rect x="24" y="46" width="80" height="52" rx="11" fill="#FFFFFF"/>
-  <rect x="36" y="62" width="44" height="7" rx="3.5" fill="#1B1D2A" opacity=".85"/>
-  <rect x="36" y="76" width="30" height="7" rx="3.5" fill="#1B1D2A" opacity=".35"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><title>CopyDrawer</title><g transform="translate(0 0)"><rect width="256" height="256" rx="58" fill="#FF4A2B"/><path fill="#FFF1DE" fill-rule="evenodd" d="M74 52H132A76 76 0 0 1 132 204H74A18 18 0 0 1 56 186V70A18 18 0 0 1 74 52ZM97 115A13 13 0 0 0 97 141H139A13 13 0 0 0 139 115Z"/></g></svg>

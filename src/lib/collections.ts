@@ -16,7 +16,7 @@ export const COLORS: Record<string, CollectionColor> = {
   green: { accent: '#0E7A62', tint: '#DDF3EC', text: '#0B5C4A', accentDark: '#5FD6B5', tintDark: '#163A33' },
   pink: { accent: '#B83280', tint: '#FBE4F0', text: '#7A1F55', accentDark: '#F28CC0', tintDark: '#43192F' },
   mustard: { accent: '#7C6A0A', tint: '#F6F0D5', text: '#4D4200', accentDark: '#E3C860', tintDark: '#3A3214' },
-  grey: { accent: '#5B6170', tint: '#F1F2F6', text: '#3E4357', accentDark: '#A3A8BC', tintDark: '#232636' },
+  grey: { accent: '#6E5550', tint: '#F7EBDD', text: '#5A3A36', accentDark: '#BFA59C', tintDark: '#2A1D1F' },
 };
 const COLOR_ORDER = ['blue', 'orange', 'violet', 'green', 'pink', 'mustard', 'grey'];
 

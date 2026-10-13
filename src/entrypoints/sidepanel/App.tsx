@@ -300,7 +300,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
             <IconButton
               label="Filters"
               aria-expanded={showFilters}
-              className={showFilters ? 'bg-ink! text-on-ink!' : 'bg-surface'}
+              className={showFilters ? 'bg-accent! text-on-accent!' : 'bg-surface'}
               onClick={() => {
                 if (showFilters) setFilters(NO_FILTERS);
                 setFiltersOpen(!showFilters);

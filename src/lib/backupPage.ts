@@ -3,17 +3,17 @@ import { escapeHtml as escape } from './format';
 
 const CSS = `
 :root { color-scheme: light dark; }
-body { margin: 0 auto; max-width: 760px; padding: 32px 20px 64px; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: #171923; background: #fff; }
-@media (prefers-color-scheme: dark) { body { color: #f4f5f8; background: #1b1d27; } .meta, .note { color: #a3a8bc; } article { border-color: #323646; } }
+body { margin: 0 auto; max-width: 760px; padding: 32px 20px 64px; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: #2a0e12; background: #fff8f0; }
+@media (prefers-color-scheme: dark) { body { color: #fff1e6; background: #1c1214; } .meta, .note { color: #bfa59c; } article { border-color: #33242a; } a { color: #ff8a6e; } }
 h1 { font-size: 26px; margin: 0 0 4px; }
 h2 { font-size: 19px; margin: 36px 0 8px; }
-.meta { color: #6b7080; font-size: 13px; }
-article { border-top: 1px solid #e5e7ee; padding: 14px 0; }
+.meta { color: #6e5550; font-size: 13px; }
+article { border-top: 1px solid #f0e2d2; padding: 14px 0; }
 h3 { font-size: 15px; margin: 0 0 4px; overflow-wrap: anywhere; }
 .text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; }
-.note { color: #4a4f63; margin: 6px 0; }
+.note { color: #5a3a36; margin: 6px 0; }
 img { max-width: 100%; max-height: 480px; border-radius: 8px; display: block; margin: 8px 0; }
-a { color: #2457c5; overflow-wrap: anywhere; }
+a { color: #c93214; overflow-wrap: anywhere; }
 `;
 
 function clipHtml(c: ExportedClip): string {

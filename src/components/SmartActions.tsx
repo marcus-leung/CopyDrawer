@@ -48,7 +48,7 @@ export function SmartActions({ clip, notify }: { clip: Clip; notify: (message: s
               type="button"
               onClick={() => void run(a)}
               className={`inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold hover:opacity-90 ${
-                i === 0 ? 'bg-ink text-on-ink' : 'bg-bg text-ink'
+                i === 0 ? 'bg-accent text-on-accent' : 'bg-bg text-ink'
               }`}
             >
               <Icon size={14} aria-hidden />

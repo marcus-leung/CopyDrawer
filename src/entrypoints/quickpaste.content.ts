@@ -15,15 +15,16 @@ declare global {
   }
 }
 
-const DARK = '--ink:#F4F5F8; --bg:#1B1D27; --surface:#262936; --line:#323646; --t3:#A3A8BC; --sel:#1E2C4D;';
+const DARK =
+  '--ink:#FFF1E6; --bg:#241819; --surface:#2A1D1F; --line:#33242A; --t3:#BFA59C; --sel:#3A1E18; --acc:#FF7A5C; --on-acc:#1C1214;';
 
 // Follows the theme chosen in Settings; until that's read, the system setting.
 const CSS = `
 :host { all: initial; }
 * { box-sizing: border-box; }
-.scrim { position: fixed; inset: 0; background: rgba(23,25,35,.28); z-index: 2147483647; display: flex; justify-content: center; align-items: flex-start; padding-top: 14vh; font: 14px/1.45 "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); }
-.box { --ink:#171923; --bg:#fff; --surface:#F1F2F6; --line:#E5E7EE; --t3:#6B7080; --sel:#E6EEFC;
-  width: min(560px, 92vw); background: var(--bg); color: var(--ink); border-radius: 18px; box-shadow: 0 18px 48px rgba(23,25,35,.22), 0 2px 6px rgba(23,25,35,.08); overflow: hidden; }
+.scrim { position: fixed; inset: 0; background: rgba(42,14,18,.28); z-index: 2147483647; display: flex; justify-content: center; align-items: flex-start; padding-top: 14vh; font: 14px/1.45 "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); }
+.box { --ink:#2A0E12; --bg:#FFF8F0; --surface:#F7EBDD; --line:#F0E2D2; --t3:#6E5550; --sel:#FDE6DC; --acc:#C93214; --on-acc:#fff;
+  width: min(560px, 92vw); background: var(--bg); color: var(--ink); border-radius: 18px; box-shadow: 0 18px 48px rgba(42,14,18,.22), 0 2px 6px rgba(42,14,18,.08); overflow: hidden; }
 @media (prefers-color-scheme: dark) { .box:not([data-theme="light"]) { ${DARK} } }
 .box[data-theme="dark"] { ${DARK} }
 .head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
@@ -31,7 +32,7 @@ const CSS = `
 ul { list-style: none; margin: 0; padding: 6px; max-height: 340px; overflow-y: auto; }
 li { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; cursor: pointer; }
 li[aria-selected="true"] { background: var(--sel); }
-.num { min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px; flex: none; display: grid; place-items: center; background: var(--ink); color: var(--bg); font-weight: 600; font-size: 12px; }
+.num { min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px; flex: none; display: grid; place-items: center; background: var(--acc); color: var(--on-acc); font-weight: 600; font-size: 12px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--line); }
 .txt { min-width: 0; flex: 1; }
 .title, .sub { display: block; }
@@ -121,7 +122,7 @@ function toast(message: string) {
   const root = host.attachShadow({ mode: 'open' });
   const box = el('div', '', message);
   box.style.cssText =
-    'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:2147483647;background:#171923;color:#fff;padding:12px 18px;border-radius:14px;font:600 14px system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2)';
+    'position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:2147483647;background:#2A0E12;color:#FFF8F0;padding:12px 18px;border-radius:14px;font:600 14px system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2)';
   root.append(box);
   document.documentElement.append(host);
   setTimeout(() => host.remove(), 2600);

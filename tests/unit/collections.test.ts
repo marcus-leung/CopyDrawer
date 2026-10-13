@@ -5,6 +5,7 @@ import { saveClip } from '@/lib/clips';
 import { classifyByRules, detectDestination } from '@/lib/classify';
 import {
   COLORS,
+  PRESET_COLORS,
   colorOf,
   createCollection,
   deleteCollection,
@@ -137,13 +138,14 @@ describe('collection colors', () => {
     return (hi! + 0.05) / (lo! + 0.05);
   };
 
-  it('makes readable shades for any custom hue, in light and dark', () => {
-    for (let h = 0; h < 360; h++) {
-      const c = colorOf({ color: `hue:${h}` });
-      expect(contrast(c.text, c.tint), `text on tint, hue ${h}`).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(c.accent, '#ffffff'), `tab on white, hue ${h}`).toBeGreaterThanOrEqual(3);
-      expect(contrast('#eef0f6', c.tintDark), `dark text on dark tint, hue ${h}`).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(c.accentDark, '#14161f'), `dark tab, hue ${h}`).toBeGreaterThanOrEqual(3);
+  it('makes readable shades for every preset and any custom hue, in light and dark', () => {
+    const colors = [...PRESET_COLORS, ...Array.from({ length: 360 }, (_, h) => `hue:${h}`)];
+    for (const color of colors) {
+      const c = colorOf({ color });
+      expect(contrast(c.text, c.tint), `text on tint, ${color}`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.accent, '#fff8f0'), `tab on the page, ${color}`).toBeGreaterThanOrEqual(3);
+      expect(contrast('#fff1e6', c.tintDark), `dark text on dark tint, ${color}`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.accentDark, '#1c1214'), `dark tab, ${color}`).toBeGreaterThanOrEqual(3);
     }
   });
 

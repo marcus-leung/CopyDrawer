@@ -30,7 +30,7 @@ export function Notice({
               type="button"
               onClick={action.onClick}
               disabled={action.disabled}
-              className="h-[38px] cursor-pointer rounded-full bg-ink px-3.5 text-[13px] font-semibold text-on-ink disabled:cursor-default disabled:opacity-60"
+              className="h-[38px] cursor-pointer rounded-full bg-accent px-3.5 text-[13px] font-semibold text-on-accent disabled:cursor-default disabled:opacity-60"
             >
               {action.label}
             </button>
