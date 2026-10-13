@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ClipboardPaste, ImagePlus, MoreHorizontal, Plus, SlidersHorizontal } from 'lucide-react';
+import { ClipboardPaste, EyeOff, ImagePlus, MoreHorizontal, Plus, SlidersHorizontal } from 'lucide-react';
 import type { Clip } from '@/lib/db';
 import { deleteClip, listClips, markUsed, restoreClip, saveClip } from '@/lib/clips';
+import { storageProblem } from '@/lib/storageGuard';
 import { NO_FILTERS, topSites, type SearchFilters } from '@/lib/search';
 import { copyClipToClipboard, readClipboard, type ClipboardContents } from '@/lib/clipboard';
 import { saveImages } from '@/lib/images';
@@ -43,6 +44,10 @@ import { keyLabel, useShortcuts } from '@/lib/useShortcuts';
 export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   useAppearance();
   const settings = useSettings();
+  const hidePreviews = settings?.hidePreviews ?? false;
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-hide-previews', hidePreviews);
+  }, [hidePreviews]);
   const now = useNowUntil(settings?.pausedUntil ?? 0);
   const [view, setView] = useState<View>(() => {
     // "Open" from the in-page card when no panel could open: a tab with ?clip=<id>.
@@ -151,8 +156,8 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
       try {
         const clip = await saveClip({ text: contents.text, html: contents.html });
         notify(clip ? 'Saved' : 'Nothing to save');
-      } catch {
-        notify("Couldn't save that.");
+      } catch (e) {
+        notify(storageProblem(e)?.title ?? "Couldn't save that.");
       }
     },
     [notify],
@@ -264,6 +269,14 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
         </div>
         <div className="flex gap-2">
           <ExpandButton className="bg-surface" />
+          <IconButton
+            label="Hide previews"
+            aria-pressed={hidePreviews}
+            className={hidePreviews ? 'bg-accent! text-on-accent!' : 'bg-surface'}
+            onClick={() => void updateSettings({ hidePreviews: !hidePreviews })}
+          >
+            <EyeOff size={19} aria-hidden />
+          </IconButton>
           <IconButton label="Add a clip" aria-expanded={adding} className="bg-surface" onClick={() => setAdding(!adding)}>
             <Plus size={20} aria-hidden />
           </IconButton>
@@ -312,7 +325,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
         </div>
         {showFilters && clips && clips.length > 0 && (
           <div className="mt-3 border-b border-line pb-3">
-            <FilterBar filters={filters} sites={sites} onChange={setFilters} />
+            <FilterBar filters={filters} sites={sites} searching={query.trim() !== ''} onChange={setFilters} />
           </div>
         )}
       </div>

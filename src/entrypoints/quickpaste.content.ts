@@ -8,6 +8,7 @@ import { modKey } from '@/lib/format';
 import { safeSend } from '@/lib/safeSend';
 import { FONT_STACKS, getSettings } from '@/lib/settings';
 import { joinTexts, type JoinWith } from '@/lib/join';
+import { rankByQuery } from '@/lib/rank';
 
 declare global {
   interface Window {
@@ -42,6 +43,7 @@ kbd { font: 600 11px/1 "JetBrains Mono", ui-monospace, monospace; padding: 3px 6
 .foot { display: flex; gap: 14px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--t3); }
 .foot .r { margin-left: auto; }
 .empty { padding: 22px 16px; color: var(--t3); text-align: center; }
+.box[data-hide-previews] li:not([aria-selected="true"], :hover) .txt { filter: blur(6px); }
 `;
 
 type Target =
@@ -96,14 +98,7 @@ function insertAt(target: Target, text: string): boolean {
   return false;
 }
 
-function matches(c: QuickClip, q: string): number {
-  if (!q) return 1;
-  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-  const title = c.title.toLowerCase();
-  const hay = `${title}\n${c.text.toLowerCase()}\n${c.host ?? ''}\n${(c.collection ?? '').toLowerCase()}`;
-  if (!words.every((w) => hay.includes(w))) return 0;
-  return words.every((w) => title.includes(w)) ? 2 : 1;
-}
+const fields = (c: QuickClip) => ({ title: c.title, body: [c.text, c.host, c.collection].filter(Boolean).join('\n') });
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -149,6 +144,7 @@ function open() {
     if (s.theme !== 'system') box.dataset.theme = s.theme;
     if (s.font !== 'default') box.style.fontFamily = FONT_STACKS[s.font];
     if (s.textSize !== 100) box.style.zoom = String(s.textSize / 100);
+    if (s.hidePreviews) box.dataset.hidePreviews = '';
   });
   const head = el('div', 'head');
   const input = el('input');
@@ -207,12 +203,7 @@ function open() {
   const render = () => {
     list.replaceChildren();
     const q = input.value.trim();
-    shown = clips
-      .map((c, i) => ({ c, s: matches(c, q), i }))
-      .filter((x) => x.s > 0)
-      .sort((a, b) => b.s - a.s || a.i - b.i)
-      .slice(0, 50)
-      .map((x) => x.c);
+    shown = rankByQuery(clips, q, fields).slice(0, 50);
     selected = Math.min(selected, Math.max(0, shown.length - 1));
     if (!shown.length) list.append(el('div', 'empty', clips.length ? 'No clips match' : 'No clips saved yet'));
     shown.forEach((c, i) => {

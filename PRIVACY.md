@@ -1,6 +1,6 @@
 # Privacy policy
 
-_Last updated: 12 October 2026_
+_Last updated: 13 October 2026_
 
 CopyDrawer is a browser extension that keeps what you copy and sorts it into collections. It is built so that **your clips never leave your computer**.
 
@@ -20,10 +20,11 @@ There is no account, and no server stores your clips.
 
 - **Saving by hand** (shortcut, right-click menu, screenshot tool): Chrome gives the extension access to the current tab only, only at that moment.
 - **Quick paste** (Alt+Shift+V) shows your recent clips in a box on the current page and types the one you pick into the box you were typing in. It doesn't save anything from the page.
-- **Auto-save** (off until you turn it on): Chrome asks you to allow access to the sites you visit. The extension uses it only to notice when you copy or cut, and saves the text or image you copied. Copy events a page makes up on its own are ignored; a copy still counts when a page puts its own text on the clipboard as you click its copy button, because that's what you copied. It never reads password fields, and never saves:
+- **Auto-save** (off until you turn it on): Chrome asks you to allow access to the sites you visit. The extension uses it only to notice when you copy or cut, or click a page's copy button, and saves the text or image you copied. Copies a page makes on its own, without your click or key press, are ignored. It never reads password fields, and never saves:
   - on password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites (it doesn't even run there);
   - on sites you block;
-  - in incognito windows, unless you allow it in Settings.
+  - in incognito windows, unless you allow it in Settings;
+  - anything that looks like a password, access key, private key or card number. You can still save one on purpose by pasting it into CopyDrawer.
 
   You can pause it or turn it off at any time. Turning it off also gives the site access back to Chrome.
 

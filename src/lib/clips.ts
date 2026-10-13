@@ -2,6 +2,7 @@ import { db as defaultDb, type Clip, type ClipDatabase, type ClipKind, type Clip
 import { autoAssign } from './collections';
 import { detectKind, KIND_WORDS } from './kinds';
 import { MAX_HTML, MAX_TEXT } from './limits';
+import { clearLowSpace, ensureSpace } from './storageGuard';
 
 export { detectKind };
 
@@ -70,10 +71,11 @@ export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Pr
   const text = input.text.replace(/\r\n/g, '\n').slice(0, MAX_TEXT);
   if (!text.trim()) return null;
   const html = input.html?.slice(0, MAX_HTML) || undefined;
+  await ensureSpace((text.length + (html?.length ?? 0)) * 2);
   const hash = hashText(text);
   const now = saveTime();
 
-  return db.transaction('rw', [db.clips, db.images, db.collections], async () => {
+  const saved = await db.transaction('rw', [db.clips, db.images, db.collections], async () => {
     const existing = await findSameText(text, db);
     if (existing) {
       const updated: Clip = {
@@ -105,6 +107,8 @@ export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Pr
     await enforceLimit(db);
     return sorted;
   });
+  clearLowSpace();
+  return saved;
 }
 
 /** Deletes clips and any image files they own, together. */

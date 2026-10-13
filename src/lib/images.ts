@@ -1,6 +1,7 @@
 import { db as defaultDb, type Clip, type ClipDatabase, type ClipSource } from './db';
 import { enforceLimit, saveTime } from './clips';
 import { autoAssign } from './collections';
+import { clearLowSpace, ensureSpace, storageProblem } from './storageGuard';
 
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -62,13 +63,14 @@ interface NewImage {
 export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultDb): Promise<{ clip: Clip; created: boolean }> {
   const { blob } = input;
   checkImage(blob);
+  await ensureSpace(blob.size * 2);
 
   const hash = await imageHash(blob);
   const note = input.note?.trim() || undefined;
   const { thumb, width, height } = await makeThumbnail(blob);
   const now = saveTime();
 
-  return db.transaction('rw', [db.clips, db.images, db.collections], async () => {
+  const result = await db.transaction('rw', [db.clips, db.images, db.collections], async () => {
     const existing = await db.clips.where('hash').equals(hash).first();
     if (existing) {
       const updated = { ...existing, createdAt: now, source: input.source ?? existing.source, note: note ?? existing.note };
@@ -96,6 +98,8 @@ export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultD
     await enforceLimit(db);
     return { clip: sorted, created: true };
   });
+  clearLowSpace();
+  return result;
 }
 
 /** Saves each file as an image clip, carrying on past ones that fail. */
@@ -112,7 +116,7 @@ export async function saveImages<T extends Blob>(
       saved++;
     } catch (e) {
       failed.push(blob);
-      error = e instanceof ImageError ? e.message : "Couldn't save that image.";
+      error = e instanceof ImageError ? e.message : (storageProblem(e)?.title ?? "Couldn't save that image.");
     }
   }
   return { saved, failed, error };

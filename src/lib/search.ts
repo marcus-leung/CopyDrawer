@@ -2,10 +2,12 @@ import type { Clip, ClipKind } from './db';
 import { matchesQuery } from './clips';
 import { KIND_WORDS } from './kinds';
 import { hostOf } from './format';
+import { rankByQuery, typoLimit, WORD, withinEdits } from './rank';
 
 export type DateFilter = 'any' | 'today' | 'week' | 'month';
 
-export type SortOrder = 'newest' | 'oldest' | 'used' | 'az';
+/** `best`: best match while searching, otherwise newest first. */
+export type SortOrder = 'best' | 'newest' | 'oldest' | 'used' | 'az';
 
 export interface SearchFilters {
   kind: ClipKind | 'any';
@@ -14,9 +16,10 @@ export interface SearchFilters {
   sort: SortOrder;
 }
 
-export const NO_FILTERS: SearchFilters = { kind: 'any', site: 'any', date: 'any', sort: 'newest' };
+export const NO_FILTERS: SearchFilters = { kind: 'any', site: 'any', date: 'any', sort: 'best' };
 
 const ORDER: Record<SortOrder, (a: Clip, b: Clip) => number> = {
+  best: (a, b) => b.createdAt - a.createdAt,
   newest: (a, b) => b.createdAt - a.createdAt,
   oldest: (a, b) => a.createdAt - b.createdAt,
   used: (a, b) => b.useCount - a.useCount || b.lastUsedAt - a.lastUsedAt,
@@ -55,25 +58,6 @@ export function topSites(clips: Clip[], limit = 12): string[] {
     .map(([s]) => s);
 }
 
-/** Edit distance up to `max` (early exit beyond it). */
-function withinEdits(a: string, b: string, max: number): boolean {
-  if (Math.abs(a.length - b.length) > max) return false;
-  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    const cur = [i];
-    let rowMin = i;
-    for (let j = 1; j <= b.length; j++) {
-      cur[j] = Math.min(prev[j]! + 1, cur[j - 1]! + 1, prev[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1));
-      rowMin = Math.min(rowMin, cur[j]!);
-    }
-    if (rowMin > max) return false;
-    prev = cur;
-  }
-  return prev[b.length]! <= max;
-}
-
-const WORD = /[\p{L}\p{N}]+/gu;
-
 /**
  * Every query word appears in the clip, allowing small typos in longer words
  * ("photosynthsis" finds "Photosynthesis"): 1 edit from 5 letters, 2 from 9.
@@ -86,16 +70,26 @@ function matchesWithTypos(clip: Clip, query: string): boolean {
   const hayWords = new Set(hay.match(WORD) ?? []);
   return words.every((w) => {
     if (hay.includes(w)) return true;
-    const max = w.length >= 9 ? 2 : w.length >= 5 ? 1 : 0;
+    const max = typoLimit(w);
     if (!max) return false;
     for (const h of hayWords) if (withinEdits(w, h, max)) return true;
     return false;
   });
 }
 
-/** Clips with every query word (small typos allowed), pinned first, in the chosen order (newest keeps the order given). */
+const clipFields = (c: Clip) => ({
+  title: c.title,
+  body: [c.text, c.note, c.source?.title, c.source?.url, KIND_WORDS[c.kind]].filter(Boolean).join('\n'),
+});
+
+/**
+ * Best match (the default): clips with most of the query words, best first. Any other order: only clips with
+ * every word (small typos allowed), pinned first; newest keeps the order given.
+ */
 export function searchClips(query: string, clips: Clip[], filters: SearchFilters, now = Date.now()): Clip[] {
   const q = query.trim();
-  const found = clips.filter((c) => passesFilters(c, filters, now) && (!q || matchesQuery(c, q) || matchesWithTypos(c, q)));
-  return filters.sort === 'newest' ? found : sortClips(found, filters.sort);
+  const passing = clips.filter((c) => passesFilters(c, filters, now));
+  if (q && filters.sort === 'best') return rankByQuery(passing, q, clipFields);
+  const found = q ? passing.filter((c) => matchesQuery(c, q) || matchesWithTypos(c, q)) : passing;
+  return filters.sort === 'newest' || filters.sort === 'best' ? found : sortClips(found, filters.sort);
 }

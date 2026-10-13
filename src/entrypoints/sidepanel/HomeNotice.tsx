@@ -5,6 +5,7 @@ import { isPaused, updateSettings, type Settings } from '@/lib/settings';
 import { Notice } from '@/components/Notice';
 import { BACKUP_SNOOZE, backupDue } from '@/lib/backup';
 import { useExport } from '@/lib/useExport';
+import { STORAGE_STATE_KEYS, storageState } from '@/lib/storageGuard';
 
 /** The hostname of the tab next to the panel, when Chrome lets us see it. */
 function useActiveHost(): string | null {
@@ -28,7 +29,20 @@ function useActiveHost(): string | null {
   return host;
 }
 
-/** One notice at a time under the search bar: paused, site blocked, history full, time to back up. */
+/** Whether saving is paused or the disk was found almost full in this Chrome session. */
+function useStorageState() {
+  const [state, setState] = useState<Awaited<ReturnType<typeof storageState>>>('ok');
+  useEffect(() => {
+    const read = () => void storageState().then(setState);
+    read();
+    const onChanged = (changes: Record<string, unknown>) => STORAGE_STATE_KEYS.some((k) => k in changes) && read();
+    browser.storage.session.onChanged.addListener(onChanged);
+    return () => browser.storage.session.onChanged.removeListener(onChanged);
+  }, []);
+  return state;
+}
+
+/** One notice at a time under the search bar: disk full, paused, site blocked, history full, time to back up. */
 export function HomeNotice({
   settings,
   now,
@@ -44,9 +58,34 @@ export function HomeNotice({
 }) {
   const host = useActiveHost();
   const backup = useExport(notify);
+  const storage = useStorageState();
 
   let notice: React.ReactNode = null;
-  if (isPaused(settings, now)) {
+  if (storage === 'rebuilding') {
+    notice = (
+      <Notice
+        tone="info"
+        title="Checking your clips"
+        body="After the disk problem, CopyDrawer is moving your clips to fresh storage. This takes a moment."
+      />
+    );
+  } else if (storage === 'disk' || storage === 'failed') {
+    notice = (
+      <Notice
+        tone="warning"
+        title="Saving is paused to protect your clips"
+        body="Your computer ran out of disk space. Free up some space, then restart Chrome. Your saved clips are safe."
+      />
+    );
+  } else if (storage === 'low') {
+    notice = (
+      <Notice
+        tone="warning"
+        title="Your computer is almost out of space"
+        body="New clips aren't being saved. Free up some disk space and saving starts again. Your saved clips are safe."
+      />
+    );
+  } else if (isPaused(settings, now)) {
     const mins = Math.max(1, Math.round((settings.pausedUntil - now) / 60_000));
     notice = (
       <Notice

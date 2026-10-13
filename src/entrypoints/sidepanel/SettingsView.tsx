@@ -227,6 +227,13 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
               <option value="large">Large</option>
             </select>
           </div>
+          <Toggle
+            id="t-hide-previews"
+            label="Hide previews"
+            hint="Blurs your clips in lists until you point at one. Handy when you share your screen."
+            checked={settings.hidePreviews}
+            onChange={(on) => void change({ hidePreviews: on })}
+          />
         </Section>
 
         <Section id="s-keys" title="Shortcuts">

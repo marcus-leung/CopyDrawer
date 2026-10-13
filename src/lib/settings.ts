@@ -37,6 +37,8 @@ export interface Settings {
   backupReminder: boolean;
   /** What goes between clips copied or pasted together. */
   joinWith: JoinWith;
+  /** Blurs clip text in lists until pointed at, for screen sharing. This computer only. */
+  hidePreviews: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -54,6 +56,7 @@ const DEFAULT_SETTINGS: Settings = {
   backupRemindAfter: 0,
   backupReminder: true,
   joinWith: 'line',
+  hidePreviews: false,
 };
 
 export const PAUSE_MS = 60 * 60 * 1000;

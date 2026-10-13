@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { detectKind, type ClipKind } from './kinds';
+import { isDiskFailure, pauseWrites, StoragePausedError, writesPaused } from './storageGuard';
 
 export type { ClipKind };
 
@@ -70,7 +71,8 @@ export class ClipDatabase extends Dexie {
   images!: EntityTable<StoredImage, 'id'>;
   collections!: EntityTable<Collection, 'id'>;
 
-  constructor(name = 'clipboard') {
+  /** `guarded: false` only for the rebuild, which must write while saving is paused. */
+  constructor(name = 'clipboard', { guarded = true } = {}) {
     super(name);
     this.version(1).stores({
       clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId',
@@ -129,6 +131,36 @@ export class ClipDatabase extends Dexie {
         all.sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0) || a.order - b.order);
         await Promise.all(all.map((c, order) => tx.table('collections').update(c.id, { order })));
       });
+    if (!guarded) return;
+    // After a disk error, no write may reach the database until Chrome restarts (see storageGuard).
+    this.use({
+      stack: 'dbcore',
+      name: 'pauseOnDiskFailure',
+      create: (down) => ({
+        ...down,
+        table: (tableName) => {
+          const table = down.table(tableName);
+          return {
+            ...table,
+            mutate: (req) =>
+              writesPaused()
+                ? Promise.reject(new StoragePausedError())
+                : table.mutate(req).catch((e: unknown) => {
+                    if (isDiskFailure(e)) pauseWrites();
+                    throw e;
+                  }),
+          };
+        },
+      }),
+    });
+    // Chrome closes a connection itself only when the disk fails (or site data is cleared).
+    this.on(
+      'ready',
+      () => {
+        this.backendDB().addEventListener('close', () => pauseWrites());
+      },
+      true,
+    );
   }
 }
 

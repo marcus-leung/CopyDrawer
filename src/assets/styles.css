@@ -166,6 +166,14 @@ kbd {
   border-radius: 6px;
 }
 
+/* Hide previews (screen sharing): clip text in lists stays blurred until its row is pointed at or focused. */
+html[data-hide-previews] [data-preview] {
+  filter: blur(6px);
+}
+html[data-hide-previews] li:is(:hover, :focus-within) [data-preview] {
+  filter: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

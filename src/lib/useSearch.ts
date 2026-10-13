@@ -7,7 +7,8 @@ import { searchClips, type SearchFilters } from './search';
  * and the latest results aren't for the current query, filters and clips yet.
  */
 export function useSearch(query: string, filters: SearchFilters, clips: Clip[] | undefined) {
-  const filtering = filters.kind !== 'any' || filters.site !== 'any' || filters.date !== 'any' || filters.sort !== 'newest';
+  const sorted = filters.sort !== 'best' && (query.trim() !== '' || filters.sort !== 'newest');
+  const filtering = filters.kind !== 'any' || filters.site !== 'any' || filters.date !== 'any' || sorted;
   const searching = query.trim() !== '' || filtering;
   const [found, setFound] = useState<{ items: Clip[]; query: string; filters: SearchFilters; clips: Clip[] }>();
 

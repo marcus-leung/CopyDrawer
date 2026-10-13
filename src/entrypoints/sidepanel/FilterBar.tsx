@@ -4,6 +4,7 @@ import { NO_FILTERS, type DateFilter, type SearchFilters, type SortOrder } from 
 
 const KINDS = [{ id: 'any', label: 'Any type' }, ...CLIP_KINDS.map((k) => ({ id: k, label: KIND_LABEL[k][1] }))];
 const SORTS: { id: SortOrder; label: string }[] = [
+  { id: 'best', label: 'Best match' },
   { id: 'newest', label: 'Newest first' },
   { id: 'oldest', label: 'Oldest first' },
   { id: 'used', label: 'Most used' },
@@ -59,23 +60,29 @@ function Field({
 export function FilterBar({
   filters,
   sites,
+  searching,
   onChange,
 }: {
   filters: SearchFilters;
   sites: string[];
+  /** Best match only means something while there's a query; without one it's newest first. */
+  searching: boolean;
   onChange: (f: SearchFilters) => void;
 }) {
+  const sorts = searching
+    ? SORTS
+    : SORTS.filter((s) => s.id !== 'newest').map((s) => (s.id === 'best' ? { ...s, label: 'Newest first' } : s));
   const changed = (Object.keys(NO_FILTERS) as (keyof SearchFilters)[]).some((k) => filters[k] !== NO_FILTERS[k]);
   return (
     <div role="group" aria-label="Filters">
       <div className="grid grid-cols-2 gap-x-2 gap-y-2.5">
         <Field
           label="Sort"
-          value={filters.sort}
-          active={filters.sort !== 'newest'}
+          value={!searching && filters.sort === 'newest' ? 'best' : filters.sort}
+          active={filters.sort !== 'best' && (searching || filters.sort !== 'newest')}
           onChange={(v) => onChange({ ...filters, sort: v as SortOrder })}
         >
-          {SORTS.map((s) => (
+          {sorts.map((s) => (
             <option key={s.id} value={s.id}>
               {s.label}
             </option>
