@@ -123,9 +123,6 @@ export function ClipDetail({
         )}
         <SmartActions clip={clip} notify={notify} />
         {clip.html && clip.kind !== 'image' && <PasteAs clip={clip} onCopyOriginal={() => onCopy(clip)} notify={notify} />}
-        <p className="mt-3 text-xs text-text-3">
-          {clip.useCount > 0 ? `Used ${clip.useCount} ${clip.useCount === 1 ? 'time' : 'times'}.` : 'Not used yet.'}
-        </p>
       </main>
 
       <div className="flex gap-2 px-[18px] pt-3 pb-[18px]">
@@ -292,6 +289,9 @@ function EditClip({ clip, onDone }: { clip: Clip; onDone: (saved: boolean) => vo
           <p id="edit-error" role="alert" className="text-[13px] text-danger">
             {error}
           </p>
+        )}
+        {clip.html && text.replace(/\r\n/g, '\n') !== clip.text && (
+          <p className="text-[13px] text-text-2">Changing the text removes its formatting. It will paste as plain text.</p>
         )}
         <p className="text-xs text-text-3">Edits only change this saved copy, not the page it came from.</p>
       </main>

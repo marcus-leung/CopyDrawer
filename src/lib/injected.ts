@@ -11,6 +11,7 @@ export function showSavedToast(args: {
   undo?: boolean;
   thumbUrl?: string;
   openShadow?: boolean;
+  closeAfterMs: number;
 }) {
   const HOST_ID = '__clipboard_ext_toast__';
   document.getElementById(HOST_ID)?.remove();
@@ -73,7 +74,7 @@ export function showSavedToast(args: {
     remove();
   });
   document.documentElement.appendChild(host);
-  setTimeout(remove, 5000);
+  setTimeout(remove, args.closeAfterMs);
 }
 
 /**

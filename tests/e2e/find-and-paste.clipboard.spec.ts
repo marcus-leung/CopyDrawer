@@ -357,6 +357,20 @@ test('Paste as in the panel: as is keeps formatting, plain text drops it', async
   await panel.getByRole('button', { name: 'Plain text', exact: true }).click();
   await expect.poll(() => clipboardText(panel)).toBe('Lemon pasta. Use fresh lemons.');
   await expect.poll(clipboardHtml).toBeNull();
+
+  // Editing the text warns first, then drops the formatting; a title-only edit keeps it.
+  const warning = panel.getByText('Changing the text removes its formatting.');
+  await panel.getByRole('button', { name: 'Edit' }).click();
+  await panel.getByLabel('Title').fill('Pasta');
+  await expect(warning).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Save' }).click();
+  await expect(options).toHaveCount(2);
+  await panel.getByRole('button', { name: 'Edit' }).click();
+  await panel.getByLabel('Text').fill('Lemon pasta. Use two lemons.');
+  await expect(warning).toBeVisible();
+  await panel.getByRole('button', { name: 'Save' }).click();
+  await expect(panel.getByRole('heading', { name: 'Pasta' })).toBeVisible();
+  await expect(panel.getByRole('region', { name: 'Paste as' })).toHaveCount(0);
 });
 
 test('quick paste follows the theme chosen in Settings, not only the system', async ({ context, extensionId }) => {

@@ -54,6 +54,9 @@ async function flashBadge(text: string, color: string, tabId?: number) {
 const badgeOk = (tabId?: number) => flashBadge('✓', '#0E7A62', tabId);
 const badgeError = (tabId?: number) => flashBadge('!', '#B42318', tabId);
 
+// Tests can't race the card closing itself while the machine is busy.
+const TOAST_MS = __E2E__ ? 60_000 : 5000;
+
 /**
  * Shows the in-page "saved" card. Needs scripting access to the tab (activeTab or all sites). Undo is offered
  * only for a clip this save created: for one already in the history it would delete the user's existing clip.
@@ -74,6 +77,7 @@ async function toastInTab(tabId: number | undefined, { clip, created }: { clip: 
           undo: created,
           thumbUrl,
           openShadow: __E2E__,
+          closeAfterMs: TOAST_MS,
         },
       ],
     });
@@ -200,7 +204,7 @@ async function imageNotSaved(tab: Browser.tabs.Tab | undefined, detail: string) 
     await browser.scripting.executeScript({
       target: { tabId: tab.id },
       func: showSavedToast,
-      args: [{ title: 'Image not saved', detail, openShadow: __E2E__ }],
+      args: [{ title: 'Image not saved', detail, openShadow: __E2E__, closeAfterMs: TOAST_MS }],
     });
   } catch {
     await badgeError(tab.id);
