@@ -394,7 +394,7 @@ export function Toggle({
         role="switch"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="size-5 shrink-0 cursor-pointer accent-[var(--ink)]"
+        className="size-5 shrink-0 cursor-pointer accent-[var(--accent)]"
       />
     </div>
   );

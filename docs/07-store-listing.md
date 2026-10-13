@@ -34,16 +34,18 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 > • No account. Clips stay on your computer and are never uploaded. (Saving an image downloads it from where it's hosted, without your cookies.)
 > • Never saves password fields, password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites, or sites you block.
 
-**Screenshots (1280×800, 5):** take from the side panel docked next to a real page, light theme:
+**Screenshots (1280×800, 5):** `assets/store/screenshot-1.png` to `-5.png`, the real side panel (light theme) docked next to a sample page, with a tomato caption. Regenerate with `E2E=1 pnpm exec wxt build && node scripts/make-store-art.mjs`:
 1. Home with collections and recent clips ("Everything you copy, kept and sorted").
 2. Search with filters ("Find it in seconds").
 3. Quick paste over a web form ("Paste anywhere with Alt+Shift+V").
 4. Clip detail with smart actions (tracking number or event) ("One click to the next step").
 5. A trip collection ("Plans sort themselves").
 
-**Small promo tile (440×280):** icon + "Everything you copy, kept and sorted."
+**Small promo tile (440×280):** `assets/store/promo-440x280.png`, cream D + "Everything you copy, kept and sorted." on tomato.
 
-**Icon:** `assets/brand/icon.svg`, rendered to `public/icon/*.png` by `node scripts/make-icons.mjs`.
+**Marquee (1400×560, optional):** `assets/store/marquee-1400x560.png`.
+
+**Icon:** `assets/brand/icon.svg` (`icon-small.svg` at 16 px), rendered to `public/icon/*.png` by `node scripts/make-icons.mjs`. Logo rules: [08-branding.md](08-branding.md) §6.
 
 ## 2. Privacy tab answers
 
@@ -77,7 +79,7 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 
 ## 5. Before submitting: open items
 
-- [ ] Screenshots and promo tile.
+- [x] Screenshots and promo tile.
 - [ ] Trademark check ([08-branding.md](08-branding.md) §4).
 - [ ] Developer account ($5 one-time, non-trader).
 - [ ] Upload the zip.

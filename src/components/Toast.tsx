@@ -21,7 +21,7 @@ export function Toast({ toast, onDone, above = false }: { toast: ToastState | nu
     <div
       role="status"
       key={toast.id}
-      className={`animate-toast-in pointer-events-none absolute inset-x-[18px] ${above ? 'bottom-full mb-3' : 'bottom-[18px]'} z-20 flex items-center justify-between gap-3 rounded-2xl bg-ink py-2.5 pr-2.5 pl-4 text-on-ink shadow-[0_14px_36px_rgba(27,29,42,0.24)]`}
+      className={`animate-toast-in pointer-events-none absolute inset-x-[18px] ${above ? 'bottom-full mb-3' : 'bottom-[18px]'} z-20 flex items-center justify-between gap-3 rounded-2xl bg-ink py-2.5 pr-2.5 pl-4 text-on-ink shadow-[0_14px_36px_rgba(42,14,18,0.24)]`}
     >
       <span className="text-[13px]">{toast.message}</span>
       {toast.onUndo && (

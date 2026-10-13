@@ -392,7 +392,7 @@ test('quick paste follows the theme chosen in Settings, not only the system', as
   await setTheme('dark');
   await page.locator('#name').click();
   await open();
-  await boxBg().toBe('rgb(27, 29, 39)');
+  await boxBg().toBe('rgb(36, 24, 25)');
   await page.keyboard.press('Escape');
 
   // Dark system, Light chosen: the box is light.
@@ -400,14 +400,14 @@ test('quick paste follows the theme chosen in Settings, not only the system', as
   await setTheme('light');
   await page.locator('#name').click();
   await open();
-  await boxBg().toBe('rgb(255, 255, 255)');
+  await boxBg().toBe('rgb(255, 248, 240)');
   await page.keyboard.press('Escape');
 
   // "Match system" follows the system.
   await setTheme('system');
   await page.locator('#name').click();
   await open();
-  await boxBg().toBe('rgb(27, 29, 39)');
+  await boxBg().toBe('rgb(36, 24, 25)');
   await page.keyboard.press('Escape');
 
   // Font and text size from Settings too.

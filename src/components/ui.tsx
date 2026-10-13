@@ -5,7 +5,7 @@ type Variant = 'primary' | 'secondary' | 'outline' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-ink text-on-ink',
+  primary: 'bg-accent text-on-accent',
   secondary: 'bg-surface text-ink',
   outline: 'border-[1.5px] border-ink bg-transparent text-ink',
   danger: 'border-[1.5px] border-danger bg-transparent text-danger',

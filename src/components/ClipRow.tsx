@@ -111,7 +111,7 @@ export function PickBox({ title, pick, className = '' }: { title: string; pick: 
       className={`grid cursor-pointer place-items-center ${pick.selecting ? '' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'} ${className}`}
     >
       <span
-        className={`grid size-[22px] place-items-center rounded-md text-[12px] font-semibold ${picked ? 'bg-ink text-on-ink' : 'border-[1.5px] border-line-strong bg-bg'}`}
+        className={`grid size-[22px] place-items-center rounded-md text-[12px] font-semibold ${picked ? 'bg-accent text-on-accent' : 'border-[1.5px] border-line-strong bg-bg'}`}
         aria-hidden
       >
         {picked ? pick.number : ''}

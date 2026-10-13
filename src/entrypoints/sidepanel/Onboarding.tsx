@@ -25,6 +25,12 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   return (
     <div className="flex min-h-full justify-center overflow-y-auto bg-bg px-5 py-10 text-ink">
       <main className="w-full max-w-[420px]">
+        <p className="mb-8 flex items-center gap-2.5 font-display text-[20px] font-extrabold">
+          <img src="/icon/128.png" alt="" className="size-9" />
+          <span>
+            Copy<span className="text-accent">Drawer</span>
+          </span>
+        </p>
         {!finished && (
           <p className="mb-6 text-[13px] font-semibold text-text-3" aria-live="polite">
             Step {step} of 3

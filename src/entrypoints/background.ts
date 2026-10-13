@@ -52,7 +52,7 @@ async function flashBadge(text: string, color: string, tabId?: number) {
   }, 1500);
 }
 const badgeOk = (tabId?: number) => flashBadge('✓', '#0E7A62', tabId);
-const badgeError = (tabId?: number) => flashBadge('!', '#B42318', tabId);
+const badgeError = (tabId?: number) => flashBadge('!', '#9B1C1C', tabId);
 
 // Tests can't race the card closing itself while the machine is busy.
 const TOAST_MS = __E2E__ ? 60_000 : 5000;

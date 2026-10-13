@@ -23,21 +23,21 @@ export function showSavedToast(args: {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   root.innerHTML = `
     <style>
-      .card { font: 14px/1.4 'Instrument Sans', system-ui, sans-serif; color: #1B1D2A; background: #fff;
-        border-radius: 18px; box-shadow: 0 14px 36px rgba(27,29,42,.24), 0 0 0 1px rgba(27,29,42,.06);
+      .card { font: 14px/1.4 'Instrument Sans', system-ui, sans-serif; color: #2A0E12; background: #FFF8F0;
+        border-radius: 18px; box-shadow: 0 14px 36px rgba(42,14,18,.24), 0 0 0 1px rgba(42,14,18,.06);
         padding: 12px; display: flex; gap: 8px; align-items: center; width: 340px;
         ${reduce ? '' : 'animation: in 180ms ease-out;'} }
       @keyframes in { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
-      .thumb { width: 56px; height: 42px; border-radius: 10px; background: #F1F2F6 center/cover no-repeat; flex-shrink: 0; position: relative; }
+      .thumb { width: 56px; height: 42px; border-radius: 10px; background: #F7EBDD center/cover no-repeat; flex-shrink: 0; position: relative; }
       .check { position: absolute; right: -6px; bottom: -6px; width: 20px; height: 20px; border-radius: 10px; background: #0E7A62;
         display: flex; align-items: center; justify-content: center; }
       .text { flex: 1; min-width: 0; }
       .title { font-weight: 600; margin: 0; }
-      .detail { margin: 2px 0 0; font-size: 13px; color: #3E4357; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .detail { margin: 2px 0 0; font-size: 13px; color: #5A3A36; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       button { font: 600 12px/1 'Instrument Sans', system-ui, sans-serif; height: 30px; padding: 0 12px; border: 0; border-radius: 15px;
-        background: #F1F2F6; color: #1B1D2A; cursor: pointer; flex-shrink: 0; }
-      .open { background: #1B1D2A; color: #fff; }
-      button:focus-visible { outline: 2px solid #2457C5; outline-offset: 2px; }
+        background: #F7EBDD; color: #2A0E12; cursor: pointer; flex-shrink: 0; }
+      .open { background: #C93214; color: #fff; }
+      button:focus-visible { outline: 2px solid #C93214; outline-offset: 2px; }
     </style>
     <div class="card" role="status">
       <div class="thumb"><span class="check"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span></div>
@@ -91,14 +91,14 @@ export function selectArea(): Promise<{ x: number; y: number; w: number; h: numb
     const root = host.attachShadow({ mode: 'closed' });
     root.innerHTML = `
       <style>
-        .dim { position: fixed; inset: 0; background: rgba(27,29,42,.45); }
-        .box { position: fixed; border: 2px solid #fff; box-shadow: 0 0 0 1px #2457C5, 0 0 0 9999px rgba(27,29,42,.45); display: none; }
-        .size { position: absolute; right: 6px; bottom: 6px; padding: 2px 8px; border-radius: 6px; background: #1B1D2A; color: #fff;
+        .dim { position: fixed; inset: 0; background: rgba(42,14,18,.45); }
+        .box { position: fixed; border: 2px solid #fff; box-shadow: 0 0 0 1px #C93214, 0 0 0 9999px rgba(42,14,18,.45); display: none; }
+        .size { position: absolute; right: 6px; bottom: 6px; padding: 2px 8px; border-radius: 6px; background: #2A0E12; color: #fff;
           font: 600 12px/1.5 system-ui, sans-serif; }
         .bar { position: fixed; left: 50%; top: 16px; transform: translateX(-50%); display: flex; gap: 12px; align-items: center;
-          padding: 6px 6px 6px 16px; border-radius: 24px; background: #fff; box-shadow: 0 8px 24px rgba(27,29,42,.25);
-          font: 13px/1 system-ui, sans-serif; color: #1B1D2A; cursor: default; }
-        button { font: 600 13px/1 system-ui, sans-serif; height: 36px; padding: 0 14px; border: 0; border-radius: 18px; background: #F1F2F6; color: #1B1D2A; cursor: pointer; }
+          padding: 6px 6px 6px 16px; border-radius: 24px; background: #FFF8F0; box-shadow: 0 8px 24px rgba(42,14,18,.25);
+          font: 13px/1 system-ui, sans-serif; color: #2A0E12; cursor: default; }
+        button { font: 600 13px/1 system-ui, sans-serif; height: 36px; padding: 0 14px; border: 0; border-radius: 18px; background: #F7EBDD; color: #2A0E12; cursor: pointer; }
       </style>
       <div class="dim"></div>
       <div class="box"><span class="size"></span></div>

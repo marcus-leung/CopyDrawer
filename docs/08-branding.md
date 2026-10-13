@@ -83,6 +83,42 @@ Prices kept for reference.
 
 **Decision:** no domain and no business email. Contact is leungmarcus89@gmail.com. The privacy policy is hosted free on GitHub Pages at https://marcus-leung.github.io/CopyDrawer/privacy, from the public repo `marcus-leung/CopyDrawer`.
 
+## 6. Logo and colour
+
+**The mark:** Drawer D, a bold D whose counter is a drawer handle. The D is for Drawer; the handle says you can open it and take things out. It avoids the clipboard, paperclip and two-squares copy icon that most clipboard apps use. Overview: `assets/brand/presentation/identity.png` and `in-use.png`.
+
+**Files** (`assets/brand/`, all outlined, no live text):
+
+| File | Use |
+|---|---|
+| `icon.svg` | The icon: cream D on a tomato tile. Extension icon from 32 px up, favicon, store, avatars |
+| `icon-small.svg` | The icon redrawn for 16 px: bigger D, thicker handle. `scripts/make-icons.mjs` uses it for `public/icon/16.png` |
+| `mark.svg` | The D alone in tomato, for places where a tile would be too heavy |
+| `mark-black.svg`, `mark-white.svg` | One-colour D for single-colour printing and photos |
+| `lockup-horizontal.svg`, `lockup-stacked.svg` | Icon + wordmark: "Copy" in ink, "Drawer" in tomato. On cream or white |
+| `lockup-*-reversed.svg` | The same with "Copy" in cream, for dark backgrounds |
+
+The wordmark is Bricolage Grotesque ExtraBold (SIL Open Font License, which allows logo use), the app's display font, converted to outlines.
+
+**Colour**
+
+| Name | Hex | Use |
+|---|---|---|
+| Tomato | `#FF4A2B` | Logo tile, store art. Not for text (3.4:1) |
+| Tomato, text-safe | `#C93214` light / `#FF7A5C` dark | Buttons, links and focus in the app (≥5:1) |
+| Cream | `#FFF8F0` (page), `#FFF1DE` (the D) | Backgrounds |
+| Warm ink | `#2A0E12` | Text, "Copy" in the wordmark |
+
+The full app palette is in [05-ui-design-system.md](05-ui-design-system.md) §2.
+
+**Rules**
+- **Clear space:** keep a margin around the icon and lockups at least the height of the handle times two (1/8 of the tile).
+- **Minimum size:** the icon at 16 px (use `icon-small.svg` below 24 px); the horizontal lockup at 120 px wide.
+- **Background:** the tile carries itself on any background. The bare `mark.svg` needs cream, white or a light photo; on dark use `mark-white.svg`.
+- **Don't:** recolour the tile, put the bare tomato D on tomato, stretch or rotate it, add shadows or gradients, set the wordmark in another font, or put live text next to the icon instead of the lockup.
+
+**Store art:** `assets/store/`, made by `node scripts/make-store-art.mjs` after an E2E build: the 440×280 promo tile, the 1400×560 marquee and five 1280×800 screenshots of the real panel.
+
 ## Sources
 
 - [Clipboard History Pro](https://chrome.google.com/webstore/detail/ajiejmhbejpdgkkigpddefnjmgcbkenk)
