@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { detectKind, type ClipKind } from './kinds';
 import { isDiskFailure, pauseForDiskError, stateKnown, StoragePausedError, whenStateKnown, writesPaused } from './storageGuard';
+import { trackChanges, type SyncMeta } from './sync/meta';
 
 export type { ClipKind };
 
@@ -70,9 +71,13 @@ export class ClipDatabase extends Dexie {
   clips!: EntityTable<Clip, 'id'>;
   images!: EntityTable<StoredImage, 'id'>;
   collections!: EntityTable<Collection, 'id'>;
+  syncMeta!: EntityTable<SyncMeta, 'key'>;
 
-  /** `guarded: false` only for the rebuild, which must write while saving is paused. */
-  constructor(name = 'clipboard', { guarded = true } = {}) {
+  /**
+   * `guarded: false` only for the rebuild, which must write while saving is paused.
+   * `tracked: false` for writes that must not count as changes made here: the rebuild, and applying changes from Drive.
+   */
+  constructor(name = 'clipboard', { guarded = true, tracked = true } = {}) {
     super(name);
     this.version(1).stores({
       clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId',
@@ -131,6 +136,8 @@ export class ClipDatabase extends Dexie {
         all.sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0) || a.order - b.order);
         await Promise.all(all.map((c, order) => tx.table('collections').update(c.id, { order })));
       });
+    this.version(8).stores({ syncMeta: 'key, dirty, fileId' });
+    if (tracked) this.use(trackChanges);
     if (!guarded) return;
     // No write reaches the database while writing is stopped to protect the clips (see storageGuard).
     this.use({

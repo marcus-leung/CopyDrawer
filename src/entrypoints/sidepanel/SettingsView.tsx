@@ -15,6 +15,8 @@ import { BackupError, importFile } from '@/lib/backup';
 import { useExport } from '@/lib/useExport';
 import { keyLabel, useShortcuts } from '@/lib/useShortcuts';
 import { NOT_SET } from '@/lib/shortcuts';
+import { useDriveSync } from '@/lib/sync/useDriveSync';
+import { DriveSync } from './DriveSync';
 
 const selectClass = 'h-9 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink';
 
@@ -30,6 +32,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
   const expand = useContext(ExpandContext);
   const keys = useShortcuts();
   const backup = useExport(notify);
+  const synced = !!useDriveSync()?.settings.on;
 
   async function changeRetention(days: Settings['retentionDays']) {
     const old = await countOlderThan(days);
@@ -153,7 +156,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
           {pendingRetention && (
             <div className="mt-2">
               <InlineConfirm
-                message={`Delete ${pendingRetention.old === 1 ? '1 clip' : `${pendingRetention.old.toLocaleString()} clips`} older than ${pendingRetention.days} days now? Pinned clips are kept. This also applies on your other computers through Chrome sync, and can't be undone.`}
+                message={`Delete ${pendingRetention.old === 1 ? '1 clip' : `${pendingRetention.old.toLocaleString()} clips`} older than ${pendingRetention.days} days now? Pinned clips are kept. This also applies on your other computers${synced ? '' : ' through Chrome sync'}, and can't be undone.`}
                 confirmLabel="Delete and turn on"
                 onConfirm={() => {
                   const { days } = pendingRetention;
@@ -298,10 +301,14 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
           </details>
         </Section>
 
+        <DriveSync notify={notify} />
+
         <Section id="s-data" title="Your data">
           <p className="mb-3 text-[13px] leading-[19px] text-text-2">
-            Clips are stored only on this computer. Nothing is uploaded. Your settings (theme, blocked sites, auto-delete) follow
-            you to other computers through Chrome sync, if it's on.
+            {synced
+              ? 'Clips are stored on this computer, and in your Google Drive for your other computers.'
+              : 'Clips are stored only on this computer. Nothing is uploaded.'}{' '}
+            Your settings (theme, blocked sites, auto-delete) follow you to other computers through Chrome sync, if it's on.
           </p>
           <p className="mb-3 text-[13px] text-text-2">
             {settings.lastExportAt ? `Last exported: ${new Date(settings.lastExportAt).toLocaleDateString()}` : 'Never exported'}
@@ -344,7 +351,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
           {confirmDeleteAll && (
             <div className="mt-3">
               <InlineConfirm
-                message="Delete all clips, including pinned ones? This can't be undone."
+                message={`Delete all clips, including pinned ones${synced ? ', on every computer that syncs' : ''}? This can't be undone.`}
                 confirmLabel="Delete all clips"
                 onConfirm={() => void deleteEverything()}
                 onCancel={() => setConfirmDeleteAll(false)}

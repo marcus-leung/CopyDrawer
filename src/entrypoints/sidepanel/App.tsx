@@ -37,6 +37,7 @@ import { useFolderReorder } from './useFolderReorder';
 import { usePickActions } from './usePickActions';
 import { HomeNotice } from './HomeNotice';
 import { usePaged } from '@/lib/usePaged';
+import { safeSend } from '@/lib/safeSend';
 import { ShowMore } from '@/components/ShowMore';
 import { keyLabel, useShortcuts } from '@/lib/useShortcuts';
 
@@ -79,6 +80,9 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
 
   const keys = useShortcuts();
   const notify = useCallback((message: string, onUndo?: () => void) => setToast({ id: Date.now(), message, onUndo }), []);
+
+  // Opening CopyDrawer brings in what changed on other computers, if Drive sync is on.
+  useEffect(() => void safeSend({ type: 'sync-now' }), []);
 
   // Looked up ahead of time: Chrome only opens the side panel straight from a click.
   const [windowId, setWindowId] = useState<number>();
@@ -338,7 +342,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
           settings={settings}
           now={now}
           count={clips.length}
-          onCleanUp={() => setView({ name: 'settings' })}
+          onOpenSettings={() => setView({ name: 'settings' })}
           notify={notify}
         />
       )}

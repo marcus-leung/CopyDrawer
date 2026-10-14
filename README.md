@@ -1,6 +1,6 @@
 # CopyDrawer
 
-A private clipboard for Chrome. Everything you copy is kept, sorted into collections, and ready to paste again. Your clips stay on your device.
+A private clipboard for Chrome. Everything you copy is kept, sorted into collections, and ready to paste again. Your clips stay on your device, unless you turn on Google Drive sync.
 
 > Status: **v1.0 candidate**, ready for Chrome Web Store submission. Built per [docs/06-build-plan.md](docs/06-build-plan.md); launch checklist in [docs/07-store-listing.md](docs/07-store-listing.md).
 
@@ -10,6 +10,8 @@ A private clipboard for Chrome. Everything you copy is kept, sorted into collect
 pnpm install
 pnpm dev          # opens Chrome with the extension loaded and hot reload
 ```
+
+**Drive sync** needs Google's OAuth client: set `COPYDRAWER_OAUTH_CLIENT_ID` (a "Chrome Extension" client for the store item's ID) when building, or the build hides sync. To sign in from a local build, also set `COPYDRAWER_EXTENSION_KEY` to the store item's public key, so the local build gets the store's ID; `pnpm check` fails if the key would ship. Tests use a fake Drive and need neither.
 
 Load a production build by hand: `pnpm build`, then in `chrome://extensions` turn on Developer mode → **Load unpacked** → choose `.output/chrome-mv3`.
 
@@ -35,15 +37,19 @@ Load a production build by hand: `pnpm build`, then in `chrome://extensions` tur
 - **Paste back:** Alt+Shift+V quick-paste box in any text box (Tab picks several clips, Enter pastes them joined; one-line inputs get a space between them); the toolbar popup is the full app (small, medium or large) and can expand into the side panel; clips with formatting can be copied **as is** or as **plain text**.
 - **Smart actions:** track package, flight status, add to calendar (.ics), open address in Maps, email/call, color formats, tidy JSON, links without tracking parameters.
 - **Your data:** export to a .zip (`clips.html` to read in any browser, `clips.json` for Import, and your images as files) and import it back (older .json exports still import), with a monthly reminder to export once you have 50+ clips (Not now waits a week; turn it off in Settings), auto-delete after 30/90 days, delete all. **Full disk:** saving stops while less than 50 MB is free, and the page and panel say why; if the disk still fills (Chrome's database then reports an error), every write stops until Chrome restarts, and the first start after that moves the clips to fresh storage before anything else writes (when there's room for the copy; otherwise the panel says how much space to free), since later writes could make Chrome discard them.
+- **Google Drive sync** (off until you turn it on in Settings): the same clips, images and folders on every computer where you turn it on, kept in a hidden app folder of your own Google Drive (CopyDrawer can't see your other Drive files). Changes merge field by field, so a pin on one computer and an edit on another both survive; a delete wins unless the clip changed after it; the same text saved on two computers becomes one clip, and folders of the same name merge. Syncs every minute and whenever the panel opens. If one computer deletes the Drive copy, the others stop and keep their clips until you choose **Sync again**.
 - **Hide previews:** the eye button (or Settings → Appearance) blurs clips in the panel, popup and quick paste until you point at one, for screen sharing. This computer only.
 - **Appearance:** light and dark themes, a choice of font (default, system or monospace) and four text sizes, everywhere including the quick-paste box.
-- **No pop-ups:** naming, colors and confirmations all happen inside the panel. The only prompt you'll see is Chrome's own permission request when you turn on auto-save.
+- **No pop-ups:** naming, colors and confirmations all happen inside the panel. The only prompts you'll see are Chrome's own: the permission request when you turn on auto-save, and Google sign-in when you turn on Drive sync.
 
 ## Known limitations
 
 - **Right-click → Save image needs auto-save for most images.** Images are usually hosted on another site than the page (an image server), and Chrome blocks downloading those unless the extension has access to all sites, which it asks for only when you turn on auto-save. Without it, the page shows "Image not saved" and says so. Same-site images, and image servers that allow it, save either way.
 - **A page can add one clip per click on it.** Copy buttons are saved because a small script in the page reports `navigator.clipboard` writes. A report is accepted only within 2 seconds of a real click, once per click, so a page can't fill your history; but after a click it could report text it didn't copy, and that clip would be saved.
 - **A restart with the disk still completely full can skip the clean-up.** After a disk error, CopyDrawer marks the clips to be moved to fresh storage at the next Chrome start. If the disk is so full that even that small mark can't be written, and Chrome restarts before any space is freed, the move doesn't happen.
+- **Drive sync works in Chrome only, with the Google account Chrome is signed in to.** Other Chromium browsers (Edge, Brave) can't sign in to Google for extensions, so they don't show it.
+- **Sync isn't a backup.** A delete or **Delete all** reaches every computer that syncs. Export a copy now and then.
+- **The first sync downloads every clip one by one.** With thousands of clips that takes a minute or two (Settings shows the progress). Use counts merge by taking the larger, not by adding up.
 - **Chrome blocks extensions on some pages.** `chrome://` pages, the Chrome Web Store, other extensions' pages and the PDF viewer can't be read by any extension, so auto-save and the shortcuts can't work there. The toolbar icon shows **×** on those pages while auto-save is on (and on sites that are blocked, or incognito when that's off), and after a shortcut that couldn't run there. To save from such a page, copy as usual and use **Grab clipboard** in the panel.
 
 ## Project layout
@@ -56,6 +62,7 @@ src/entrypoints/popup/          toolbar popup (the full app, expands into the si
 src/entrypoints/*.content.ts    auto-save listener, quick-paste box (injected on demand)
 src/lib/                        storage (Dexie), clips, collections + classifier, search,
                                 clip types, smart actions
+src/lib/sync/                   Drive sync: change tracking, Drive client, merge, controller
 src/components/                 UI building blocks (design system in docs/05)
 tests/unit, tests/e2e           Vitest and Playwright tests
 tests/bench                     scale benchmark (pnpm bench)

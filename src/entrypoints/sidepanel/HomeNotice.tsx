@@ -5,6 +5,9 @@ import { isPaused, updateSettings, type Settings } from '@/lib/settings';
 import { Notice } from '@/components/Notice';
 import { BACKUP_SNOOZE, backupDue } from '@/lib/backup';
 import { useExport } from '@/lib/useExport';
+import { useDriveSync } from '@/lib/sync/useDriveSync';
+import type { SyncState } from '@/lib/sync/controller';
+import { SYNC_STOPPED } from './DriveSync';
 import { STORAGE_STATE_KEYS, storageState, type PauseReason, type StorageState } from '@/lib/storageGuard';
 
 /** The hostname of the tab next to the panel, when Chrome lets us see it. */
@@ -65,23 +68,35 @@ const STORAGE_NOTICES: Record<Exclude<PauseReason | 'low', 'space'>, { title: st
   },
 };
 
+/** Sync problems only the person can fix. */
+const SYNC_NOTICES: Partial<Record<SyncState, { title: string; body: string }>> = {
+  signin: {
+    title: 'Sync is waiting for you',
+    body: 'Sign in to Google again to keep your clips in step with your other computers.',
+  },
+  stopped: { title: 'Sync stopped', body: SYNC_STOPPED },
+  'drive-full': { title: "Sync can't upload", body: 'Your Google Drive is full. Free up space there to keep syncing.' },
+};
+
 /** One notice at a time under the search bar: disk full, paused, site blocked, history full, time to back up. */
 export function HomeNotice({
   settings,
   now,
   count,
-  onCleanUp,
+  onOpenSettings,
   notify,
 }: {
   settings: Settings;
   now: number;
   count: number;
-  onCleanUp: () => void;
+  onOpenSettings: () => void;
   notify: (message: string) => void;
 }) {
   const host = useActiveHost();
   const backup = useExport(notify);
   const storage = useStorageState();
+  const sync = useDriveSync();
+  const syncProblem = sync?.settings.on ? SYNC_NOTICES[sync.status.state] : undefined;
 
   let notice: React.ReactNode = null;
   if (storage.reason === 'space') {
@@ -94,6 +109,8 @@ export function HomeNotice({
     );
   } else if (storage.reason !== 'ok') {
     notice = <Notice tone={storage.reason === 'rebuilding' ? 'info' : 'warning'} {...STORAGE_NOTICES[storage.reason]} />;
+  } else if (syncProblem) {
+    notice = <Notice tone="warning" {...syncProblem} action={{ label: 'Open settings', onClick: onOpenSettings }} />;
   } else if (isPaused(settings, now)) {
     const mins = Math.max(1, Math.round((settings.pausedUntil - now) / 60_000));
     notice = (
@@ -122,7 +139,7 @@ export function HomeNotice({
         tone="neutral"
         title={`History is full: ${count.toLocaleString()} of ${MAX_CLIPS.toLocaleString()}`}
         body="New clips replace your oldest unpinned ones. Pinned clips are kept."
-        action={{ label: 'Clean up', onClick: onCleanUp }}
+        action={{ label: 'Clean up', onClick: onOpenSettings }}
       />
     );
   } else if (backupDue(settings, count, now)) {
@@ -130,7 +147,11 @@ export function HomeNotice({
       <Notice
         tone="info"
         title="Back up your clips"
-        body="They're stored only on this computer, so uninstalling CopyDrawer deletes them. Export a copy every so often."
+        body={
+          sync?.settings.on
+            ? "Sync copies every change, deletes too, so it isn't a backup. Export a copy every so often."
+            : "They're stored only on this computer, so uninstalling CopyDrawer deletes them. Export a copy every so often."
+        }
         action={{
           label: backup.exporting ? 'Exporting…' : 'Export now',
           onClick: () => void backup.run(),
