@@ -170,6 +170,7 @@ describe('moving the clips to fresh storage', () => {
       clips: await db.clips.toArray(),
       images: await db.images.count(),
       collections: await db.collections.toArray(),
+      syncMeta: await db.syncMeta.toArray(),
     };
     await fakeBrowser.storage.local.set({ dbRebuild: stage });
     await fakeBrowser.storage.session.set(session);
@@ -184,6 +185,8 @@ describe('moving the clips to fresh storage', () => {
     expect(await db.clips.toArray()).toEqual(snapshot.clips);
     expect(await db.images.count()).toBe(snapshot.images);
     expect(await db.collections.toArray()).toEqual(snapshot.collections);
+    expect(snapshot.syncMeta.length).toBeGreaterThan(0);
+    expect(await db.syncMeta.toArray()).toEqual(snapshot.syncMeta);
     expect(await Dexie.exists('clipboard-rescue')).toBe(false);
     expect((await fakeBrowser.storage.local.get('dbRebuild')).dbRebuild).toBeUndefined();
     expect(guard.writesPaused()).toBe(false);

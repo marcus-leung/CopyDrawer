@@ -7,6 +7,10 @@ import { createRequire } from 'node:module';
 // See https://wxt.dev/api/config.html
 // E2E=1 builds a test copy with all-sites access pre-granted, so auto-save can be tested.
 const e2e = process.env.E2E === '1';
+/** The Chrome Extension OAuth client for Drive sync. Without it, the build hides sync. */
+const oauthClientId = process.env.COPYDRAWER_OAUTH_CLIENT_ID;
+/** The store item's public key, so a local build gets the store's extension ID, which the OAuth client is tied to. Never shipped. */
+const extensionKey = process.env.COPYDRAWER_EXTENSION_KEY;
 
 /** Packages bundled into the extension; their licenses ship with it in THIRD_PARTY_LICENSES.txt. */
 const BUNDLED = [
@@ -112,6 +116,12 @@ export default defineConfig({
     ],
     // sidePanel.open and runtime.getContexts need Chrome 116.
     minimum_chrome_version: '116',
+    // Asked for when Drive sync is turned on.
+    optional_permissions: ['identity'],
+    ...(oauthClientId && {
+      oauth2: { client_id: oauthClientId, scopes: ['https://www.googleapis.com/auth/drive.appdata'] },
+    }),
+    ...(extensionKey && { key: extensionKey }),
     optional_host_permissions: ['<all_urls>'],
     ...(e2e ? { host_permissions: ['<all_urls>'] } : {}),
     action: { default_title: 'Open CopyDrawer' },

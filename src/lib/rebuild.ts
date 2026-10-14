@@ -12,7 +12,7 @@ import {
 } from './storageGuard';
 
 const RESCUE = 'clipboard-rescue';
-const TABLES = ['clips', 'images', 'collections'] as const;
+const TABLES = ['clips', 'images', 'collections', 'syncMeta'] as const;
 const BATCH = 50;
 
 const counts = (db: ClipDatabase) => Promise.all(TABLES.map((t) => db.table(t).count()));
@@ -26,7 +26,7 @@ async function copyAll(from: ClipDatabase, to: ClipDatabase) {
       const rows = await (last === undefined ? source.orderBy(':id') : source.where(':id').above(last)).limit(BATCH).toArray();
       if (!rows.length) break;
       await to.table(name).bulkPut(rows);
-      last = (rows.at(-1) as { id: string }).id;
+      last = (rows.at(-1) as Record<string, string>)[source.schema.primKey.keyPath as string];
     }
   }
   const [had, copied] = await Promise.all([counts(from), counts(to)]);
@@ -36,7 +36,10 @@ async function copyAll(from: ClipDatabase, to: ClipDatabase) {
 /** Copies one database into a fresh one under `to`, replacing whatever is there. */
 async function copyInto(fromName: string, to: string) {
   await Dexie.delete(to);
-  const [from, fresh] = [new ClipDatabase(fromName, { guarded: false }), new ClipDatabase(to, { guarded: false })];
+  const [from, fresh] = [
+    new ClipDatabase(fromName, { guarded: false, tracked: false }),
+    new ClipDatabase(to, { guarded: false, tracked: false }),
+  ];
   try {
     await copyAll(from, fresh);
   } finally {

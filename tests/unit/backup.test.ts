@@ -230,6 +230,7 @@ describe('import tells you what it could not take', () => {
     await expect(exportBackup(db)).resolves.toBeTruthy();
   });
 
+  // Fills the history to the brim (5,000 clips), so it takes a few seconds.
   it('never deletes clips to make room: what does not fit is counted', async () => {
     const { importBackup } = await import('@/lib/backup');
     const { MAX_CLIPS } = await import('@/lib/clips');
@@ -257,7 +258,7 @@ describe('import tells you what it could not take', () => {
     expect(await importBackup(v2(incoming), db)).toEqual({ added: 1, skipped: 0, noRoom: 2 });
     expect(await db.clips.count()).toBe(MAX_CLIPS);
     expect(await db.clips.get('own-0')).toBeDefined();
-  });
+  }, 20_000);
 
   it('finds clips.json in a re-zipped folder', async () => {
     const { zipSync, strToU8 } = await import('fflate');

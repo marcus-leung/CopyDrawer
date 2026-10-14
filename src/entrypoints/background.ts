@@ -22,6 +22,7 @@ import { STORAGE_ALARM, storageProblem } from '@/lib/storageGuard';
 import { allowRebuild, rebuildIfNeeded, storageAlarm } from '@/lib/rebuild';
 import { secretKind } from '@/lib/secrets';
 import type { Clip, ClipSource } from '@/lib/db';
+import { runSync, SYNC_ALARM, syncSettingsItem } from '@/lib/sync/controller';
 
 const MENU = {
   saveSelection: 'save-selection',
@@ -442,6 +443,16 @@ async function onBrowserStart() {
     .then(() => rebuildIfNeeded())
     .catch((e) => console.warn('Moving clips to fresh storage failed', e));
   await cleanup();
+  void syncNow();
+}
+
+const syncNow = () => runSync().catch((e) => console.warn('Drive sync failed', e));
+
+/** While Drive sync is on, it runs every minute, and whenever a panel opens. */
+async function scheduleSync(on: boolean) {
+  if (!on) return browser.alarms.clear(SYNC_ALARM);
+  await browser.alarms.create(SYNC_ALARM, { periodInMinutes: 1 });
+  void syncNow();
 }
 
 async function onInstalled(reason: string) {
@@ -452,6 +463,7 @@ async function onInstalled(reason: string) {
   }
   // The first export reminder comes a month after the extension is first installed or updated without one set.
   if (!(await getSettings()).backupRemindAfter) await updateSettings({ backupRemindAfter: Date.now() + BACKUP_EVERY });
+  void syncSettingsItem.getValue().then(({ on }) => scheduleSync(on));
   const autosaveOn = await syncAutosaveRegistration();
   // An update cuts off the auto-save script in open tabs; give them the new one.
   if (autosaveOn && reason === 'update') await injectIntoOpenTabs();
@@ -474,6 +486,10 @@ export default defineBackground(() => {
       .catch((e) => console.warn('Settings sync failed', e));
   applySynced();
   syncedSettingsItem.watch(applySynced);
+  // Turned on or off, or joined a Drive copy (Sync again after it stopped).
+  syncSettingsItem.watch((next, prev) => {
+    if (next.on !== prev?.on || next.copyId !== prev?.copyId) void scheduleSync(next.on);
+  });
 
   // × on the toolbar icon for tabs where auto-save can't see copies.
   // Once per browser session: session storage starts empty when the browser starts and when the extension
@@ -504,6 +520,7 @@ export default defineBackground(() => {
   browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === ALARM_CLEANUP) void cleanup();
     if (alarm.name === STORAGE_ALARM) void storageAlarm().catch((e) => console.warn('Storage check failed', e));
+    if (alarm.name === SYNC_ALARM) void syncNow();
   });
 
   browser.permissions.onRemoved.addListener((removed) => void onPermissionsRemoved(removed));
@@ -539,6 +556,9 @@ export default defineBackground(() => {
       case 'autosave-sync':
         void syncAutosaveRegistration().then(sendResponse);
         return true;
+      case 'sync-now':
+        if (sender.url?.startsWith(browser.runtime.getURL('/'))) void syncNow();
+        return;
       case 'undo-save':
         void undoAllowed(sender, msg.clipId).then(async (ok) => {
           if (ok) await deleteClip(msg.clipId);

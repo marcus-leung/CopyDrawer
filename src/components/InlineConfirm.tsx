@@ -7,11 +7,14 @@ export function InlineConfirm({
   confirmLabel,
   onConfirm,
   onCancel,
+  children,
 }: {
   message: string;
   confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** More choices, between the message and the buttons. */
+  children?: React.ReactNode;
 }) {
   const id = useId();
   const cancel = useRef<HTMLButtonElement>(null);
@@ -35,6 +38,7 @@ export function InlineConfirm({
       <p id={id} className="text-sm leading-5">
         {message}
       </p>
+      {children}
       <div className="mt-3 flex gap-2">
         <Button size="sm" variant="danger" onClick={onConfirm}>
           {confirmLabel}
