@@ -1,9 +1,16 @@
 import { useEffect } from 'react';
 import { FONT_STACKS, getSettings, settingsItem, validSynced, type Settings } from './settings';
 
-type Appearance = Pick<Settings, 'theme' | 'font' | 'textSize' | 'popupSize'>;
+type Appearance = Pick<Settings, 'theme' | 'font' | 'textSize' | 'popupSize' | 'hidePreviews'>;
 
-const DEFAULT: Appearance = { theme: 'system', font: 'default', textSize: 100, popupSize: 'medium' };
+const DEFAULT: Appearance = { theme: 'system', font: 'default', textSize: 100, popupSize: 'medium', hidePreviews: false };
+
+/** Theme, font and size are synced between computers; Hide previews is this computer's only. */
+const appearanceOf = (s: unknown): Appearance => ({
+  ...DEFAULT,
+  ...validSynced(s),
+  hidePreviews: (s as Partial<Settings> | null)?.hidePreviews === true,
+});
 const CACHE_KEY = 'appearance';
 
 function apply(a: Appearance) {
@@ -23,6 +30,7 @@ function apply(a: Appearance) {
   root.style.zoom = a.textSize === 100 ? '' : String(a.textSize / 100);
   root.style.setProperty('--text-zoom', String(a.textSize / 100));
   root.dataset.popupSize = a.popupSize;
+  root.toggleAttribute('data-hide-previews', a.hidePreviews);
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(a));
   } catch {
@@ -30,7 +38,7 @@ function apply(a: Appearance) {
   }
 }
 
-/** Applies the last known theme, font and size before the first paint, so nothing flashes or jumps. */
+/** Applies the last known theme, font, size and Hide previews before the first paint, so nothing flashes or jumps. */
 export function applyCachedAppearance() {
   let cached: unknown;
   try {
@@ -38,7 +46,7 @@ export function applyCachedAppearance() {
   } catch {
     cached = null;
   }
-  apply({ ...DEFAULT, ...validSynced(cached) });
+  apply(appearanceOf(cached));
 }
 
 /** Keeps the page in sync with the saved theme, font and text size, and with the system color scheme. */
@@ -48,8 +56,8 @@ export function useAppearance() {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const onMedia = () => apply(current);
     const set = (s: Settings | null) => {
-      const { theme, font, textSize, popupSize } = { ...DEFAULT, ...validSynced(s) };
-      current = { theme, font, textSize, popupSize };
+      const { theme, font, textSize, popupSize, hidePreviews } = appearanceOf(s);
+      current = { theme, font, textSize, popupSize, hidePreviews };
       apply(current);
     };
     void getSettings().then(set);

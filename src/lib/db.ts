@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { detectKind, type ClipKind } from './kinds';
-import { isDiskFailure, pauseWrites, StoragePausedError, writesPaused } from './storageGuard';
+import { isDiskFailure, pauseForDiskError, stateKnown, StoragePausedError, whenStateKnown, writesPaused } from './storageGuard';
 
 export type { ClipKind };
 
@@ -132,32 +132,48 @@ export class ClipDatabase extends Dexie {
         await Promise.all(all.map((c, order) => tx.table('collections').update(c.id, { order })));
       });
     if (!guarded) return;
-    // After a disk error, no write may reach the database until Chrome restarts (see storageGuard).
+    // No write reaches the database while writing is stopped to protect the clips (see storageGuard).
     this.use({
       stack: 'dbcore',
       name: 'pauseOnDiskFailure',
       create: (down) => ({
         ...down,
+        transaction: (tables, mode, options) => {
+          const tx = down.transaction(tables, mode, options) as IDBTransaction;
+          // A disk error can also surface when the transaction commits, after every write succeeded.
+          if (mode === 'readwrite') tx.addEventListener('abort', () => isDiskFailure(tx.error) && pauseForDiskError());
+          return tx;
+        },
         table: (tableName) => {
           const table = down.table(tableName);
           return {
             ...table,
-            mutate: (req) =>
-              writesPaused()
-                ? Promise.reject(new StoragePausedError())
-                : table.mutate(req).catch((e: unknown) => {
-                    if (isDiskFailure(e)) pauseWrites();
-                    throw e;
-                  }),
+            mutate: (req) => {
+              const write = () =>
+                writesPaused()
+                  ? Promise.reject(new StoragePausedError())
+                  : table.mutate(req).catch((e: unknown) => {
+                      if (isDiskFailure(e)) pauseForDiskError();
+                      throw e;
+                    });
+              // Only at start-up, before the state is read; waiting may end the transaction, which is safe.
+              return stateKnown() ? write() : whenStateKnown().then(write);
+            },
           };
         },
       }),
     });
-    // Chrome closes a connection itself only when the disk fails (or site data is cleared).
+    // Chrome closes a connection itself when the disk fails (or site data is cleared), but also once another
+    // page deletes the database, as moving the clips to fresh storage does.
+    let deleting = false;
+    this.on('versionchange', () => {
+      deleting = true;
+    });
     this.on(
       'ready',
       () => {
-        this.backendDB().addEventListener('close', () => pauseWrites());
+        deleting = false;
+        this.backendDB().addEventListener('close', () => deleting || pauseForDiskError());
       },
       true,
     );

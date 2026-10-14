@@ -36,7 +36,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  * own dependencies next to its real folder, so the lookup starts there, and never leaves this project.
  */
 function packageDir(name: string, from = process.cwd()): string | undefined {
-  const root = fs.realpathSync(process.cwd());
+  const root = fs.realpathSync(process.cwd()) + path.sep;
   return createRequire(path.join(fs.realpathSync(from), 'x'))
     .resolve.paths(name)!
     .filter((p) => p.startsWith(root))

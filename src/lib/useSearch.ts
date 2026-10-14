@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import type { Clip } from './db';
-import { searchClips, type SearchFilters } from './search';
+import { isDefaultSort, searchClips, type SearchFilters } from './search';
 
 /**
  * Searches as you type (150 ms debounce). `results` is null while searching
  * and the latest results aren't for the current query, filters and clips yet.
  */
 export function useSearch(query: string, filters: SearchFilters, clips: Clip[] | undefined) {
-  const sorted = filters.sort !== 'best' && (query.trim() !== '' || filters.sort !== 'newest');
-  const filtering = filters.kind !== 'any' || filters.site !== 'any' || filters.date !== 'any' || sorted;
+  const filtering =
+    filters.kind !== 'any' || filters.site !== 'any' || filters.date !== 'any' || !isDefaultSort(query, filters.sort);
   const searching = query.trim() !== '' || filtering;
   const [found, setFound] = useState<{ items: Clip[]; query: string; filters: SearchFilters; clips: Clip[] }>();
 

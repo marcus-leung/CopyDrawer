@@ -194,7 +194,7 @@ test('hide previews blurs clips until you point at one, in the panel and quick p
   expect(await blur(0)).toContain('blur');
   await axe(page, 'hide previews');
 
-  // Quick paste blurs every clip but the one picked.
+  // Quick paste blurs every clip, the selected one too, until the pointer is on it.
   const form = await context.newPage();
   await form.goto('https://form.e2e.test/');
   await form.locator('#field').click();
@@ -208,8 +208,10 @@ test('hide previews blurs clips until you point at one, in the panel and quick p
       .nth(n)
       .locator('.txt')
       .evaluate((el) => getComputedStyle(el).filter);
-  await expect.poll(() => qpBlur(1)).toContain('blur');
-  expect(await qpBlur(0)).toBe('none');
+  await expect.poll(() => qpBlur(0)).toContain('blur');
+  await options.nth(1).hover();
+  await expect.poll(() => qpBlur(1)).toBe('none');
+  expect(await qpBlur(0)).toContain('blur');
 
   await page.bringToFront();
   await toggle.click();

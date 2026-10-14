@@ -1,6 +1,7 @@
 import type { Clip } from '@/lib/db';
 import { deleteClips, markUsed, restoreClips } from '@/lib/clips';
 import { moveClips, type CollectionSummary } from '@/lib/collections';
+import { storageProblem } from '@/lib/storageGuard';
 import type { JoinWith } from '@/lib/join';
 import { copyClips } from '@/lib/multiCopy';
 import type { Selection } from '@/lib/useSelection';
@@ -48,8 +49,8 @@ export function usePickActions({
     const n = selection.ids.length;
     try {
       await moveClips(selection.ids, collectionId);
-    } catch {
-      notify(`Couldn't move ${clipsWord(n)}. Try again.`);
+    } catch (e) {
+      notify(storageProblem(e, 'moved')?.title ?? `Couldn't move ${clipsWord(n)}. Try again.`);
       return;
     }
     const name = collectionId ? summaries?.find((s) => s.collection.id === collectionId)?.collection.name : undefined;
@@ -61,8 +62,8 @@ export function usePickActions({
     let removed;
     try {
       removed = await deleteClips(selection.ids);
-    } catch {
-      notify(`Couldn't delete ${clipsWord(selection.ids.length)}. Try again.`);
+    } catch (e) {
+      notify(storageProblem(e, 'deleted')?.title ?? `Couldn't delete ${clipsWord(selection.ids.length)}. Try again.`);
       return;
     }
     selection.clear();

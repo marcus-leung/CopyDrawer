@@ -5,7 +5,7 @@ import { isPaused, updateSettings, type Settings } from '@/lib/settings';
 import { Notice } from '@/components/Notice';
 import { BACKUP_SNOOZE, backupDue } from '@/lib/backup';
 import { useExport } from '@/lib/useExport';
-import { STORAGE_STATE_KEYS, storageState } from '@/lib/storageGuard';
+import { STORAGE_STATE_KEYS, storageState, type PauseReason, type StorageState } from '@/lib/storageGuard';
 
 /** The hostname of the tab next to the panel, when Chrome lets us see it. */
 function useActiveHost(): string | null {
@@ -29,18 +29,41 @@ function useActiveHost(): string | null {
   return host;
 }
 
-/** Whether saving is paused or the disk was found almost full in this Chrome session. */
+/** Why saving is stopped to protect the clips, if it is. */
 function useStorageState() {
-  const [state, setState] = useState<Awaited<ReturnType<typeof storageState>>>('ok');
+  const [state, setState] = useState<StorageState>({ reason: 'ok', needBytes: 0 });
   useEffect(() => {
     const read = () => void storageState().then(setState);
     read();
     const onChanged = (changes: Record<string, unknown>) => STORAGE_STATE_KEYS.some((k) => k in changes) && read();
     browser.storage.session.onChanged.addListener(onChanged);
-    return () => browser.storage.session.onChanged.removeListener(onChanged);
+    browser.storage.local.onChanged.addListener(onChanged);
+    return () => {
+      browser.storage.session.onChanged.removeListener(onChanged);
+      browser.storage.local.onChanged.removeListener(onChanged);
+    };
   }, []);
   return state;
 }
+
+const STORAGE_NOTICES: Record<Exclude<PauseReason | 'low', 'space'>, { title: string; body: string }> = {
+  rebuilding: {
+    title: 'Checking your clips',
+    body: 'After the disk problem, CopyDrawer is moving your clips to fresh storage. This takes a moment.',
+  },
+  disk: {
+    title: 'Saving is paused to protect your clips',
+    body: 'Your computer ran out of disk space. Free up some space, then restart Chrome. Your saved clips are safe.',
+  },
+  failed: {
+    title: 'Saving is paused to protect your clips',
+    body: "CopyDrawer couldn't move your clips to fresh storage after the disk problem. Restart Chrome to try again. Your saved clips are safe.",
+  },
+  low: {
+    title: 'Your computer is almost out of space',
+    body: "New clips aren't being saved. Free up some disk space and saving starts again. Your saved clips are safe.",
+  },
+};
 
 /** One notice at a time under the search bar: disk full, paused, site blocked, history full, time to back up. */
 export function HomeNotice({
@@ -61,30 +84,16 @@ export function HomeNotice({
   const storage = useStorageState();
 
   let notice: React.ReactNode = null;
-  if (storage === 'rebuilding') {
-    notice = (
-      <Notice
-        tone="info"
-        title="Checking your clips"
-        body="After the disk problem, CopyDrawer is moving your clips to fresh storage. This takes a moment."
-      />
-    );
-  } else if (storage === 'disk' || storage === 'failed') {
+  if (storage.reason === 'space') {
     notice = (
       <Notice
         tone="warning"
         title="Saving is paused to protect your clips"
-        body="Your computer ran out of disk space. Free up some space, then restart Chrome. Your saved clips are safe."
+        body={`After the disk problem, CopyDrawer needs to move your clips to fresh storage. Free up about ${Math.ceil(storage.needBytes / 1e6).toLocaleString()} MB and it carries on by itself. Your saved clips are safe.`}
       />
     );
-  } else if (storage === 'low') {
-    notice = (
-      <Notice
-        tone="warning"
-        title="Your computer is almost out of space"
-        body="New clips aren't being saved. Free up some disk space and saving starts again. Your saved clips are safe."
-      />
-    );
+  } else if (storage.reason !== 'ok') {
+    notice = <Notice tone={storage.reason === 'rebuilding' ? 'info' : 'warning'} {...STORAGE_NOTICES[storage.reason]} />;
   } else if (isPaused(settings, now)) {
     const mins = Math.max(1, Math.round((settings.pausedUntil - now) / 60_000));
     notice = (

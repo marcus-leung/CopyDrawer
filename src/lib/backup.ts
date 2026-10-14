@@ -12,6 +12,7 @@ import { cleanName, nextOrder } from './collections';
 import { MAX_HTML, MAX_TEXT } from './limits';
 import { updateSettings, type Settings } from './settings';
 import { renderBackupPage } from './backupPage';
+import { ensureSpace } from './storageGuard';
 
 /** A clip as written to clips.json. `image.data` is a path in the zip (version 2) or a data URL (version 1). */
 export interface ExportedClip extends Omit<Clip, 'image'> {
@@ -119,6 +120,8 @@ const MAX_ZIP_ENTRIES = MAX_CLIPS + 10;
 
 /** Imports an export: a .zip, or an older .json. */
 export async function importFile(blob: Blob, db: ClipDatabase = defaultDb): Promise<ImportResult> {
+  // The import's images and text can take about twice the file's size once unpacked.
+  await ensureSpace(blob.size * 2);
   const bytes = new Uint8Array(await blob.arrayBuffer());
   const notExport = () => new BackupError("This file isn't a CopyDrawer export.");
   if (bytes[0] === 0x50 && bytes[1] === 0x4b) {

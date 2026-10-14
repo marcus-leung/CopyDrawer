@@ -18,8 +18,8 @@ import {
 import { blobToDataUrl, dataUrlToBlob, IMAGE_TYPES, ImageError, MAX_IMAGE_BYTES, saveImageClip } from '@/lib/images';
 import { BACKUP_EVERY } from '@/lib/backup';
 import { fetchImageInPage, readSelection, selectArea, showSavedToast } from '@/lib/injected';
-import { holdSavesUntil, isDiskFailure, markRebuildNeeded, pauseWrites, REBUILD_ALARM, storageProblem } from '@/lib/storageGuard';
-import { rebuildIfNeeded } from '@/lib/rebuild';
+import { STORAGE_ALARM, storageProblem } from '@/lib/storageGuard';
+import { allowRebuild, rebuildIfNeeded, storageAlarm } from '@/lib/rebuild';
 import { secretKind } from '@/lib/secrets';
 import type { Clip, ClipSource } from '@/lib/db';
 
@@ -33,7 +33,8 @@ const ALARM_CLEANUP = 'daily-cleanup';
 
 async function cleanup() {
   const { retentionDays } = await getSettings();
-  await deleteOlderThan(retentionDays);
+  // Skipped while writing is stopped to protect the clips; it runs again tomorrow.
+  await deleteOlderThan(retentionDays).catch(() => {});
 }
 
 function sourceOf(tab?: Browser.tabs.Tab): ClipSource | undefined {
@@ -219,9 +220,7 @@ const imageNotSaved = (tab: Browser.tabs.Tab | undefined, detail: string) => not
 async function saveFailed(e: unknown, tabId: number | undefined, label: string) {
   console.warn(label, e instanceof ImageError ? e.message : e);
   const problem = storageProblem(e);
-  if (!problem) return badgeError(tabId);
-  if (isDiskFailure(e)) pauseWrites();
-  await notSavedCard(tabId, problem.title, problem.detail);
+  await (problem ? notSavedCard(tabId, problem.title, problem.detail) : badgeError(tabId));
 }
 
 async function saveImageFromUrl(srcUrl: string, tab?: Browser.tabs.Tab) {
@@ -313,8 +312,10 @@ async function autosaveAllowed(sender: Browser.runtime.MessageSender): Promise<{
 
 /** Auto-save never keeps passwords, keys or card numbers; the card says how to save one on purpose. */
 async function skipSecret(text: string, tabId?: number): Promise<boolean> {
-  if (!secretKind(text)) return false;
-  await notSavedCard(tabId, 'Not saved: looks like a password or key', 'To keep it anyway, paste it into CopyDrawer.');
+  const kind = secretKind(text);
+  if (!kind) return false;
+  const what = kind === 'card number' ? 'a card number' : 'a password or key';
+  await notSavedCard(tabId, `Not saved: looks like ${what}`, 'To keep it anyway, paste it into CopyDrawer.');
   return true;
 }
 
@@ -435,6 +436,14 @@ async function runCommand(command: string, tab?: Browser.tabs.Tab) {
   if (command === 'quick-paste') await openQuickPaste(tab);
 }
 
+/** Chrome started. After a disk error last session, the clips move to fresh storage before the daily clean-up writes. */
+async function onBrowserStart() {
+  await allowRebuild()
+    .then(() => rebuildIfNeeded())
+    .catch((e) => console.warn('Moving clips to fresh storage failed', e));
+  await cleanup();
+}
+
 async function onInstalled(reason: string) {
   createMenus();
   void browser.alarms.create(ALARM_CLEANUP, { periodInMinutes: 24 * 60 });
@@ -449,12 +458,10 @@ async function onInstalled(reason: string) {
 }
 
 export default defineBackground(() => {
-  // Before anything else writes: a disk error last session means the database moves to fresh storage now.
-  holdSavesUntil(rebuildIfNeeded().catch((e) => console.warn('Rebuild after disk error failed', e)));
   browser.runtime.onInstalled.addListener((details) => void onInstalled(details.reason));
 
   browser.runtime.onStartup.addListener(() => {
-    void cleanup();
+    void onBrowserStart();
     void syncAutosaveRegistration();
   });
 
@@ -496,7 +503,7 @@ export default defineBackground(() => {
 
   browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === ALARM_CLEANUP) void cleanup();
-    if (alarm.name === REBUILD_ALARM) void markRebuildNeeded();
+    if (alarm.name === STORAGE_ALARM) void storageAlarm().catch((e) => console.warn('Storage check failed', e));
   });
 
   browser.permissions.onRemoved.addListener((removed) => void onPermissionsRemoved(removed));
@@ -546,7 +553,7 @@ export default defineBackground(() => {
           .then(sendResponse);
         return true;
       case 'qp-used':
-        void markUsed(msg.id);
+        void markUsed(msg.id).catch(() => {});
         return;
     }
     // Test-only hooks: Playwright can't click Chrome's context menu.
@@ -565,6 +572,11 @@ export default defineBackground(() => {
         .get(msg.tabId)
         .then((tab) => runCommand(msg.command, tab))
         .then(() => sendResponse(true));
+      return true;
+    }
+    // Test-only: Playwright loads the extension afresh at each launch, so Chrome never fires onStartup there.
+    if (__E2E__ && msg.type === 'e2e-browser-start') {
+      void onBrowserStart().then(() => sendResponse(true));
       return true;
     }
     // Test-only: Playwright can't update an extension.

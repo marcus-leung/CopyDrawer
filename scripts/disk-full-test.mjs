@@ -35,6 +35,7 @@ async function launch(profile) {
   await panel.goto(`chrome-extension://${new URL(worker.url()).host}/sidepanel.html`);
   const page = await context.newPage();
   await page.goto('https://disk.e2e.test/');
+  // Playwright loads the extension afresh at each launch, so Chrome fires onInstalled instead of onStartup.
   return { context, panel, page };
 }
 
@@ -155,12 +156,31 @@ async function scenario(label, minFreeBytes, expectCard) {
     await copyText(s.page, 'Copied after freeing space');
     const freed = await readTexts(s.panel);
     if (label === 'A') check(label, 'saving resumes once space is free', freed.includes('Copied after freeing space'));
-    else check(label, 'still paused until restart', !freed.includes('Copied after freeing space'), await cardText(s.page));
+    else {
+      check(label, 'still paused until restart', !freed.includes('Copied after freeing space'), await cardText(s.page));
+      // An extension update clears session storage, but isn't a Chrome restart. (Chrome won't reload an
+      // extension loaded from the command line, so this clears session storage the way an update does.)
+      await s.panel.evaluate(() => chrome.storage.session.clear());
+      await s.panel.reload();
+      await copyText(s.page, 'Copied after an update');
+      check(label, 'still paused after an extension update', !(await readTexts(s.panel)).includes('Copied after an update'));
+      const mark = await s.panel.evaluate(async () => (await chrome.storage.local.get('dbRebuild')).dbRebuild);
+      check(label, 'clips not moved before Chrome restarts', mark === 'needed', `mark: ${mark}`);
+    }
 
     await s.context.close();
     s = await launch(profile);
     const relaunched = await readTexts(s.panel);
     check(label, 'all clips intact after restart', countOld(relaunched) === 20, `${relaunched.length} clips`);
+    if (label === 'B') {
+      const mark = await s.panel.evaluate(async () => {
+        await chrome.runtime.sendMessage({ type: 'e2e-browser-start' });
+        return (await chrome.storage.local.get('dbRebuild')).dbRebuild;
+      });
+      check(label, 'clips moved to fresh storage at the restart', mark === undefined, `mark: ${mark}`);
+      const moved = await readTexts(s.panel);
+      check(label, 'all clips intact after the move', countOld(moved) === 20, `${moved.length} clips`);
+    }
     await setUp(s.panel, minFreeBytes);
     await copyText(s.page, 'Copied after restart');
     // Many larger saves: after a disk error this used to make Chrome discard the whole database at the next start.

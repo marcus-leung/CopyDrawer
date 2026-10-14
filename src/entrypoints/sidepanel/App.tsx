@@ -45,9 +45,6 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   useAppearance();
   const settings = useSettings();
   const hidePreviews = settings?.hidePreviews ?? false;
-  useEffect(() => {
-    document.documentElement.toggleAttribute('data-hide-previews', hidePreviews);
-  }, [hidePreviews]);
   const now = useNowUntil(settings?.pausedUntil ?? 0);
   const [view, setView] = useState<View>(() => {
     // "Open" from the in-page card when no panel could open: a tab with ?clip=<id>.
@@ -105,7 +102,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
     async (clip: Clip) => {
       try {
         await copyClipToClipboard(clip);
-        await markUsed(clip.id);
+        void markUsed(clip.id).catch(() => {});
         notify(clip.kind === 'image' ? 'Image copied. Paste it anywhere.' : 'Copied. Paste it anywhere.');
       } catch {
         notify("Couldn't copy. Click the panel and try again.");
@@ -116,7 +113,13 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
 
   const remove = useCallback(
     async (id: string) => {
-      const removed = await deleteClip(id);
+      let removed;
+      try {
+        removed = await deleteClip(id);
+      } catch (e) {
+        notify(storageProblem(e, 'deleted')?.title ?? "Couldn't delete that. Try again.");
+        return;
+      }
       setView((v) => (v.name === 'detail' && v.from ? v.from : { name: 'home' }));
       if (removed) notify('Clip deleted', () => void restoreClip(removed));
     },
@@ -325,7 +328,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
         </div>
         {showFilters && clips && clips.length > 0 && (
           <div className="mt-3 border-b border-line pb-3">
-            <FilterBar filters={filters} sites={sites} searching={query.trim() !== ''} onChange={setFilters} />
+            <FilterBar filters={filters} sites={sites} query={query} onChange={setFilters} />
           </div>
         )}
       </div>

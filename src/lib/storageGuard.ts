@@ -1,8 +1,12 @@
 /**
  * Keeps clips safe when the disk fills up. Once Chrome's database hits a disk error, any later write
  * (even after space is freed) can make Chrome throw the whole database away at a later start.
- * So saves stop short of a full disk; after a disk error every write stops until Chrome restarts,
- * and the first start after that copies everything into a fresh database (see rebuild.ts).
+ * So saves stop short of a full disk; after a disk error no write reaches the database until Chrome has
+ * restarted and the clips have been moved to fresh storage (see rebuild.ts).
+ *
+ * Writes are allowed only once this page knows the state, and while neither of these is set:
+ * - `storagePaused` (session storage): why writing is stopped in this Chrome session;
+ * - `dbRebuild` (local storage, outlasts restarts): the database still has to be moved.
  */
 
 /** Saving was refused: the disk is almost full. */
@@ -10,77 +14,93 @@ export class StorageFullError extends Error {
   override name = 'StorageFullError';
 }
 
-/** Writes are stopped until Chrome restarts, after the database reported a disk error. */
+/** Writing is stopped to protect the clips (see PauseReason). */
 export class StoragePausedError extends Error {
   override name = 'StoragePausedError';
 }
 
-const MIN_FREE_BYTES = 50 * 1024 * 1024;
+/**
+ * disk: a disk error in this Chrome session; restart Chrome. rebuilding: moving the clips to fresh storage.
+ * space: the move needs more free space. failed: the move failed; the next start tries again.
+ */
+export type PauseReason = 'disk' | 'rebuilding' | 'space' | 'failed';
+
+export const MIN_FREE_BYTES = 50 * 1024 * 1024;
 const PAUSED_KEY = 'storagePaused';
+const NEED_KEY = 'storageNeedBytes';
 const LOW_KEY = 'storageLow';
-/** In local storage, so it outlasts the restart: 'needed', then 'copied' once the rescue copy is complete. */
+/** In local storage: 'needed', then 'copied' once the rescue copy is complete. */
 export const REBUILD_KEY = 'dbRebuild';
-export const REBUILD_ALARM = 'mark-db-rebuild';
+/** In session storage, set when Chrome starts: only then may the database be moved. */
+export const REBUILD_ALLOWED_KEY = 'rebuildAllowed';
+/** Retries writing the rebuild mark, and a move that's waiting for space. */
+export const STORAGE_ALARM = 'storage-guard';
 /** Test builds only: a smaller margin, so tests can fill a small disk past it. */
 const E2E_MIN_FREE_KEY = 'e2eMinFreeBytes';
 
-/** disk: a disk error this session. rebuilding: moving the clips to fresh storage. failed: that move failed. */
-type PauseReason = 'disk' | 'rebuilding' | 'failed';
-let paused = false;
-let diskFailed = false;
-let startup: Promise<unknown> = Promise.resolve();
+const area = (name: 'session' | 'local') => (typeof browser === 'undefined' ? undefined : browser.storage?.[name]);
 
-const session = () => (typeof browser === 'undefined' ? undefined : browser.storage?.session);
+let known = false;
+let pauseReason: PauseReason | undefined;
+let rebuildMarked = false;
 
-void session()
-  ?.get(PAUSED_KEY)
-  .then((r) => (paused ||= !!r[PAUSED_KEY]))
-  .catch(() => {});
-session()?.onChanged.addListener((changes) => {
-  if (PAUSED_KEY in changes) paused = !!changes[PAUSED_KEY]!.newValue;
+const ready: Promise<void> = Promise.all([
+  area('session')
+    ?.get(PAUSED_KEY)
+    .then((r) => (pauseReason ??= r[PAUSED_KEY] as PauseReason | undefined)),
+  area('local')
+    ?.get(REBUILD_KEY)
+    .then((r) => (rebuildMarked ||= !!r[REBUILD_KEY])),
+])
+  .catch(() => {})
+  .then(() => {
+    known = true;
+  });
+area('session')?.onChanged.addListener((changes) => {
+  if (PAUSED_KEY in changes) pauseReason = changes[PAUSED_KEY]!.newValue as PauseReason | undefined;
+});
+area('local')?.onChanged.addListener((changes) => {
+  if (REBUILD_KEY in changes) rebuildMarked = !!changes[REBUILD_KEY]!.newValue;
 });
 
-export const writesPaused = () => paused;
-
-/** Saves wait for this first (the background's start-up rebuild check). */
-export function holdSavesUntil(p: Promise<unknown>) {
-  startup = p.catch(() => {});
-}
+/** Whether writing is stopped. Until `stateKnown()`, wait for `whenStateKnown()` first. */
+export const writesPaused = () => !!pauseReason || rebuildMarked;
+export const stateKnown = () => known;
+export const whenStateKnown = () => ready;
 
 /**
- * Stops all writes in every extension page: until Chrome restarts after a disk error (session storage is
- * cleared then), or while the database is being rebuilt.
+ * The database reported a disk error: stop every write in every page, and have the next start move the clips.
+ * Not while the clips are being moved: deleting the old database closes connections and aborts writes everywhere.
  */
-export function pauseWrites(reason: PauseReason = 'disk') {
-  if (diskFailed && reason !== 'failed') return;
-  paused = true;
-  void session()
-    ?.set({ [PAUSED_KEY]: reason })
-    .catch(() => {});
-  if (reason !== 'disk') return;
-  diskFailed = true;
+export function pauseForDiskError() {
+  if (pauseReason) return;
+  pauseReason = 'disk';
   console.warn('Disk error: saving is paused until Chrome restarts, to protect your clips.');
-  void markRebuildNeeded();
-  void browser.alarms?.create(REBUILD_ALARM, { periodInMinutes: 0.5 });
-}
-
-export function resumeWrites() {
-  paused = false;
-  void session()
-    ?.remove(PAUSED_KEY)
+  void area('session')
+    ?.set({ [PAUSED_KEY]: 'disk' satisfies PauseReason })
     .catch(() => {});
+  void markRebuildNeeded();
+  void browser.alarms?.create(STORAGE_ALARM, { periodInMinutes: 0.5 });
 }
 
-/**
- * Records that the next start must rebuild the database. Only once there's room again, since a write
- * to a full disk is what started this. Retried on an alarm until it's written.
- */
+/** Records that the clips must move to fresh storage. Retried on the alarm until it's written. */
 export async function markRebuildNeeded(): Promise<void> {
-  if (await lowOnSpace(0)) return;
   try {
     await browser.storage.local.set({ [REBUILD_KEY]: 'needed' });
-    await browser.alarms?.clear(REBUILD_ALARM);
-  } catch {}
+    rebuildMarked = true;
+  } catch {
+    // The disk is still full; the alarm tries again.
+  }
+}
+
+export async function setPause(reason: PauseReason, needBytes?: number) {
+  pauseReason = reason;
+  await area('session')?.set({ [PAUSED_KEY]: reason, [NEED_KEY]: needBytes ?? 0 });
+}
+
+export async function clearPause() {
+  pauseReason = undefined;
+  await area('session')?.remove([PAUSED_KEY, NEED_KEY]);
 }
 
 /** An error from the database that means the disk is full or failing. */
@@ -92,52 +112,78 @@ export function isDiskFailure(e: unknown, depth = 0): boolean {
   return isDiskFailure(inner, depth + 1);
 }
 
-/** Throws unless there's room to save `bytes` more. Call before a save's transaction, never inside one. */
+/** Free space for this extension's storage, or null when Chrome can't say. */
+export async function freeSpace(): Promise<{ free: number; usage: number } | null> {
+  const estimate = await navigator.storage?.estimate?.().catch(() => undefined);
+  if (estimate?.quota == null || estimate.usage == null) return null;
+  return { free: estimate.quota - estimate.usage, usage: estimate.usage };
+}
+
+async function minFree(): Promise<number> {
+  if (!__E2E__) return MIN_FREE_BYTES;
+  return ((await area('session')?.get(E2E_MIN_FREE_KEY))?.[E2E_MIN_FREE_KEY] as number | undefined) ?? MIN_FREE_BYTES;
+}
+
+export async function lowOnSpace(bytes = 0): Promise<boolean> {
+  const space = await freeSpace();
+  return space != null && space.free < (await minFree()) + bytes;
+}
+
+/** Throws unless saving `bytes` more is allowed. Call before a save's transaction, never inside one. */
 export async function ensureSpace(bytes = 0): Promise<void> {
-  await startup;
-  if (paused) throw new StoragePausedError();
+  await ready;
+  if (writesPaused()) throw new StoragePausedError();
   if (await lowOnSpace(bytes)) {
-    void session()
+    void area('session')
       ?.set({ [LOW_KEY]: true })
       .catch(() => {});
     throw new StorageFullError();
   }
 }
 
-async function lowOnSpace(bytes: number): Promise<boolean> {
-  const estimate = await navigator.storage?.estimate?.().catch(() => undefined);
-  if (estimate?.quota == null || estimate.usage == null) return false;
-  let min = MIN_FREE_BYTES;
-  if (__E2E__) min = ((await session()?.get(E2E_MIN_FREE_KEY))?.[E2E_MIN_FREE_KEY] as number | undefined) ?? min;
-  return estimate.quota - estimate.usage < min + bytes;
-}
-
 /** A save worked, so the disk has room again. */
 export function clearLowSpace() {
-  void session()
+  void area('session')
     ?.remove(LOW_KEY)
     .catch(() => {});
 }
 
-/** What to tell the user when a save failed for lack of space, or null for other failures. */
-export function storageProblem(e: unknown): { title: string; detail: string } | null {
+/** What to tell the user when a write failed to protect the clips, or null for other failures. */
+export function storageProblem(
+  e: unknown,
+  action: 'saved' | 'deleted' | 'moved' | 'imported' = 'saved',
+): { title: string; detail: string } | null {
   if (e instanceof StorageFullError)
     return {
-      title: 'Not saved: your computer is almost out of space',
+      title: `Not ${action}: your computer is almost out of space`,
       detail: 'Free up some disk space. Your saved clips are safe.',
     };
   if (e instanceof StoragePausedError || isDiskFailure(e))
-    return { title: 'Not saved: saving is paused to protect your clips', detail: 'Free up disk space, then restart Chrome.' };
+    return {
+      title: `Not ${action}: saving is paused to protect your clips`,
+      detail: 'See the CopyDrawer panel for what to do. Your saved clips are safe.',
+    };
   return null;
 }
 
-/** Why saving is stopped in this Chrome session, if it is, for the panel's notice. */
-export async function storageState(): Promise<PauseReason | 'low' | 'ok'> {
-  const r =
-    (await session()
-      ?.get([PAUSED_KEY, LOW_KEY])
+export type StorageState = { reason: PauseReason | 'low' | 'ok'; needBytes: number };
+
+/** Why saving is stopped, if it is, for the panel's notice. A "low" state is checked again, so it clears once there's room. */
+export async function storageState(): Promise<StorageState> {
+  await ready;
+  const s =
+    (await area('session')
+      ?.get([PAUSED_KEY, NEED_KEY, LOW_KEY])
       .catch(() => undefined)) ?? {};
-  return (r[PAUSED_KEY] as PauseReason | undefined) ?? (r[LOW_KEY] === true ? 'low' : 'ok');
+  const paused = s[PAUSED_KEY] as PauseReason | undefined;
+  if (paused) return { reason: paused, needBytes: (s[NEED_KEY] as number | undefined) ?? 0 };
+  // Marked but not paused this session: an update or reload since the disk error. Chrome must still restart.
+  if (rebuildMarked) return { reason: 'disk', needBytes: 0 };
+  if (s[LOW_KEY] === true) {
+    if (await lowOnSpace()) return { reason: 'low', needBytes: 0 };
+    clearLowSpace();
+  }
+  return { reason: 'ok', needBytes: 0 };
 }
 
-export const STORAGE_STATE_KEYS = [PAUSED_KEY, LOW_KEY];
+export const STORAGE_STATE_KEYS = [PAUSED_KEY, NEED_KEY, LOW_KEY, REBUILD_KEY];

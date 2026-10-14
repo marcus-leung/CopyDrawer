@@ -43,6 +43,15 @@ describe('secretKind: what auto-save never keeps', () => {
     'https://www.example.com/path?query=1',
     'mailto:sam@example.com',
     'The token is in the vault',
+    'max_tokens: 1024000',
+    'TOKEN_LIMIT=100000',
+    'Token: expired',
+    'Password: Required',
+    'OLDPWD=/Users/sam',
+    'pwd: /home/sam/projects',
+    'secret_santa: https://gifts.example.com/draw',
+    'password: string;',
+    'token: process.env.TOKEN',
   ])('%s', (text) => {
     expect(secretKind(text)).toBeNull();
   });

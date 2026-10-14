@@ -1,6 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { CLIP_KINDS, KIND_LABEL } from '@/lib/kinds';
-import { NO_FILTERS, type DateFilter, type SearchFilters, type SortOrder } from '@/lib/search';
+import { effectiveSort, isDefaultSort, NO_FILTERS, type DateFilter, type SearchFilters, type SortOrder } from '@/lib/search';
 
 const KINDS = [{ id: 'any', label: 'Any type' }, ...CLIP_KINDS.map((k) => ({ id: k, label: KIND_LABEL[k][1] }))];
 const SORTS: { id: SortOrder; label: string }[] = [
@@ -60,26 +60,26 @@ function Field({
 export function FilterBar({
   filters,
   sites,
-  searching,
+  query,
   onChange,
 }: {
   filters: SearchFilters;
   sites: string[];
-  /** Best match only means something while there's a query; without one it's newest first. */
-  searching: boolean;
+  query: string;
   onChange: (f: SearchFilters) => void;
 }) {
-  const sorts = searching
-    ? SORTS
-    : SORTS.filter((s) => s.id !== 'newest').map((s) => (s.id === 'best' ? { ...s, label: 'Newest first' } : s));
-  const changed = (Object.keys(NO_FILTERS) as (keyof SearchFilters)[]).some((k) => filters[k] !== NO_FILTERS[k]);
+  const sort = effectiveSort(query, filters.sort);
+  // Best match is only offered while searching.
+  const sorts = SORTS.filter((s) => s.id !== 'best' || query.trim());
+  const changed =
+    !isDefaultSort(query, filters.sort) || (['kind', 'site', 'date'] as const).some((k) => filters[k] !== NO_FILTERS[k]);
   return (
     <div role="group" aria-label="Filters">
       <div className="grid grid-cols-2 gap-x-2 gap-y-2.5">
         <Field
           label="Sort"
-          value={!searching && filters.sort === 'newest' ? 'best' : filters.sort}
-          active={filters.sort !== 'best' && (searching || filters.sort !== 'newest')}
+          value={sort}
+          active={!isDefaultSort(query, filters.sort)}
           onChange={(v) => onChange({ ...filters, sort: v as SortOrder })}
         >
           {sorts.map((s) => (

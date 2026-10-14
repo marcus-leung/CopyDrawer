@@ -18,8 +18,19 @@ export interface SearchFilters {
 
 export const NO_FILTERS: SearchFilters = { kind: 'any', site: 'any', date: 'any', sort: 'best' };
 
-const ORDER: Record<SortOrder, (a: Clip, b: Clip) => number> = {
-  best: (a, b) => b.createdAt - a.createdAt,
+type ListOrder = Exclude<SortOrder, 'best'>;
+
+/** The order actually used: best match only means something while there's a query; without one it's newest first. */
+export function effectiveSort(query: string, sort: SortOrder): SortOrder {
+  return sort === 'best' && !query.trim() ? 'newest' : sort;
+}
+
+/** Whether the order is the default for this query: best match while searching, newest first otherwise. */
+export function isDefaultSort(query: string, sort: SortOrder): boolean {
+  return effectiveSort(query, sort) === (query.trim() ? 'best' : 'newest');
+}
+
+const ORDER: Record<ListOrder, (a: Clip, b: Clip) => number> = {
   newest: (a, b) => b.createdAt - a.createdAt,
   oldest: (a, b) => a.createdAt - b.createdAt,
   used: (a, b) => b.useCount - a.useCount || b.lastUsedAt - a.lastUsedAt,
@@ -27,7 +38,7 @@ const ORDER: Record<SortOrder, (a: Clip, b: Clip) => number> = {
 };
 
 /** Sorts clips, pinned ones first. */
-export function sortClips(clips: Clip[], sort: SortOrder): Clip[] {
+export function sortClips(clips: Clip[], sort: ListOrder): Clip[] {
   return [...clips].sort((a, b) => b.pinned - a.pinned || ORDER[sort](a, b));
 }
 
@@ -89,7 +100,8 @@ const clipFields = (c: Clip) => ({
 export function searchClips(query: string, clips: Clip[], filters: SearchFilters, now = Date.now()): Clip[] {
   const q = query.trim();
   const passing = clips.filter((c) => passesFilters(c, filters, now));
-  if (q && filters.sort === 'best') return rankByQuery(passing, q, clipFields);
+  const sort = effectiveSort(q, filters.sort);
+  if (sort === 'best') return rankByQuery(passing, q, clipFields);
   const found = q ? passing.filter((c) => matchesQuery(c, q) || matchesWithTypos(c, q)) : passing;
-  return filters.sort === 'newest' || filters.sort === 'best' ? found : sortClips(found, filters.sort);
+  return sort === 'newest' ? found : sortClips(found, sort);
 }
