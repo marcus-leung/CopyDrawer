@@ -43,7 +43,7 @@ kbd { font: 600 11px/1 "JetBrains Mono", ui-monospace, monospace; padding: 3px 6
 .foot { display: flex; gap: 14px; align-items: center; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--t3); }
 .foot .r { margin-left: auto; }
 .empty { padding: 22px 16px; color: var(--t3); text-align: center; }
-.box[data-hide-previews] li:not([aria-selected="true"], :hover) .txt { filter: blur(6px); }
+.box[data-hide-previews] li:not(:hover) .txt { filter: blur(6px); }
 `;
 
 type Target =

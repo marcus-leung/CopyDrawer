@@ -426,3 +426,24 @@ test('quick paste follows the theme chosen in Settings, not only the system', as
     )
     .toEqual([true, '1.15']);
 });
+
+test('while saving is paused to protect the clips, copying still works and deleting says why', async ({
+  context,
+  extensionId,
+}) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await pasteIntoPanel(page, 'Gate B12');
+  const list = page.getByRole('list', { name: 'Clips' });
+  await expect(list.getByRole('listitem')).toHaveCount(1);
+
+  await page.evaluate(() => chrome.storage.session.set({ storagePaused: 'disk' }));
+  await expect(page.getByText('Saving is paused to protect your clips')).toBeVisible();
+
+  await list.getByRole('button', { name: 'Copy' }).click();
+  await expect(page.getByText('Copied. Paste it anywhere.')).toBeVisible();
+
+  await list.getByRole('button', { name: /Gate B12/ }).click();
+  await page.getByRole('button', { name: 'Delete' }).click();
+  await expect(page.getByText(/Not deleted: saving is paused/)).toBeVisible();
+});

@@ -19,7 +19,7 @@ export function PasteAs({
     } catch {
       return notify("Couldn't copy. Click the panel and try again.");
     }
-    void markUsed(clip.id);
+    void markUsed(clip.id).catch(() => {});
     notify('Copied as plain text');
   }
 

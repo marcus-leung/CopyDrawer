@@ -83,6 +83,21 @@ describe('rankByQuery', () => {
     expect(rank('luncj')).toEqual(['Lunch']);
   });
 
+  it('finds punctuation as typed when the query has no letters or digits', () => {
+    const found = (q: string) =>
+      rankByQuery(
+        [
+          { title: 'sam@example.com', body: '' },
+          { title: 'https://example.com', body: '' },
+          { title: 'Lunch', body: '' },
+        ],
+        q,
+        (i) => i,
+      ).map((i) => i.title);
+    expect(found('@')).toEqual(['sam@example.com']);
+    expect(found('://')).toEqual(['https://example.com']);
+  });
+
   it('keeps the given order without a query', () => {
     expect(rank('  ')).toEqual(items.map((i) => i.title));
   });

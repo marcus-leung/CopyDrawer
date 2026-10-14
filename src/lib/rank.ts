@@ -82,7 +82,11 @@ export function rankByQuery<T extends object>(
   fields: (item: T) => { title: string; body: string },
 ): T[] {
   const typed = [...new Set(query.toLowerCase().match(WORD) ?? [])];
-  if (!typed.length) return items;
+  // Only punctuation ("@", "://"): find it as typed.
+  if (!typed.length) {
+    const q = query.trim().toLowerCase();
+    return q ? items.filter((item) => indexed(item, fields).hay.includes(q)) : items;
+  }
   const meaningful = typed.filter((w) => !FILLER.has(w));
   const words = meaningful.length ? meaningful : typed;
   const all = items.map((item) => indexed(item, fields));
@@ -105,8 +109,8 @@ export function rankByQuery<T extends object>(
     })
     .filter((r) => r.hits >= need)
     .sort((a, b) => {
-      const all = Number(b.hits === words.length) - Number(a.hits === words.length);
-      return all || (a.hits === words.length ? 0 : b.score - a.score) || a.i - b.i;
+      const everyWord = Number(b.hits === words.length) - Number(a.hits === words.length);
+      return everyWord || (a.hits === words.length ? 0 : b.score - a.score) || a.i - b.i;
     })
     .map((r) => r.item);
 }

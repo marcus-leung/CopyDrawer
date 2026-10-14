@@ -7,6 +7,7 @@ import { isPaused, PAUSE_MS, updateSettings, type Settings } from '@/lib/setting
 import { disableAutosave, enableAutosave } from '@/lib/autosave';
 import { BUILT_IN_BLOCKED, normalizeSite } from '@/lib/exclusions';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
+import { storageProblem } from '@/lib/storageGuard';
 import { Button, IconButton } from '@/components/ui';
 import { ExpandButton, ExpandContext } from '@/components/ExpandButton';
 import { InlineConfirm } from '@/components/InlineConfirm';
@@ -72,7 +73,7 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
       const full = noRoom ? ` ${noRoom} didn't fit: the history holds ${MAX_CLIPS.toLocaleString()} clips.` : '';
       notify(`${done}${skipped ? ` Skipped ${skipped} that couldn't be read.` : ''}${full}`);
     } catch (e) {
-      notify(e instanceof BackupError ? e.message : "Couldn't read that file.");
+      notify(e instanceof BackupError ? e.message : (storageProblem(e, 'imported')?.title ?? "Couldn't read that file."));
     }
   }
 

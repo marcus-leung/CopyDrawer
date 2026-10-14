@@ -7,10 +7,13 @@ import { CLIPBOARD_WRITE_EVENT } from './clipboardHook';
  * to the background. Stops listening once the extension is reloaded or updated, since
  * this copy of the script can no longer reach it. Returns a function that stops it.
  */
+const CLICK_WINDOW_MS = 2000;
+
 export function watchCopies(win: Window): () => void {
   const stop = () => {
     win.removeEventListener('copy', onCopy);
     win.removeEventListener('cut', onCopy);
+    win.removeEventListener('click', onClick, true);
     win.removeEventListener(CLIPBOARD_WRITE_EVENT, onWrite);
   };
   const send = (text: string, html: string | undefined) =>
@@ -22,9 +25,14 @@ export function watchCopies(win: Window): () => void {
     });
 
   // A copy button wrote to the clipboard (reported by the page-world hook). The page could send this event
-  // itself, so it only counts right after the user clicked or pressed a key, which the page can't fake.
+  // itself, so a report only counts within 2 seconds of a real click (pages can't fake one), once per click.
+  let clickedAt = -Infinity;
+  function onClick(event: MouseEvent) {
+    if (event.isTrusted) clickedAt = event.timeStamp;
+  }
   function onWrite(event: Event) {
-    if (!win.navigator.userActivation?.isActive) return;
+    if (event.timeStamp - clickedAt > CLICK_WINDOW_MS) return;
+    clickedAt = -Infinity;
     if (!extensionAlive()) return stop();
     let data: unknown;
     try {
@@ -62,6 +70,7 @@ export function watchCopies(win: Window): () => void {
   }
   win.addEventListener('copy', onCopy);
   win.addEventListener('cut', onCopy);
+  win.addEventListener('click', onClick, true);
   win.addEventListener(CLIPBOARD_WRITE_EVENT, onWrite);
   return stop;
 }
