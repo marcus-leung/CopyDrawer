@@ -50,6 +50,16 @@ describe('Drive REST client', () => {
     await expect(restDrive(async () => 't').startPageToken()).rejects.toMatchObject({ kind: 'auth' });
   });
 
+  it('asks to sign in again when access was revoked and Chrome has no fresh token', async () => {
+    const fetch = stubFetch(fail(401, 'authError'));
+    const token = async (refresh: boolean) => {
+      if (refresh) throw new DriveError('auth', 'Not signed in');
+      return 'revoked';
+    };
+    await expect(restDrive(token).startPageToken()).rejects.toMatchObject({ kind: 'auth' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('retries rate limits and server errors, then gives up', async () => {
     const fetch = stubFetch(fail(429, 'rateLimitExceeded'), fail(503, 'backendError'), ok({ startPageToken: '1' }));
     expect(await restDrive(async () => 't').startPageToken()).toBe('1');
