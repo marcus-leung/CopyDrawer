@@ -3,15 +3,15 @@ import type { JoinWith } from './join';
 import { normalizeSite } from './exclusions';
 
 export type ThemePref = 'system' | 'light' | 'dark';
-export type FontPref = 'default' | 'system' | 'mono';
+/** default: the computer's own font. Older versions also had 'system', now the same as default. */
+export type FontPref = 'default' | 'mono';
 export type TextSize = 90 | 100 | 115 | 130;
 const TEXT_SIZES: TextSize[] = [90, 100, 115, 130];
 export type PopupSize = 'small' | 'medium' | 'large';
 const POPUP_SIZES: PopupSize[] = ['small', 'medium', 'large'];
 /** Font stacks for the non-default fonts (the default comes from the stylesheet). */
 export const FONT_STACKS: Record<Exclude<FontPref, 'default'>, string> = {
-  system: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-  mono: '"JetBrains Mono", ui-monospace, monospace',
+  mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
 };
 
 export interface Settings {
@@ -66,7 +66,8 @@ export const settingsItem = storage.defineItem<Settings>('local:settings', {
 });
 
 export async function getSettings(): Promise<Settings> {
-  return { ...DEFAULT_SETTINGS, ...(await settingsItem.getValue()) };
+  const s = { ...DEFAULT_SETTINGS, ...(await settingsItem.getValue()) };
+  return s.font === 'mono' ? s : { ...s, font: 'default' };
 }
 
 let writing: Promise<unknown> = Promise.resolve();
@@ -105,7 +106,7 @@ export function validSynced(remote: unknown): Partial<Pick<Settings, SyncedKey>>
   const out: Partial<Pick<Settings, SyncedKey>> = {};
   if (r.retentionDays === 0 || r.retentionDays === 30 || r.retentionDays === 90) out.retentionDays = r.retentionDays;
   if (r.theme === 'system' || r.theme === 'light' || r.theme === 'dark') out.theme = r.theme;
-  if (r.font === 'default' || r.font === 'system' || r.font === 'mono') out.font = r.font;
+  if (r.font === 'default' || r.font === 'system' || r.font === 'mono') out.font = r.font === 'mono' ? 'mono' : 'default';
   if (TEXT_SIZES.includes(r.textSize as TextSize)) out.textSize = r.textSize as TextSize;
   if (POPUP_SIZES.includes(r.popupSize as PopupSize)) out.popupSize = r.popupSize as PopupSize;
   if (Array.isArray(r.blockedSites))

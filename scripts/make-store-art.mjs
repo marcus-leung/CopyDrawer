@@ -8,11 +8,7 @@ import path from 'node:path';
 const OUT = 'assets/store';
 const EXT = path.resolve('.output-e2e/chrome-mv3');
 const local = '/opt/pw-browsers/chromium';
-const font = (file) => `data:font/woff2;base64,${fs.readFileSync(`node_modules/@fontsource/${file}`).toString('base64')}`;
-const FONTS = `
-@font-face { font-family: 'Bricolage Grotesque'; font-weight: 800; src: url(${font('bricolage-grotesque/files/bricolage-grotesque-latin-800-normal.woff2')}); }
-@font-face { font-family: 'Instrument Sans'; font-weight: 400; src: url(${font('instrument-sans/files/instrument-sans-latin-400-normal.woff2')}); }
-@font-face { font-family: 'Instrument Sans'; font-weight: 600; src: url(${font('instrument-sans/files/instrument-sans-latin-600-normal.woff2')}); }`;
+const SANS = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
 const brand = (name) => fs.readFileSync(`assets/brand/${name}.svg`, 'utf8').replace(/<title>.*?<\/title>/, '');
 
 const TOMATO = '#FF4A2B';
@@ -183,9 +179,9 @@ try {
   const art = await context.newPage();
   const render = async (file, width, height, body) => {
     await art.setViewportSize({ width, height });
-    await art.setContent(`<!doctype html><html><head><style>${FONTS}
-      * { box-sizing: border-box; } body { margin: 0; width: ${width}px; height: ${height}px; overflow: hidden; font-family: 'Instrument Sans', sans-serif; }
-      h1, .word { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+    await art.setContent(`<!doctype html><html><head><style>
+      * { box-sizing: border-box; } body { margin: 0; width: ${width}px; height: ${height}px; overflow: hidden; font-family: ${SANS}; }
+      h1, .word { font-family: ${SANS}; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
       </style></head><body>${body}</body></html>`);
     await art.evaluate(() => document.fonts.ready);
     await art.screenshot({ path: path.join(OUT, file) });

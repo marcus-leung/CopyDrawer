@@ -44,7 +44,7 @@ Spending that's optional but worth it later: a designer for the icon and store a
 
 ### 2.1 Launch checklist
 - [ ] Developer account + 2-step verification (use a dedicated Google account; hardware key recommended)
-- [x] Privacy policy page that lists every permission and exactly what data is used (local only): [PRIVACY.md](../PRIVACY.md), published at https://marcus-leung.github.io/CopyDrawer/privacy
+- [x] Privacy policy page that lists every permission and exactly what data is used (local only): [site/privacy.md](../site/privacy.md), published at https://marcus-leung.github.io/CopyDrawer/privacy
 - [x] Single-purpose statement: "Save, organize, and paste things you copy"
 - [x] A justification for each permission ([07-store-listing.md](07-store-listing.md) §3)
 - [ ] Data-usage disclosure form (certify Limited Use)

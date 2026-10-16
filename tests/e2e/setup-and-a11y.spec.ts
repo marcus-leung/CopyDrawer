@@ -121,14 +121,14 @@ test('font and text size: Settings changes every page, and pages open with them'
   await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
   const html = page.locator('html');
   const fontOf = (p: Page) => p.evaluate(() => getComputedStyle(document.body).fontFamily);
-  expect(await fontOf(page)).toContain('Instrument Sans');
+  expect(await fontOf(page)).toContain('system-ui');
 
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByLabel('Font').selectOption('mono');
   await page.getByLabel('Text size').selectOption('130');
   await expect(html).toHaveAttribute('data-font', 'mono');
   await expect.poll(() => html.evaluate((el) => el.style.zoom)).toBe('1.3');
-  expect(await fontOf(page)).toContain('JetBrains Mono');
+  expect(await fontOf(page)).toContain('ui-monospace');
   await axe(page, 'settings, monospace, larger');
 
   // Opens with them already applied (no jump), here and in the popup.
@@ -141,7 +141,7 @@ test('font and text size: Settings changes every page, and pages open with them'
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(popup.locator('html')).toHaveAttribute('data-font', 'mono');
-  expect(await fontOf(popup)).toContain('JetBrains Mono');
+  expect(await fontOf(popup)).toContain('ui-monospace');
   // Popup size presets; the height stays inside Chrome's popup limit at any text size.
   await popup.setViewportSize({ width: 800, height: 600 });
   const popupSize = async () => {
@@ -157,13 +157,11 @@ test('font and text size: Settings changes every page, and pages open with them'
 
   // Back to the defaults.
   await page.getByRole('button', { name: 'Settings' }).click();
-  await page.getByLabel('Font').selectOption('system');
   await page.getByLabel('Text size').selectOption('100');
-  await expect(html).toHaveAttribute('data-font', 'system');
   await expect.poll(() => html.evaluate((el) => el.style.zoom)).toBe('');
   await page.getByLabel('Font').selectOption('default');
   await expect(html).not.toHaveAttribute('data-font');
-  expect(await fontOf(page)).toContain('Instrument Sans');
+  expect(await fontOf(page)).toContain('system-ui');
 });
 
 test('hide previews blurs clips until you point at one, in the panel and quick paste', async ({ context, extensionId }) => {

@@ -66,7 +66,7 @@ src/lib/sync/                   Drive sync: change tracking, Drive client, merge
 src/components/                 UI building blocks (design system in docs/05)
 tests/unit, tests/e2e           Vitest and Playwright tests
 tests/bench                     scale benchmark (pnpm bench)
-docs/                           research, design, plan, design system, mockups
+docs/                           research, design, plan, design system
 ```
 
 ## License

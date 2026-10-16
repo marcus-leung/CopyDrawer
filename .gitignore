@@ -9,3 +9,5 @@ playwright-report/
 verify-evidence/
 bench-results.jsonl
 .DS_Store
+.env
+.env.*

@@ -1,10 +1,4 @@
 @import 'tailwindcss';
-@import '@fontsource/instrument-sans/latin-400.css';
-@import '@fontsource/instrument-sans/latin-500.css';
-@import '@fontsource/instrument-sans/latin-600.css';
-@import '@fontsource/bricolage-grotesque/latin-600.css';
-@import '@fontsource/bricolage-grotesque/latin-800.css';
-@import '@fontsource/jetbrains-mono/latin-400.css';
 
 /* Dark mode follows <html data-theme>, set from settings + system. */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
@@ -82,9 +76,9 @@
   --color-warning-line: var(--warning-border);
   --color-info-bg: var(--info-bg);
   --color-info-fg: var(--info-fg);
-  --font-sans: 'Instrument Sans', system-ui, sans-serif;
-  --font-display: 'Bricolage Grotesque', 'Instrument Sans', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: var(--font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 /* The side panel fills its window by percentage, not vh: the text-size zoom would scale vh and overflow. */

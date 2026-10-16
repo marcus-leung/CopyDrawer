@@ -22,7 +22,7 @@
     ],
     "react/react-in-jsx-scope": "off"
   },
-  "ignorePatterns": [".output/**", ".output-e2e/**", ".wxt/**", "docs/mockups/**", "test-results/**", "tests/fixtures/**"],
+  "ignorePatterns": [".output/**", ".output-e2e/**", ".wxt/**", "test-results/**", "tests/fixtures/**"],
   "overrides": [
     {
       "files": ["tests/e2e/**"],

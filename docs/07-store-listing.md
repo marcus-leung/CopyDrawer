@@ -58,7 +58,7 @@ Copy for the Chrome Web Store, the permission justifications reviewers ask for, 
 
   Then tick all three certifications: not sold or transferred to third parties, not used for purposes unrelated to the single purpose, not used for creditworthiness or lending.
 - **Remote code:** No, I am not using remote code. All code is in the package. The only network requests are downloads of images the user chose to save (no cookies sent).
-- **Privacy policy URL:** https://marcus-leung.github.io/CopyDrawer/privacy, from the public `CopyDrawer` repo (GitHub Pages). `PRIVACY.md` here is the source: copy it there as `privacy.md` after every change.
+- **Privacy policy URL:** https://marcus-leung.github.io/CopyDrawer/privacy, published by GitHub Pages from `site/` in this repo (`site/privacy.md` is the policy). A push to `main` that changes `site/` republishes it.
 
 ## 3. Permission justifications
 

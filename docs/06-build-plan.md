@@ -1,6 +1,6 @@
 # 06 · Build plan: barebones → MVP
 
-_Process: Research → Design → **Plan** → Build. Inputs: [02-design.md](02-design.md) (features, architecture, decisions), [05-ui-design-system.md](05-ui-design-system.md) (UI), [mockups/](mockups/) (screens), [04-design-resources.md](04-design-resources.md) (approved libraries)._
+_Process: Research → Design → **Plan** → Build. Inputs: [02-design.md](02-design.md) (features, architecture, decisions), [05-ui-design-system.md](05-ui-design-system.md) (UI), [04-design-resources.md](04-design-resources.md) (approved libraries)._
 
 Assumptions: solo developer, ~20 h/week, AI coding help. Chrome only. English. Closed source, all rights reserved.
 
@@ -26,7 +26,7 @@ Assumptions: solo developer, ~20 h/week, AI coding help. Chrome only. English. C
 | Styling | **Tailwind CSS v4** with the design tokens as CSS variables | Tokens from doc 05; light/dark themes |
 | Components | **shadcn/ui (Radix)** copied into the repo | Accessible, MIT, ours to edit |
 | Animation | CSS + **Motion** (`LazyMotion`) in the panel; CSS only in the page overlay | Approved in doc 04 |
-| Icons / fonts | **Lucide** (+ lucide-animated later) · **Fontsource** Bricolage Grotesque, Instrument Sans, JetBrains Mono | Bundled locally |
+| Icons / fonts | **Lucide** (+ lucide-animated later) · system fonts | Icons bundled locally; no font files |
 | Storage | **IndexedDB via Dexie** (clips, images, collections) · **OPFS** for image files · `chrome.storage.local` for settings · `chrome.storage.sync` for settings sync | Local-first |
 | Tests | **Vitest** (logic) · **Playwright** with the unpacked extension (e2e) | Run locally before every push (`pnpm check`) |
 | Tooling | pnpm, oxlint, Prettier | Standard |

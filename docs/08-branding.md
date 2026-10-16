@@ -81,7 +81,7 @@ USD per year, 2026. Cloudflare sells at cost, so renewals cost the same as the f
 
 Prices kept for reference.
 
-**Decision:** no domain and no business email. Contact is leungmarcus89@gmail.com. The privacy policy is hosted free on GitHub Pages at https://marcus-leung.github.io/CopyDrawer/privacy, from the public repo `marcus-leung/CopyDrawer`.
+**Decision:** no domain and no business email. Contact is leungmarcus89@gmail.com. The privacy policy is hosted free on GitHub Pages at https://marcus-leung.github.io/CopyDrawer/privacy, from `site/` in this repo.
 
 ## 6. Logo and colour
 
