@@ -24,9 +24,6 @@ const BUNDLED = [
   'wxt',
   '@wxt-dev/browser',
   '@wxt-dev/storage',
-  '@fontsource/instrument-sans',
-  '@fontsource/bricolage-grotesque',
-  '@fontsource/jetbrains-mono',
 ];
 
 const MIT = `Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -72,21 +69,7 @@ export default defineConfig({
   outDir: e2e ? '.output-e2e' : '.output',
   modules: ['@wxt-dev/module-react'],
   vite: () => ({
-    plugins: [
-      tailwindcss(),
-      // Chrome reads woff2, so fontsource's .woff fallbacks would only add dead weight to the package.
-      {
-        name: 'woff2-only',
-        enforce: 'post',
-        generateBundle(_, bundle) {
-          for (const [name, file] of Object.entries(bundle)) {
-            if (name.endsWith('.woff')) delete bundle[name];
-            else if (file.type === 'asset' && name.endsWith('.css'))
-              file.source = String(file.source).replace(/,\s*url\([^)]+\.woff\)\s*format\(['"]?woff['"]?\)/g, '');
-          }
-        },
-      },
-    ],
+    plugins: [tailwindcss()],
     define: { __E2E__: JSON.stringify(e2e) },
   }),
   hooks: {

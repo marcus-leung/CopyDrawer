@@ -421,7 +421,7 @@ test('quick paste follows the theme chosen in Settings, not only the system', as
     .poll(() =>
       page.evaluate(() => {
         const box = document.getElementById('copydrawer-quick-paste')!.shadowRoot!.querySelector('.box') as HTMLElement;
-        return [getComputedStyle(box).fontFamily.includes('JetBrains Mono'), box.style.zoom];
+        return [getComputedStyle(box).fontFamily.includes('ui-monospace'), box.style.zoom];
       }),
     )
     .toEqual([true, '1.15']);

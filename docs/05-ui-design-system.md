@@ -4,7 +4,6 @@ _Process: Research → **Design** → Plan → Build. Source of truth for how th
 
 - **Chosen direction:** C, "Folders": organized, friendly, light-first. A dark theme is a variation.
 - **Live mockups (private canvas):** https://claude.ai/artifact/416MBBuqTKwgNxzm4zJ7PW. Pages: Directions, All screens, Flows.
-- **Mockup source files:** [`docs/mockups/`](mockups/). These are a snapshot of the canvas; each `.dc.html` is one screen.
 
 ---
 
@@ -70,18 +69,18 @@ Rules:
 
 | Role | Font | Weight | Size / line height |
 |---|---|---|---|
-| Screen title ("Your clips") | Bricolage Grotesque | 800 | 26px / 1.15 (22px on sub-screens) |
-| Onboarding headline | Bricolage Grotesque | 800 | 30–32px / 34–36px |
-| Section heading ("Collections") | Bricolage Grotesque | 600 | 17px |
-| Body / clip text | Instrument Sans | 400–600 | 14–15px / 20–23px |
-| Labels, buttons | Instrument Sans | 600 | 13–15px |
-| Meta (source, time) | Instrument Sans | 400 | 12–13px |
-| Small group heading ("Saving") | Instrument Sans | 600 | 13px, `--text-3` |
-| Code clips | JetBrains Mono | 400 | 13px |
+| Screen title ("Your clips") | System font | 800 | 26px / 1.15 (22px on sub-screens) |
+| Onboarding headline | System font | 800 | 30–32px / 34–36px |
+| Section heading ("Collections") | System font | 600 | 17px |
+| Body / clip text | System font | 400–600 | 14–15px / 20–23px |
+| Labels, buttons | System font | 600 | 13–15px |
+| Meta (source, time) | System font | 400 | 12–13px |
+| Small group heading ("Saving") | System font | 600 | 13px, `--text-3` |
+| Code clips | System monospace | 400 | 13px |
 | Key hints | inherit, in `<kbd>` | 600 | 11–13px, 1px `--border-strong`, radius 6px |
 
-- Fonts are **bundled locally** (Fontsource npm packages, SIL OFL), never loaded from Google's CDN (privacy, offline use, MV3).
-- **Users can change the font** in Settings → Appearance: Default (the table above), System (`system-ui`, e.g. SF Pro on a Mac) or Monospace (JetBrains Mono). The choice replaces both `--font-sans` and `--font-display`, so headings and body text match. Code clips stay in JetBrains Mono.
+- **No bundled or downloaded fonts:** text uses the computer's own font (`system-ui`: San Francisco on a Mac, Segoe UI on Windows), and code its own monospace font (`ui-monospace`).
+- **Users can change the font** in Settings → Appearance: Default (the system font) or Monospace. The choice replaces both `--font-sans` and `--font-display`, so headings and body text match.
 - Sentence case everywhere. No all-caps labels.
 
 ---
@@ -199,7 +198,7 @@ Full guidelines: [04-design-resources.md §7](04-design-resources.md). In short:
 
 ## 11. Screen inventory
 
-Every screen and flow below is on the canvas; files are in [`docs/mockups/`](mockups/).
+Every screen and flow below is on the canvas.
 
 | # | Screen | File |
 |---|---|---|

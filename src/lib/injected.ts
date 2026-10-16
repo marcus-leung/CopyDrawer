@@ -23,7 +23,7 @@ export function showSavedToast(args: {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   root.innerHTML = `
     <style>
-      .card { font: 14px/1.4 'Instrument Sans', system-ui, sans-serif; color: #2A0E12; background: #FFF8F0;
+      .card { font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #2A0E12; background: #FFF8F0;
         border-radius: 18px; box-shadow: 0 14px 36px rgba(42,14,18,.24), 0 0 0 1px rgba(42,14,18,.06);
         padding: 12px; display: flex; gap: 8px; align-items: center; width: 340px;
         ${reduce ? '' : 'animation: in 180ms ease-out;'} }
@@ -34,7 +34,7 @@ export function showSavedToast(args: {
       .text { flex: 1; min-width: 0; }
       .title { font-weight: 600; margin: 0; }
       .detail { margin: 2px 0 0; font-size: 13px; color: #5A3A36; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      button { font: 600 12px/1 'Instrument Sans', system-ui, sans-serif; height: 30px; padding: 0 12px; border: 0; border-radius: 15px;
+      button { font: 600 12px/1 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; height: 30px; padding: 0 12px; border: 0; border-radius: 15px;
         background: #F7EBDD; color: #2A0E12; cursor: pointer; flex-shrink: 0; }
       .open { background: #C93214; color: #fff; }
       button:focus-visible { outline: 2px solid #C93214; outline-offset: 2px; }

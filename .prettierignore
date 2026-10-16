@@ -2,7 +2,8 @@
 .output-e2e
 .wxt
 pnpm-lock.yaml
-docs/mockups
 tests/fixtures
 public
 *.md
+# Liquid templates, which Prettier rewrites into invalid Liquid.
+site/_layouts/

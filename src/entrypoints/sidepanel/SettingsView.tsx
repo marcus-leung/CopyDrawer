@@ -196,7 +196,6 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
               className={selectClass}
             >
               <option value="default">Default</option>
-              <option value="system">System</option>
               <option value="mono">Monospace</option>
             </select>
           </div>

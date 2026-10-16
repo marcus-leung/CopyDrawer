@@ -1,3 +1,8 @@
+---
+title: CopyDrawer privacy policy
+permalink: /privacy
+---
+
 # Privacy policy
 
 _Last updated: 13 October 2026_

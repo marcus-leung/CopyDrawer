@@ -191,7 +191,7 @@ Safari supports Web Extensions, but it's a different distribution path:
 
 - **Home screen leads with organization:** collections as colored folder tiles (tab + tinted body), then an images & colors strip, then recent clips with one-tap Copy.
 - **Look:** white ground, soft grey fills (#F1F2F6), ink #1B1D2A, secondary text #555A6E; one color per collection (presets: blue #2457C5, orange #B35A00, violet #6A46C9, teal #0E7A62, pink, mustard, grey, or any custom hue), each with a light tint for the tile body; pill-shaped search and buttons.
-- **Type:** Bricolage Grotesque (headings), Instrument Sans (UI/body), bundled locally via Fontsource.
+- **Type:** the computer's own system font, with no bundled or downloaded fonts.
 - **Privacy line in the footer:** "Private: stored and sorted on this device" + Pause.
 
 ## 12. Travel and plans use case (kept simple)
