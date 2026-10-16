@@ -4,6 +4,7 @@ export interface DriveFile {
   id: string;
   name: string;
   md5Checksum?: string;
+  createdTime?: string;
   appProperties?: Record<string, string>;
 }
 
@@ -26,6 +27,8 @@ export interface Drive {
   list(pageToken?: string): Promise<{ files: DriveFile[]; nextPageToken?: string }>;
   /** The oldest file with this name, if any. */
   find(name: string): Promise<DriveFile | undefined>;
+  /** One file's details; DriveError `gone` if it no longer exists. */
+  get(id: string): Promise<DriveFile>;
   download(id: string): Promise<Uint8Array<ArrayBuffer>>;
   create(name: string, data: Uint8Array<ArrayBuffer>, appProperties?: Record<string, string | null>): Promise<DriveFile>;
   update(id: string, data: Uint8Array<ArrayBuffer>, appProperties?: Record<string, string | null>): Promise<DriveFile>;
@@ -43,42 +46,74 @@ export class DriveError extends Error {
   constructor(
     readonly kind: DriveErrorKind,
     message: string,
+    readonly status = 0,
   ) {
     super(message);
   }
 }
 
-export const FILE_FIELDS = 'id,name,md5Checksum,appProperties';
+export const FILE_FIELDS = 'id,name,md5Checksum,createdTime,appProperties';
+/** Drive takes a body this size or smaller in one request; larger ones go up as a resumable upload. */
+export const SIMPLE_UPLOAD_MAX = 5 * 1024 * 1024;
 const RETRIES = 4;
 
 /** `token(true)` must return a fresh token, not the cached one Drive just refused. */
 export type TokenSource = (refresh: boolean) => Promise<string>;
 
 export function restDrive(token: TokenSource, base = 'https://www.googleapis.com'): Drive {
-  async function call(method: string, path: string, body?: BodyInit, contentType?: string): Promise<Response> {
+  /**
+   * One request, retried on rate limits and server errors. A request that creates a file isn't retried after a
+   * server error, which may have come after the file was made: the next sync tries again instead.
+   */
+  async function call(
+    method: string,
+    path: string,
+    body?: BodyInit,
+    headers: Record<string, string> = {},
+    creates = false,
+  ): Promise<Response> {
+    // A fresh token is asked for once, on the attempt right after Drive refused the cached one.
     let refreshed = false;
+    let refresh = false;
     for (let attempt = 0; ; attempt++) {
       let res: Response;
       try {
-        res = await fetch(base + path, {
+        res = await fetch(path.startsWith('http') ? path : base + path, {
           method,
           body,
-          headers: { Authorization: `Bearer ${await token(refreshed)}`, ...(contentType && { 'Content-Type': contentType }) },
+          headers: { Authorization: `Bearer ${await token(refresh)}`, ...headers },
         });
       } catch (e) {
         throw new DriveError('offline', String(e));
       }
       if (res.ok) return res;
       const error = await driveError(res);
-      if (error.kind === 'auth' && !refreshed) refreshed = true;
-      else if (error.kind !== 'retry' || attempt >= RETRIES) throw error;
-      else await new Promise((r) => setTimeout(r, 2 ** attempt * 1000 * (0.5 + Math.random())));
+      refresh = false;
+      if (error.kind === 'auth' && !refreshed) {
+        refreshed = refresh = true;
+        continue;
+      }
+      if (error.kind !== 'retry' || attempt >= RETRIES || (creates && res.status >= 500)) throw error;
+      await new Promise((r) => setTimeout(r, 2 ** attempt * 1000 * (0.5 + Math.random())));
     }
   }
 
   const json = async <T>(method: string, path: string) => (await (await call(method, path)).json()) as T;
 
-  function upload(method: 'POST' | 'PATCH', path: string, metadata: object, data: Uint8Array<ArrayBuffer>) {
+  async function upload(method: 'POST' | 'PATCH', path: string, metadata: object, data: Uint8Array<ArrayBuffer>) {
+    const creates = method === 'POST';
+    if (data.length > SIMPLE_UPLOAD_MAX) {
+      const session = await call(
+        method,
+        `/upload/drive/v3/files${path}?uploadType=resumable&fields=${FILE_FIELDS}`,
+        JSON.stringify(metadata),
+        { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': 'application/octet-stream' },
+        creates,
+      );
+      const location = session.headers.get('Location');
+      if (!location) throw new DriveError('failed', 'Drive gave no upload address');
+      return (await (await call('PUT', location, new Blob([data]), {}, creates)).json()) as DriveFile;
+    }
     const boundary = `copydrawer-${crypto.randomUUID()}`;
     const body = new Blob([
       `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n`,
@@ -86,12 +121,14 @@ export function restDrive(token: TokenSource, base = 'https://www.googleapis.com
       data,
       `\r\n--${boundary}--`,
     ]);
-    return call(
+    const res = await call(
       method,
       `/upload/drive/v3/files${path}?uploadType=multipart&fields=${FILE_FIELDS}`,
       body,
-      `multipart/related; boundary=${boundary}`,
-    ).then((r) => r.json() as Promise<DriveFile>);
+      { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      creates,
+    );
+    return (await res.json()) as DriveFile;
   }
 
   return {
@@ -117,8 +154,10 @@ export function restDrive(token: TokenSource, base = 'https://www.googleapis.com
             `&q=${encodeURIComponent(`name = '${name.replace(/['\\]/g, '\\$&')}'`)}`,
         )
       ).files[0],
+    get: (id) => json('GET', `/drive/v3/files/${id}?fields=${FILE_FIELDS}`),
     download: async (id) => new Uint8Array(await (await call('GET', `/drive/v3/files/${id}?alt=media`)).arrayBuffer()),
-    create: (name, data, appProperties) => upload('POST', '', { name, parents: ['appDataFolder'], appProperties }, data),
+    create: (name, data, appProperties) =>
+      upload('POST', '', { name, parents: ['appDataFolder'], ...(appProperties && { appProperties }) }, data),
     update: (id, data, appProperties) => upload('PATCH', `/${id}`, { appProperties }, data),
     remove: async (id) => {
       await call('DELETE', `/drive/v3/files/${id}`);
@@ -126,14 +165,24 @@ export function restDrive(token: TokenSource, base = 'https://www.googleapis.com
   };
 }
 
+/** For `.catch`: a file that no longer exists gives undefined; any other error is passed on. */
+export function ignoreGone(e: unknown): undefined {
+  if (e instanceof DriveError && e.kind === 'gone') return undefined;
+  throw e;
+}
+
 async function driveError(res: Response): Promise<DriveError> {
-  const body = (await res.json().catch(() => ({}))) as { error?: { message?: string; errors?: { reason?: string }[] } };
-  const reason = body.error?.errors?.[0]?.reason ?? '';
+  const body = (await res.json().catch(() => ({}))) as {
+    error?: { message?: string; errors?: { reason?: string; location?: string }[] };
+  };
+  const { reason = '', location = '' } = body.error?.errors?.[0] ?? {};
   const message = `Drive ${res.status} ${reason}: ${body.error?.message ?? res.statusText}`;
-  if (res.status === 401 || /insufficientPermissions|authError/.test(reason)) return new DriveError('auth', message);
-  if (res.status === 404) return new DriveError('gone', message);
-  if (reason === 'storageQuotaExceeded' || reason === 'quotaExceeded') return new DriveError('full', message);
-  if (res.status === 429 || res.status >= 500 || /rateLimit/i.test(reason)) return new DriveError('retry', message);
-  if (res.status === 400 && /pageToken/i.test(message)) return new DriveError('token', message);
-  return new DriveError('failed', message);
+  const error = (kind: DriveErrorKind) => new DriveError(kind, message, res.status);
+  if (res.status === 401 || /insufficientPermissions|authError/.test(reason)) return error('auth');
+  if (res.status === 404) return error('gone');
+  if (reason === 'storageQuotaExceeded' || reason === 'quotaExceeded') return error('full');
+  if (res.status === 429 || res.status >= 500 || /rateLimit/i.test(reason)) return error('retry');
+  // Drive names the bad parameter in `location`; its message is just "Invalid Value".
+  if (res.status === 400 && (location === 'pageToken' || /pageToken/i.test(message))) return error('token');
+  return error('failed');
 }

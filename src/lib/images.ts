@@ -70,7 +70,7 @@ export async function saveImageClip(input: NewImage, db: ClipDatabase = defaultD
   const { thumb, width, height } = await makeThumbnail(blob);
   const now = saveTime();
 
-  const result = await db.transaction('rw', [db.clips, db.images, db.collections], async () => {
+  const result = await db.transaction('rw', [db.clips, db.images, db.collections, db.syncMeta], async () => {
     const existing = await db.clips.where('hash').equals(hash).first();
     if (existing) {
       const updated = { ...existing, createdAt: now, source: input.source ?? existing.source, note: note ?? existing.note };

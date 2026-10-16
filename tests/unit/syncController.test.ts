@@ -5,24 +5,28 @@ import { saveClip } from '@/lib/clips';
 import { DriveError, type Drive } from '@/lib/sync/drive';
 import { FakeDrive } from './fakeDrive';
 
-/** Web Locks, as Chrome has them: `ifAvailable` gets null while another holder has the lock. */
+/** Web Locks, as Chrome has them: one holder per name, others wait their turn; `ifAvailable` gets null instead. */
 function stubLocks() {
-  const held = new Set<string>();
+  const held = new Map<string, Promise<void>>();
+  type Fn = (lock: object | null) => Promise<unknown>;
   vi.stubGlobal('navigator', {
     ...navigator,
     locks: {
-      request: async (name: string, opts: { ifAvailable?: boolean }, fn: (lock: object | null) => Promise<void>) => {
-        if (held.has(name)) return fn(null);
-        held.add(name);
+      request: async (name: string, a: { ifAvailable?: boolean } | Fn, b?: Fn) => {
+        const [opts, fn] = typeof a === 'function' ? [{}, a] : [a, b!];
+        if (opts.ifAvailable && held.has(name)) return fn(null);
+        while (held.has(name)) await held.get(name);
+        let release!: () => void;
+        held.set(name, new Promise<void>((r) => (release = r)));
         try {
           return await fn({ name });
         } finally {
           held.delete(name);
+          release();
         }
       },
     },
   });
-  return held;
 }
 
 let drive: FakeDrive;
@@ -141,7 +145,7 @@ describe('Drive sync controller', () => {
     await a.run();
     await b.setUp();
     await b.run();
-    await b.as(() => sync.turnOffSync({ eraseDrive: true }, b.client));
+    await b.as(() => sync.turnOffSync({ eraseDrive: true }, b.db, b.client));
     expect(drive.files.size).toBe(0);
     expect(await b.status()).toEqual({ state: 'off' });
 
@@ -158,5 +162,99 @@ describe('Drive sync controller', () => {
     await b.setUp();
     await b.run();
     expect((await b.db.clips.toArray()).map((c) => c.text)).toEqual(['kept']);
+  });
+
+  it('turning off during a long first sync stops it, and the erase holds', async () => {
+    const a = await computer();
+    for (let i = 0; i < 80; i++) await saveClip({ text: `clip ${i}` }, a.db);
+    await a.setUp();
+    const slow: Drive = {
+      ...a.client,
+      create: async (...args) => {
+        await new Promise((r) => setTimeout(r, 5));
+        return a.client.create(...args);
+      },
+    };
+    await a.as(async () => {
+      const running = sync.runSync(a.db, slow);
+      await vi.waitFor(() => expect(drive.calls.create).toBeGreaterThan(3));
+      await sync.turnOffSync({ eraseDrive: true }, a.db, a.client);
+      await running;
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    // It stopped well short of uploading all 80.
+    expect(drive.calls.create).toBeLessThan(60);
+    expect(drive.files.size).toBe(0);
+    expect(await a.status()).toEqual({ state: 'off' });
+    expect(await a.as(() => sync.syncSettingsItem.getValue())).toEqual({ on: false });
+  });
+
+  it('turning off with erase says so when part of the Drive copy could not be deleted', async () => {
+    const a = await computer();
+    await saveClip({ text: 'x' }, a.db);
+    await a.setUp();
+    await a.run();
+    let removes = 0;
+    const flaky: Drive = {
+      ...a.client,
+      remove: async (id) => (++removes === 2 ? Promise.reject(new Error('network went away')) : a.client.remove(id)),
+    };
+    await expect(a.as(() => sync.turnOffSync({ eraseDrive: true }, a.db, flaky))).rejects.toThrow('network went away');
+    expect(await a.as(() => sync.syncSettingsItem.getValue())).toEqual({ on: false });
+    expect(drive.byName('copy')).toBeUndefined();
+  });
+
+  it('when two computers make a marker at the same moment, both end up on the oldest', async () => {
+    const a = await computer();
+    drive.afterCreate = async (file) => {
+      if (file.name !== 'copy' || drive.files.has('f-older')) return;
+      const data = new TextEncoder().encode(JSON.stringify({ v: 1, copyId: 'older-copy' }));
+      drive.files.set('f-older', { id: 'f-older', name: 'copy', data, createdTime: '2000-01-01T00:00:00.000Z' });
+    };
+    await a.setUp();
+    drive.afterCreate = undefined;
+    expect(await a.as(() => sync.syncSettingsItem.getValue())).toEqual({ on: true, copyId: 'older-copy', copyFileId: 'f-older' });
+    expect(drive.allNamed('copy')).toHaveLength(1);
+    await a.run();
+    expect((await a.status()).state).toBe('idle');
+  });
+
+  it('finishes setting up in the background, as the popup closes when Chrome asks to sign in', async () => {
+    const a = await computer();
+    const getAuthToken = vi.fn(async () => ({ token: 't' }));
+    vi.stubGlobal('chrome', { identity: { getAuthToken } });
+    await a.as(async () => {
+      await sync.finishSetup(a.db, a.client);
+      expect((await sync.syncSettingsItem.getValue()).on).toBe(false);
+      await sync.requestSetup(true);
+      await sync.finishSetup(a.db, a.client);
+      expect(await sync.setupPendingItem.getValue()).toBe(false);
+    });
+    expect(getAuthToken).toHaveBeenCalledWith({ interactive: true, scopes: [sync.SCOPE] });
+    expect((await a.as(() => sync.syncSettingsItem.getValue())).on).toBe(true);
+
+    getAuthToken.mockRejectedValue(new Error('The user did not approve access.'));
+    const b = await computer();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await b.as(async () => {
+      await sync.requestSetup(true);
+      await sync.finishSetup(b.db, b.client);
+      expect(await sync.setupPendingItem.getValue()).toBe(false);
+      expect((await sync.syncSettingsItem.getValue()).on).toBe(false);
+      expect((await sync.syncStatusItem.getValue()).message).toMatch(/Couldn't sign in/);
+    });
+  });
+
+  it('brings every clip back from Drive when Chrome loses the database', async () => {
+    const a = await computer();
+    for (let i = 0; i < 4; i++) await saveClip({ text: `kept ${i}` }, a.db);
+    await a.setUp();
+    await a.run();
+    await a.run();
+    // A fresh, empty database, as after Chrome discards one; extension storage still says sync is on.
+    const fresh = new ClipDatabase(`test-${crypto.randomUUID()}`);
+    await fresh.open();
+    await a.as(() => sync.runSync(fresh, a.client));
+    expect((await fresh.clips.toArray()).map((c) => c.text).sort()).toEqual(['kept 0', 'kept 1', 'kept 2', 'kept 3']);
   });
 });

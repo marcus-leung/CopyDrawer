@@ -12,7 +12,7 @@ import {
 } from './storageGuard';
 
 const RESCUE = 'clipboard-rescue';
-const TABLES = ['clips', 'images', 'collections', 'syncMeta'] as const;
+const TABLES = ['clips', 'images', 'collections', 'syncMeta', 'syncState'] as const;
 const BATCH = 50;
 
 const counts = (db: ClipDatabase) => Promise.all(TABLES.map((t) => db.table(t).count()));

@@ -22,7 +22,7 @@ import { STORAGE_ALARM, storageProblem } from '@/lib/storageGuard';
 import { allowRebuild, rebuildIfNeeded, storageAlarm } from '@/lib/rebuild';
 import { secretKind } from '@/lib/secrets';
 import type { Clip, ClipSource } from '@/lib/db';
-import { runSync, SYNC_ALARM, syncSettingsItem } from '@/lib/sync/controller';
+import { finishSetup, runSync, SYNC_ALARM, syncSettingsItem } from '@/lib/sync/controller';
 
 const MENU = {
   saveSelection: 'save-selection',
@@ -443,7 +443,16 @@ async function onBrowserStart() {
     .then(() => rebuildIfNeeded())
     .catch((e) => console.warn('Moving clips to fresh storage failed', e));
   await cleanup();
+  await ensureAlarms();
   void syncNow();
+}
+
+/** Chrome may drop alarms when it restarts; they're made again if missing. */
+async function ensureAlarms() {
+  if (!(await browser.alarms.get(ALARM_CLEANUP))) await browser.alarms.create(ALARM_CLEANUP, { periodInMinutes: 24 * 60 });
+  if ((await syncSettingsItem.getValue()).on && !(await browser.alarms.get(SYNC_ALARM))) {
+    await browser.alarms.create(SYNC_ALARM, { periodInMinutes: 1 });
+  }
 }
 
 const syncNow = () => runSync().catch((e) => console.warn('Drive sync failed', e));
@@ -524,7 +533,11 @@ export default defineBackground(() => {
   });
 
   browser.permissions.onRemoved.addListener((removed) => void onPermissionsRemoved(removed));
-  browser.permissions.onAdded.addListener((added) => void onPermissionsAdded(added));
+  browser.permissions.onAdded.addListener((added) => {
+    void onPermissionsAdded(added);
+    // Granted from a popup that closed when Chrome asked: setting up sync carries on here.
+    if (added.permissions?.includes('identity')) void finishSetup();
+  });
 
   // The toolbar button opens the popup (the full app), which can expand into the panel.
   browser.sidePanel?.setPanelBehavior({ openPanelOnActionClick: false }).catch(() => {});
@@ -558,6 +571,9 @@ export default defineBackground(() => {
         return true;
       case 'sync-now':
         if (sender.url?.startsWith(browser.runtime.getURL('/'))) void syncNow();
+        return;
+      case 'sync-setup':
+        if (sender.url?.startsWith(browser.runtime.getURL('/'))) void finishSetup();
         return;
       case 'undo-save':
         void undoAllowed(sender, msg.clipId).then(async (ok) => {
