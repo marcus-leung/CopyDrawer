@@ -389,12 +389,14 @@ export function Toggle({
   label,
   hint,
   checked,
+  disabled,
   onChange,
 }: {
   id: string;
   label: string;
   hint?: string;
   checked: boolean;
+  disabled?: boolean;
   onChange: (on: boolean) => void;
 }) {
   return (
@@ -408,6 +410,7 @@ export function Toggle({
         type="checkbox"
         role="switch"
         checked={checked}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
         className="size-5 shrink-0 cursor-pointer accent-[var(--accent)]"
       />

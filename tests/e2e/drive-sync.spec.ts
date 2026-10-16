@@ -68,12 +68,16 @@ test('two computers share their clips through a Drive copy', async ({ context, e
     await axe(a, 'sync on');
     expect(fake.drive.byName('copy')).toBeTruthy();
 
-    // Computer B joins, and gets A's clip.
+    // Computer B joins from a page that closes straight away, as the toolbar popup does when Chrome asks to
+    // sign in: the background finishes, and B gets A's clip.
     const bId = await extensionIdOf(other.context);
     await useFakeDrive(other.context, fake.url);
+    const closing = await openPanel(other.context, bId);
+    await closing.getByRole('button', { name: 'Settings' }).click();
+    await closing.getByRole('switch', { name: /Sync with Google Drive/ }).click();
+    await closing.close();
     const b = await openPanel(other.context, bId);
     await b.getByRole('button', { name: 'Settings' }).click();
-    await b.getByRole('switch', { name: /Sync with Google Drive/ }).click();
     await synced(b);
     await expect.poll(async () => (await readClips(b)).map((c) => c.text)).toEqual(['note from a']);
 

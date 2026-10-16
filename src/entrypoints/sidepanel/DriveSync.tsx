@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui';
 import { InlineConfirm } from '@/components/InlineConfirm';
-import { canSync, setUpSync, signIn, turnOffSync, type SyncStatus } from '@/lib/sync/controller';
+import { canSync, requestSetup, turnOffSync, type SyncStatus } from '@/lib/sync/controller';
 import { useDriveSync } from '@/lib/sync/useDriveSync';
 import { safeSend } from '@/lib/safeSend';
 import { Section, Toggle } from './SettingsView';
@@ -46,33 +46,20 @@ export function DriveSync({ notify }: { notify: (message: string) => void }) {
   const [erase, setErase] = useState(false);
 
   if (!sync || !canSync()) return null;
-  const { settings, status } = sync;
+  const { settings, status, settingUp } = sync;
 
-  /** Signs in and joins (or starts) the Drive copy: turning sync on, or Sync again after it stopped. */
+  /**
+   * Turning sync on, Sync again after it stopped, and signing in again. The background does the rest, since
+   * the popup closes when Chrome asks for permission or Google's sign-in window opens.
+   */
   async function start() {
-    setBusy(true);
-    try {
-      if (!__E2E__ && !(await browser.permissions.request({ permissions: ['identity'] }))) {
-        notify('Sync needs permission to sign in to Google');
-        return;
-      }
-      await signIn();
-      await setUpSync();
-      notify('Sync is on');
-    } catch {
-      notify("Couldn't turn on sync");
-    } finally {
-      setBusy(false);
+    await requestSetup(true);
+    if (!__E2E__ && !(await browser.permissions.request({ permissions: ['identity'] }))) {
+      await requestSetup(false);
+      notify('Sync needs permission to sign in to Google');
+      return;
     }
-  }
-
-  async function reconnect() {
-    try {
-      await signIn();
-      void safeSend({ type: 'sync-now' });
-    } catch {
-      notify("Couldn't sign in to Google");
-    }
+    void safeSend({ type: 'sync-setup' });
   }
 
   async function turnOff() {
@@ -82,7 +69,7 @@ export function DriveSync({ notify }: { notify: (message: string) => void }) {
       await turnOffSync({ eraseDrive: erase });
       notify(erase ? 'Sync is off and the Drive copy is deleted' : 'Sync is off');
     } catch {
-      notify("Couldn't delete the Drive copy. Sync is still on.");
+      notify("Sync is off, but some of the Drive copy couldn't be deleted. Turn sync on and off again to finish.");
     } finally {
       setBusy(false);
       setErase(false);
@@ -92,13 +79,21 @@ export function DriveSync({ notify }: { notify: (message: string) => void }) {
   return (
     <Section id="s-sync" title="Sync with Google Drive">
       {!settings.on ? (
-        <Toggle
-          id="t-drive-sync"
-          label="Sync with Google Drive"
-          hint="Your clips on every computer where you turn this on, kept in a hidden folder in your Google Drive."
-          checked={busy}
-          onChange={(on) => on && void start()}
-        />
+        <>
+          <Toggle
+            id="t-drive-sync"
+            label="Sync with Google Drive"
+            hint="Your clips on every computer where you turn this on, kept in a hidden folder in your Google Drive."
+            checked={settingUp}
+            disabled={settingUp}
+            onChange={(on) => on && void start()}
+          />
+          {status.message && !settingUp && (
+            <p className="mt-1 text-[13px] text-danger" role="status">
+              {status.message}
+            </p>
+          )}
+        </>
       ) : (
         <>
           <p className="text-sm" role="status">
@@ -106,11 +101,11 @@ export function DriveSync({ notify }: { notify: (message: string) => void }) {
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {status.state === 'signin' ? (
-              <Button size="sm" variant="primary" onClick={() => void reconnect()}>
+              <Button size="sm" variant="primary" disabled={settingUp} onClick={() => void start()}>
                 Sign in
               </Button>
             ) : status.state === 'stopped' ? (
-              <Button size="sm" variant="primary" disabled={busy} onClick={() => void start()}>
+              <Button size="sm" variant="primary" disabled={settingUp} onClick={() => void start()}>
                 Sync again
               </Button>
             ) : (

@@ -44,8 +44,7 @@ export function mergeRecords(table: SyncedTable, a: SyncRecord, b: SyncRecord): 
   for (const [g, ts] of Object.entries(b.t)) t[g] = Math.max(t[g] ?? 0, ts);
   const deletedAt = Math.max(a.deletedAt ?? 0, b.deletedAt ?? 0) || undefined;
   const mergedInto = a.mergedInto ?? b.mergedInto;
-  // An image is stored once and never edited, so any delete stands.
-  const latest = table === 'images' ? 0 : Math.max(0, ...Object.values(t));
+  const latest = Math.max(0, ...Object.values(t));
   if (!a.row && !b.row) return { t, deletedAt, ...(mergedInto && { mergedInto }) };
   if (deletedAt && latest <= deletedAt) return { t, deletedAt, ...(mergedInto && { mergedInto }) };
 
@@ -63,12 +62,21 @@ export function mergeRecords(table: SyncedTable, a: SyncRecord, b: SyncRecord): 
   return { row, t };
 }
 
+/** The record format this version writes; a file from a newer version is left alone. */
+const FORMAT = 1;
+
+/** A file this version can't read: damaged, or written by a newer version. */
+export class UnreadableRecord extends Error {
+  override name = 'UnreadableRecord';
+}
+
 /**
  * A file's contents: the record as JSON, then any raw bytes (an image), behind a 4-byte length.
  * Blobs inside the row (a clip's preview) travel inline as base64.
  */
 export async function encodeRecord(record: SyncRecord, bytes?: Blob): Promise<Uint8Array<ArrayBuffer>> {
-  const json = new TextEncoder().encode(JSON.stringify(record.row ? { ...record, row: await inlineBlobs(record.row) } : record));
+  const written = { v: FORMAT, ...record, ...(record.row && { row: await inlineBlobs(record.row) }) };
+  const json = new TextEncoder().encode(JSON.stringify(written));
   const body = bytes ? new Uint8Array(await bytes.arrayBuffer()) : new Uint8Array();
   const out = new Uint8Array(4 + json.length + body.length);
   new DataView(out.buffer).setUint32(0, json.length);
@@ -79,10 +87,20 @@ export async function encodeRecord(record: SyncRecord, bytes?: Blob): Promise<Ui
 
 /** An image's bytes come back as a Blob of the type its record names. */
 export function decodeRecord(data: Uint8Array<ArrayBuffer>): { record: SyncRecord; bytes?: Blob } {
+  if (data.length < 4) throw new UnreadableRecord('Too short');
   const length = new DataView(data.buffer, data.byteOffset).getUint32(0);
-  const record = JSON.parse(new TextDecoder().decode(data.subarray(4, 4 + length)), (_, v) =>
-    v && typeof v === 'object' && typeof v.$blob === 'string' ? new Blob([fromBase64(v.$blob)], { type: v.type }) : v,
-  ) as SyncRecord;
+  if (4 + length > data.length) throw new UnreadableRecord('Cut short');
+  let parsed: SyncRecord & { v?: number };
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(data.subarray(4, 4 + length)), (_, v) =>
+      v && typeof v === 'object' && typeof v.$blob === 'string' ? new Blob([fromBase64(v.$blob)], { type: v.type }) : v,
+    );
+  } catch (e) {
+    throw new UnreadableRecord(String(e));
+  }
+  if (!parsed || typeof parsed !== 'object' || typeof parsed.t !== 'object') throw new UnreadableRecord('Not a record');
+  if ((parsed.v ?? FORMAT) > FORMAT) throw new UnreadableRecord(`Written by a newer version (format ${parsed.v})`);
+  const { v: _, ...record } = parsed;
   const rest = data.subarray(4 + length);
   return { record, bytes: rest.length ? new Blob([rest], { type: String(record.row?.type ?? '') }) : undefined };
 }

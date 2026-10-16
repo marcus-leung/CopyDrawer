@@ -46,6 +46,8 @@ export interface SyncMeta {
   rev: number;
   /** A folder deleted because another with the same key won: clips in it belong there. */
   mergedInto?: string;
+  /** In Drive but not kept on this computer: taken off to make room, or an image no clip here shows. */
+  evicted?: 1;
   fileId?: string;
   md5?: string;
 }
@@ -55,6 +57,14 @@ export const metaKey = (table: SyncedTable, id: string) => `${table}/${id}`;
 let last = 0;
 /** Milliseconds that never go backwards on this computer. */
 export const tick = () => (last = Math.max(Date.now(), last + 1));
+
+/**
+ * A time for a change made here to a row: later than any time the row already carries, which may have come
+ * from a computer whose clock runs ahead, so a later edit always wins over what it was made on top of.
+ */
+export function stampAfter(m: Pick<SyncMeta, 't' | 'deletedAt'> | undefined): number {
+  return Math.max(tick(), Math.max(0, m?.deletedAt ?? 0, ...Object.values(m?.t ?? {})) + 1);
+}
 
 type Row = Record<string, unknown>;
 
@@ -131,7 +141,7 @@ async function trackMutate(
       trans,
       changes.filter((c) => c.touched),
       (m, c) => {
-        const now = tick();
+        const now = stampAfter(m);
         const t = { ...m?.t };
         for (const g of c.groups) t[g] = now;
         return { t, dirty: 1, rev: (m?.rev ?? 0) + 1, fileId: m?.fileId, md5: m?.md5 };
@@ -149,7 +159,7 @@ async function trackMutate(
     meta,
     trans,
     keys.map((id) => ({ id })),
-    (m) => (m?.fileId ? { t: m.t, deletedAt: tick(), dirty: 1, rev: m.rev + 1, fileId: m.fileId, md5: m.md5 } : null),
+    (m) => (m?.fileId ? { t: m.t, deletedAt: stampAfter(m), dirty: 1, rev: m.rev + 1, fileId: m.fileId, md5: m.md5 } : null),
   );
   return res;
 }

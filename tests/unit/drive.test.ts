@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DriveError, restDrive } from '@/lib/sync/drive';
+import { DriveError, restDrive, SIMPLE_UPLOAD_MAX } from '@/lib/sync/drive';
 
 const ok = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
 const fail = (status: number, reason: string, message = 'no') =>
@@ -75,5 +75,56 @@ describe('Drive REST client', () => {
     expect(await kind(fail(400, 'badRequest'))).toBe('failed');
     vi.stubGlobal('fetch', async () => Promise.reject(new TypeError('Failed to fetch')));
     await expect(restDrive(async () => 't').download('x')).rejects.toMatchObject({ kind: 'offline' });
+  });
+
+  it('detects a bad change token the way Drive reports it, by the parameter it names', async () => {
+    stubFetch(
+      new Response(
+        JSON.stringify({ error: { message: 'Invalid Value', errors: [{ reason: 'invalid', location: 'pageToken' }] } }),
+        {
+          status: 400,
+        },
+      ),
+    );
+    await expect(restDrive(async () => 't').changes('9')).rejects.toMatchObject({ kind: 'token', status: 400 });
+  });
+
+  it('leaves appProperties out when a file is created without any', async () => {
+    const fetch = stubFetch(ok({ id: 'x', name: 'c.1' }));
+    await restDrive(async () => 't').create('c.1', new Uint8Array([1]));
+    const text = new TextDecoder().decode(await (fetch.mock.calls[0]![1]!.body as Blob).arrayBuffer());
+    expect(text).toContain(JSON.stringify({ name: 'c.1', parents: ['appDataFolder'] }));
+    expect(text).not.toContain('appProperties');
+  });
+
+  it("doesn't repeat a create after a server error, which may have come after the file was made", async () => {
+    const fetch = stubFetch(fail(503, 'backendError'), ok({ id: 'x', name: 'c.1' }));
+    await expect(restDrive(async () => 't').create('c.1', new Uint8Array([1]))).rejects.toMatchObject({ kind: 'retry' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for a fresh token only on the attempt right after a refusal', async () => {
+    stubFetch(fail(401, 'authError'), fail(503, 'backendError'), fail(503, 'backendError'), ok({ startPageToken: '1' }));
+    const token = vi.fn(async (refresh: boolean) => (refresh ? 'new' : 'cached'));
+    await restDrive(token).startPageToken();
+    expect(token.mock.calls.map(([refresh]) => refresh)).toEqual([false, true, false, false]);
+  });
+
+  it('sends a large file as a resumable upload, in two steps', async () => {
+    const fetch = vi.fn(async (url: string, init?: RequestInit) =>
+      init?.method === 'PUT'
+        ? ok({ id: 'big', name: 'i.1' })
+        : new Response('', { status: 200, headers: { Location: 'https://upload.example/session/1' } }),
+    );
+    vi.stubGlobal('fetch', fetch);
+    const data = new Uint8Array(SIMPLE_UPLOAD_MAX + 1);
+    expect(await restDrive(async () => 't').update('big', data, { del: null })).toEqual({ id: 'big', name: 'i.1' });
+    const [startUrl, start] = fetch.mock.calls[0]!;
+    const [putUrl, put] = fetch.mock.calls[1]!;
+    expect(startUrl).toMatch(/\/upload\/drive\/v3\/files\/big\?uploadType=resumable/);
+    expect(start!.method).toBe('PATCH');
+    expect(JSON.parse(start!.body as string)).toEqual({ appProperties: { del: null } });
+    expect(putUrl).toBe('https://upload.example/session/1');
+    expect((put!.body as Blob).size).toBe(data.length);
   });
 });

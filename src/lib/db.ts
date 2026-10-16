@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import { detectKind, type ClipKind } from './kinds';
 import { isDiskFailure, pauseForDiskError, stateKnown, StoragePausedError, whenStateKnown, writesPaused } from './storageGuard';
 import { trackChanges, type SyncMeta } from './sync/meta';
+import type { SyncCursor } from './sync/engine';
 
 export type { ClipKind };
 
@@ -72,6 +73,8 @@ export class ClipDatabase extends Dexie {
   images!: EntityTable<StoredImage, 'id'>;
   collections!: EntityTable<Collection, 'id'>;
   syncMeta!: EntityTable<SyncMeta, 'key'>;
+  /** Where Drive sync is up to, kept with the clips: if they're lost, sync starts over and brings them back. */
+  syncState!: EntityTable<SyncCursor & { key: 'cursor' }, 'key'>;
 
   /**
    * `guarded: false` only for the rebuild, which must write while saving is paused.
@@ -136,7 +139,7 @@ export class ClipDatabase extends Dexie {
         all.sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0) || a.order - b.order);
         await Promise.all(all.map((c, order) => tx.table('collections').update(c.id, { order })));
       });
-    this.version(8).stores({ syncMeta: 'key, dirty, fileId' });
+    this.version(8).stores({ syncMeta: 'key, dirty, fileId', syncState: 'key' });
     if (tracked) this.use(trackChanges);
     if (!guarded) return;
     // No write reaches the database while writing is stopped to protect the clips (see storageGuard).

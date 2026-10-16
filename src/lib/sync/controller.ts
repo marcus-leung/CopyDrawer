@@ -1,12 +1,20 @@
 import { storage } from '#imports';
 import { db as defaultDb, type ClipDatabase } from '../db';
 import { StoragePausedError, whenStateKnown, writesPaused } from '../storageGuard';
-import { DriveError, restDrive, type Drive, type TokenSource } from './drive';
-import { COPY_FILE, CopyChangedError, markAllForUpload, syncOnce, type SyncCursor, type SyncProgress } from './engine';
+import { DriveError, ignoreGone, restDrive, type Drive, type TokenSource } from './drive';
+import {
+  COPY_FILE,
+  CopyChangedError,
+  markAllForUpload,
+  SyncCancelled,
+  syncOnce,
+  type SyncCursor,
+  type SyncProgress,
+} from './engine';
 
 /**
- * Turning Drive sync on and off, and running it. The background runs a sync every minute while it's on;
- * the panel sets it up, since signing in needs the person.
+ * Turning Drive sync on and off, and running it. The background runs a sync every minute while it's on,
+ * and finishes setting it up once the panel asks: signing in needs the person.
  */
 
 export const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
@@ -30,12 +38,26 @@ export interface SyncStatus {
   state: SyncState;
   lastSyncAt?: number;
   progress?: SyncProgress;
+  /** Why the last attempt failed, in words for the person. */
   message?: string;
 }
 
 export const syncSettingsItem = storage.defineItem<SyncSettings>('local:driveSync', { fallback: { on: false } });
 export const syncStatusItem = storage.defineItem<SyncStatus>('local:driveSyncStatus', { fallback: { state: 'off' } });
-const cursorItem = storage.defineItem<SyncCursor>('local:driveSyncCursor', { fallback: {} });
+/** Set by the panel before it asks for sign-in permission; the background finishes setting up, as the popup may close. */
+export const setupPendingItem = storage.defineItem<boolean>('local:driveSyncSetup', { fallback: false });
+
+const cursorOf = (db: ClipDatabase) => ({
+  get: async (): Promise<SyncCursor> => {
+    const { key: _, ...cursor } = (await db.syncState.get('cursor')) ?? { key: 'cursor' };
+    return cursor;
+  },
+  set: (patch: Partial<SyncCursor>) =>
+    db.transaction('rw', db.syncState, async () => {
+      await db.syncState.put({ ...(await db.syncState.get('cursor')), ...patch, key: 'cursor' });
+    }),
+  clear: () => db.syncState.delete('cursor'),
+});
 
 /** The Google account's token from Chrome. `refresh` drops the cached one first. */
 export const chromeToken: TokenSource = async (refresh) => {
@@ -77,33 +99,42 @@ export async function defaultDrive(): Promise<Drive> {
 
 /**
  * Turns sync on, or back on after the Drive copy was deleted or replaced elsewhere: joins the copy in Drive,
- * or starts one. Everything here is then uploaded and merged at the next sync.
+ * or starts one. Everything here is then uploaded and merged at the next sync. Waits for a running sync.
  */
 export async function setUpSync(db: ClipDatabase = defaultDb, drive?: Drive): Promise<void> {
-  drive ??= await defaultDrive();
-  let file = await drive.find(COPY_FILE);
-  let copyId: string;
-  if (file) copyId = (JSON.parse(new TextDecoder().decode(await drive.download(file.id))) as { copyId: string }).copyId;
-  else {
-    copyId = crypto.randomUUID();
-    file = await drive.create(COPY_FILE, new TextEncoder().encode(JSON.stringify({ v: 1, copyId })));
-  }
-  await cursorItem.setValue({});
-  await markAllForUpload(db);
-  await syncSettingsItem.setValue({ on: true, copyId, copyFileId: file.id });
-  await syncStatusItem.setValue({ state: 'syncing' });
+  const d = drive ?? (await defaultDrive());
+  await navigator.locks.request(LOCK, async () => {
+    let file = await d.find(COPY_FILE);
+    if (!file) {
+      const made = await d.create(COPY_FILE, encodeCopy(crypto.randomUUID()));
+      // Another computer may have made one at the same moment: the oldest is the copy, and the other goes.
+      file = (await d.find(COPY_FILE)) ?? made;
+      if (file.id !== made.id) await d.remove(made.id).catch((e: unknown) => ignoreGone(e));
+    }
+    const { copyId } = JSON.parse(new TextDecoder().decode(await d.download(file.id))) as { copyId: string };
+    await cursorOf(db).clear();
+    await markAllForUpload(db);
+    await syncSettingsItem.setValue({ on: true, copyId, copyFileId: file.id });
+    await syncStatusItem.setValue({ state: 'syncing' });
+  });
 }
 
+const encodeCopy = (copyId: string) => new TextEncoder().encode(JSON.stringify({ v: 1, copyId }));
+
 /**
- * Turns sync off on this computer. Clips stay here; with `eraseDrive` the Drive copy is deleted too,
- * its marker first, so other computers stop before they see the rest go.
+ * Turns sync off on this computer. Clips stay here; with `eraseDrive` the Drive copy is deleted too, its
+ * marker first, so other computers stop before they see the rest go. A running sync stops first.
+ * Throws if the Drive copy couldn't all be deleted; sync is off either way.
  */
-export async function turnOffSync({ eraseDrive = false } = {}, drive?: Drive): Promise<void> {
-  const settings = await syncSettingsItem.getValue();
-  if (eraseDrive) await eraseDriveCopy(drive ?? (await defaultDrive()), settings.copyFileId);
+export async function turnOffSync({ eraseDrive = false } = {}, db: ClipDatabase = defaultDb, drive?: Drive): Promise<void> {
+  const { copyFileId } = await syncSettingsItem.getValue();
+  // Off first: a running sync sees it between steps and stops, letting go of the lock.
   await syncSettingsItem.setValue({ on: false });
-  await cursorItem.setValue({});
-  await syncStatusItem.setValue({ state: 'off' });
+  await navigator.locks.request(LOCK, async () => {
+    await cursorOf(db).clear();
+    await syncStatusItem.setValue({ state: 'off' });
+    if (eraseDrive) await eraseDriveCopy(drive ?? (await defaultDrive()), copyFileId);
+  });
 }
 
 async function eraseDriveCopy(drive: Drive, copyFileId?: string) {
@@ -116,25 +147,52 @@ async function eraseDriveCopy(drive: Drive, copyFileId?: string) {
   }
 }
 
-function ignoreGone(e: unknown) {
-  if (!(e instanceof DriveError && e.kind === 'gone')) throw e;
+/** The panel asks for setup before the sign-in permission prompt; the background then signs in and joins (`finishSetup`). */
+export const requestSetup = (asked: boolean) => setupPendingItem.setValue(asked);
+
+/**
+ * Signs in and turns sync on, or back on, if the panel asked for it. Runs in the background, which outlives
+ * the popup that Google's sign-in window closes.
+ */
+export async function finishSetup(db: ClipDatabase = defaultDb, drive?: Drive): Promise<void> {
+  await navigator.locks.request('drive-sync-setup', async () => {
+    if (!(await setupPendingItem.getValue())) return;
+    try {
+      await signIn();
+      const settings = await syncSettingsItem.getValue();
+      if (settings.on && settings.copyId) await runSync(db, drive);
+      else await setUpSync(db, drive);
+    } catch (e) {
+      console.warn('Turning on Drive sync failed', e);
+      const status = await syncStatusItem.getValue();
+      await syncStatusItem.setValue({ ...status, message: "Couldn't sign in to Google. Try again." });
+    } finally {
+      await setupPendingItem.setValue(false);
+    }
+  });
 }
 
+let running = false;
 let again = false;
 
 /**
- * Syncs now. Asked for while a sync runs (in this worker), it runs once more right after, so a change made
- * meanwhile doesn't wait for the next minute.
+ * Syncs now. Asked for while a sync runs in this worker, it runs once more right after, so a change made
+ * meanwhile doesn't wait for the next minute. Waits while setup or turning off holds the lock.
  */
 export async function runSync(db: ClipDatabase = defaultDb, drive?: Drive): Promise<void> {
-  await whenStateKnown();
-  await navigator.locks.request(LOCK, { ifAvailable: true }, async (lock) => {
-    if (!lock) return void (again = true);
-    do {
-      again = false;
-      await syncAndRecord(db, drive);
-    } while (again);
-  });
+  if (running) return void (again = true);
+  running = true;
+  try {
+    await whenStateKnown();
+    await navigator.locks.request(LOCK, async () => {
+      do {
+        again = false;
+        await syncAndRecord(db, drive);
+      } while (again);
+    });
+  } finally {
+    running = false;
+  }
 }
 
 /** One sync, with how it went recorded in the status. */
@@ -143,6 +201,11 @@ async function syncAndRecord(db: ClipDatabase, drive?: Drive) {
   if (!settings.on || !settings.copyId || !settings.copyFileId) return;
   // Sync waits while writing is stopped to protect the clips.
   if (writesPaused()) return;
+  const { copyId, copyFileId } = settings;
+  const stillOn = async () => {
+    const now = await syncSettingsItem.getValue();
+    return now.on && now.copyId === copyId;
+  };
   const status = await syncStatusItem.getValue();
   let progressAt = 0;
   // Progress is written in order and finished before the outcome, which must be the last word.
@@ -152,12 +215,10 @@ async function syncAndRecord(db: ClipDatabase, drive?: Drive) {
     await syncOnce({
       db,
       drive: drive ?? (await defaultDrive()),
-      copyId: settings.copyId,
-      copyFileId: settings.copyFileId,
-      cursor: {
-        get: () => cursorItem.getValue(),
-        set: async (p) => cursorItem.setValue({ ...(await cursorItem.getValue()), ...p }),
-      },
+      copyId,
+      copyFileId,
+      cursor: cursorOf(db),
+      stillOn,
       onProgress: (progress) => {
         if (Date.now() - progressAt < 500 && progress.done < progress.total) return;
         progressAt = Date.now();
@@ -165,14 +226,16 @@ async function syncAndRecord(db: ClipDatabase, drive?: Drive) {
       },
     });
     await progressWrites;
-    await syncStatusItem.setValue({ state: 'idle', lastSyncAt: Date.now() });
+    if (await stillOn()) await syncStatusItem.setValue({ state: 'idle', lastSyncAt: Date.now() });
   } catch (e) {
     await progressWrites.catch(() => {});
+    // Turned off or set up again meanwhile: whoever did that has the last word.
+    if (e instanceof SyncCancelled || !(await stillOn())) return;
     await syncStatusItem.setValue({ ...status, progress: undefined, ...failure(e) });
     if (e instanceof CopyChangedError) {
       // Nothing more runs until the person chooses Sync again.
       await syncSettingsItem.setValue({ on: true });
-      await cursorItem.setValue({});
+      await cursorOf(db).clear();
     }
   }
 }

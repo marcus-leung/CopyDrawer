@@ -3,6 +3,7 @@ import { autoAssign } from './collections';
 import { detectKind, KIND_WORDS } from './kinds';
 import { MAX_HTML, MAX_TEXT } from './limits';
 import { clearLowSpace, ensureSpace } from './storageGuard';
+import { metaKey, type SyncMeta } from './sync/meta';
 
 export { detectKind };
 
@@ -75,7 +76,7 @@ export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Pr
   const hash = hashText(text);
   const now = saveTime();
 
-  const saved = await db.transaction('rw', [db.clips, db.images, db.collections], async () => {
+  const saved = await db.transaction('rw', [db.clips, db.images, db.collections, db.syncMeta], async () => {
     const existing = await findSameText(text, db);
     if (existing) {
       const updated: Clip = {
@@ -120,18 +121,28 @@ async function removeClips(db: ClipDatabase, clips: Clip[]): Promise<void> {
   });
 }
 
-/** Drops the oldest unpinned clips until the history fits MAX_CLIPS. */
+/**
+ * Drops the oldest unpinned clips until the history fits MAX_CLIPS. With Drive sync they leave this computer
+ * only: they stay in Drive, and on other computers that have room.
+ */
 export async function enforceLimit(db: ClipDatabase = defaultDb, max = MAX_CLIPS): Promise<number> {
-  const total = await db.clips.count();
-  const over = total - max;
-  if (over <= 0) return 0;
-  const victims = await db.clips
-    .orderBy('createdAt')
-    .filter((c) => c.pinned === 0)
-    .limit(over)
-    .toArray();
-  await removeClips(db, victims);
-  return victims.length;
+  return db.transaction('rw', [db.clips, db.images, db.syncMeta], async () => {
+    const over = (await db.clips.count()) - max;
+    if (over <= 0) return 0;
+    const victims = await db.clips
+      .orderBy('createdAt')
+      .filter((c) => c.pinned === 0)
+      .limit(over)
+      .toArray();
+    await removeClips(db, victims);
+    const keys = victims.flatMap((c) => [metaKey('clips', c.id), ...(c.image ? [metaKey('images', c.image.imageId)] : [])]);
+    // Deleting left tombstones for what Drive has; making room isn't a delete, so they don't go out.
+    const evicted = (await db.syncMeta.bulkGet(keys)).flatMap((m): SyncMeta[] =>
+      m?.fileId ? [{ ...m, deletedAt: undefined, dirty: 0, evicted: 1 }] : [],
+    );
+    await db.syncMeta.bulkPut(evicted);
+    return victims.length;
+  });
 }
 
 /** Newest first, pinned clips on top. */
