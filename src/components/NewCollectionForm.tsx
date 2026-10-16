@@ -4,7 +4,6 @@ import type { Collection } from '@/lib/db';
 import { ColorPicker } from './ColorPicker';
 import { Button } from './ui';
 
-/** Names a new collection and picks its color, right in the panel. */
 export function NewCollectionForm({ onCreated, onCancel }: { onCreated: (c: Collection) => void; onCancel: () => void }) {
   const id = useId();
   const [name, setName] = useState('');

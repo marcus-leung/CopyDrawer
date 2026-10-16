@@ -38,7 +38,6 @@ export interface SyncMeta {
   key: string;
   /** When each field group last changed. A missing group counts as 0. */
   t: Record<string, number>;
-  /** Set once the row is deleted. */
   deletedAt?: number;
   /** 1 while the change hasn't reached Drive. */
   dirty: 0 | 1;

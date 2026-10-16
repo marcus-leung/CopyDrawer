@@ -179,7 +179,6 @@ export function normalizeSite(input: string): string | undefined {
   return host && host.includes('.') && /^[a-z0-9.-]+$/.test(host) ? host : undefined;
 }
 
-/** True when `host` equals `site` or is a subdomain of it. */
 function matches(host: string, site: string): boolean {
   return host === site || host.endsWith(`.${site}`);
 }

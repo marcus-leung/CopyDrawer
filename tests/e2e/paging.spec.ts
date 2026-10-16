@@ -22,7 +22,6 @@ test('long lists show 100 clips at a time and load more as you scroll', async ({
   await expect(rows).toHaveCount(100);
   await expect(more).toHaveText('Show 100 more');
 
-  // Scrolling to the end loads the next page.
   await more.scrollIntoViewIfNeeded();
   await expect(rows).toHaveCount(200);
   await expect(more).toHaveText('Show 100 more');
@@ -39,7 +38,6 @@ test('long lists show 100 clips at a time and load more as you scroll', async ({
   await expect(rows).toHaveCount(100);
   await expect(more).toHaveText('Show 25 more');
 
-  // A collection pages the same way.
   await page.getByRole('searchbox', { name: 'Search your clips' }).fill('');
   await page
     .getByRole('list', { name: 'Collections' })

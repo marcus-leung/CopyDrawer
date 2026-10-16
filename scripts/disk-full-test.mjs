@@ -183,7 +183,7 @@ async function scenario(label, minFreeBytes, expectCard) {
     }
     await setUp(s.panel, minFreeBytes);
     await copyText(s.page, 'Copied after restart');
-    // Many larger saves: after a disk error this used to make Chrome discard the whole database at the next start.
+    // Many larger saves: after a disk error, writes like these can make Chrome discard the whole database at the next start.
     for (let i = 1; i <= 40; i++) await copyText(s.page, `Bulk ${i} ${'y'.repeat(20000)}`);
     const sameSession = await readTexts(s.panel);
     check(

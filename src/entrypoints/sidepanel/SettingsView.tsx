@@ -8,7 +8,7 @@ import { disableAutosave, enableAutosave } from '@/lib/autosave';
 import { BUILT_IN_BLOCKED, normalizeSite } from '@/lib/exclusions';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { storageProblem } from '@/lib/storageGuard';
-import { Button, IconButton } from '@/components/ui';
+import { Button, IconButton, Row, Section, Toggle } from '@/components/ui';
 import { ExpandButton, ExpandContext } from '@/components/ExpandButton';
 import { InlineConfirm } from '@/components/InlineConfirm';
 import { BackupError, importFile } from '@/lib/backup';
@@ -170,66 +170,50 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
         </Section>
 
         <Section id="s-look" title="Appearance">
-          <div className="flex min-h-11 items-center justify-between gap-3">
-            <label htmlFor="theme" className="text-sm">
-              Theme
-            </label>
-            <select
-              id="theme"
-              value={settings.theme}
-              onChange={(e) => void change({ theme: e.target.value as Settings['theme'] })}
-              className={selectClass}
-            >
-              <option value="system">Match system</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </div>
-          <div className="flex min-h-11 items-center justify-between gap-3">
-            <label htmlFor="font" className="text-sm">
-              Font
-            </label>
-            <select
-              id="font"
-              value={settings.font}
-              onChange={(e) => void change({ font: e.target.value as Settings['font'] })}
-              className={selectClass}
-            >
-              <option value="default">Default</option>
-              <option value="mono">Monospace</option>
-            </select>
-          </div>
-          <div className="flex min-h-11 items-center justify-between gap-3">
-            <label htmlFor="text-size" className="text-sm">
-              Text size
-            </label>
-            <select
-              id="text-size"
-              value={settings.textSize}
-              onChange={(e) => void change({ textSize: Number(e.target.value) as Settings['textSize'] })}
-              className={selectClass}
-            >
-              <option value={90}>Small</option>
-              <option value={100}>Default</option>
-              <option value={115}>Large</option>
-              <option value={130}>Larger</option>
-            </select>
-          </div>
-          <div className="flex min-h-11 items-center justify-between gap-3">
-            <label htmlFor="popup-size" className="text-sm">
-              Popup size
-            </label>
-            <select
-              id="popup-size"
-              value={settings.popupSize}
-              onChange={(e) => void change({ popupSize: e.target.value as Settings['popupSize'] })}
-              className={selectClass}
-            >
-              <option value="small">Small</option>
-              <option value="medium">Medium</option>
-              <option value="large">Large</option>
-            </select>
-          </div>
+          <SelectRow
+            id="theme"
+            label="Theme"
+            value={settings.theme}
+            options={[
+              ['system', 'Match system'],
+              ['light', 'Light'],
+              ['dark', 'Dark'],
+            ]}
+            onChange={(theme) => void change({ theme })}
+          />
+          <SelectRow
+            id="font"
+            label="Font"
+            value={settings.font}
+            options={[
+              ['default', 'Default'],
+              ['mono', 'Monospace'],
+            ]}
+            onChange={(font) => void change({ font })}
+          />
+          <SelectRow
+            id="text-size"
+            label="Text size"
+            value={settings.textSize}
+            options={[
+              [90, 'Small'],
+              [100, 'Default'],
+              [115, 'Large'],
+              [130, 'Larger'],
+            ]}
+            onChange={(textSize) => void change({ textSize })}
+          />
+          <SelectRow
+            id="popup-size"
+            label="Popup size"
+            value={settings.popupSize}
+            options={[
+              ['small', 'Small'],
+              ['medium', 'Medium'],
+              ['large', 'Large'],
+            ]}
+            onChange={(popupSize) => void change({ popupSize })}
+          />
           <Toggle
             id="t-hide-previews"
             label="Hide previews"
@@ -363,56 +347,36 @@ export function SettingsView({ onBack, notify }: { onBack: () => void; notify: (
   );
 }
 
-export function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
-  return (
-    <section aria-labelledby={id}>
-      <h2 id={id} className="mb-2 text-[13px] font-semibold text-text-3">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex min-h-11 items-center justify-between text-sm">
-      <span>{label}</span>
-      {value}
-    </div>
-  );
-}
-
-export function Toggle({
+function SelectRow<T extends string | number>({
   id,
   label,
-  hint,
-  checked,
-  disabled,
+  value,
+  options,
   onChange,
 }: {
   id: string;
   label: string;
-  hint?: string;
-  checked: boolean;
-  disabled?: boolean;
-  onChange: (on: boolean) => void;
+  value: T;
+  options: [T, string][];
+  onChange: (value: T) => void;
 }) {
   return (
-    <div className="flex min-h-11 items-center justify-between gap-3 py-1">
+    <div className="flex min-h-11 items-center justify-between gap-3">
       <label htmlFor={id} className="text-sm">
         {label}
-        {hint && <span className="mt-0.5 block text-xs leading-[17px] text-text-3">{hint}</span>}
       </label>
-      <input
+      <select
         id={id}
-        type="checkbox"
-        role="switch"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-        className="size-5 shrink-0 cursor-pointer accent-[var(--accent)]"
-      />
+        value={value}
+        onChange={(e) => onChange(options.find(([v]) => String(v) === e.target.value)![0])}
+        className={selectClass}
+      >
+        {options.map(([v, text]) => (
+          <option key={v} value={v}>
+            {text}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

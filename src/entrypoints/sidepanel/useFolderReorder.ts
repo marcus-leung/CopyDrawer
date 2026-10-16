@@ -10,7 +10,6 @@ interface FolderDrag {
   droppedOver?: string;
 }
 
-/** Dragging folders to reorder them: the grid shows where the folder would land, then saves that order. */
 export function useFolderReorder(summaries: CollectionSummary[] | undefined, notify: (message: string) => void) {
   const [drag, setDrag] = useState<FolderDrag | null>(null);
   const savedOrder = useMemo(() => summaries?.map((s) => s.collection.id) ?? [], [summaries]);

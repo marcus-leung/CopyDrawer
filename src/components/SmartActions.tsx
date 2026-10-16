@@ -17,7 +17,6 @@ function downloadIcs(clip: Clip, action: Extract<SmartAction, { kind: 'calendar'
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** "Looks like a UPS tracking number" plus one-click next steps. */
 export function SmartActions({ clip, notify }: { clip: Clip; notify: (message: string) => void }) {
   const found = detectActions(clip);
   if (!found.actions.length && !found.color) return null;

@@ -1,6 +1,6 @@
 /**
  * Smart actions: rules that spot what a clip is (a tracking number, a date, an
- * address, a color…) and offer the obvious next step. No AI, instant, offline.
+ * address, a color…) and offer the obvious next step.
  */
 
 // ---------- Links ----------
@@ -131,7 +131,6 @@ const TIME = '(?:,?\\s*(?:at\\s+|@\\s*)?(\\d{1,2})(?:[:.h](\\d{2}))?\\s*(am|pm|a
 
 interface FoundDate {
   start: Date;
-  /** No time of day was given. */
   allDay: boolean;
   /** The words in the clip, e.g. "Sat 18 Oct, 9 PM". */
   label: string;

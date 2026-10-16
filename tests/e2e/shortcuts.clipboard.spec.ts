@@ -130,20 +130,17 @@ test('the extension shortcuts are bound, and each one does its job', async ({ co
   const press = (command: string) =>
     panel.evaluate((m) => chrome.runtime.sendMessage({ type: 'e2e-command', ...m }), { command, tabId });
 
-  // Alt+Shift+S saves the selection, with auto-save off.
   await page.bringToFront();
   await page.locator('#para').selectText();
   await press('save-selection');
   await saved('Paragraph copied with keys');
 
-  // Alt+Shift+V opens the quick-paste box over the focused field.
   await page.locator('#target').click();
   void press('quick-paste');
   await expect(page.getByRole('combobox', { name: 'Filter clips' })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('#target')).toHaveValue('Paragraph copied with keys');
 
-  // Alt+Shift+X starts the screenshot tool; drag an area to save it.
   const shot = press('screenshot-area');
   await page.locator('#__clipboard_ext_shot__').waitFor({ state: 'attached' });
   await page.mouse.move(10, 10);
@@ -176,7 +173,6 @@ test('shortcut labels show the keys Chrome actually bound, in the platform style
   const keys = Object.fromEntries((await panel.evaluate(() => chrome.commands.getAll())).map((c) => [c.name, c.shortcut]));
   if (process.platform === 'darwin') expect(keys['save-selection']).toBe('⌥⇧S');
 
-  // Empty home: how to save and paste back.
   await expect(panel.getByText(keys['save-selection']!, { exact: true })).toBeVisible();
   await expect(panel.getByText(keys['quick-paste']!, { exact: true })).toBeVisible();
 
@@ -186,7 +182,6 @@ test('shortcut labels show the keys Chrome actually bound, in the platform style
     await expect(shortcuts.getByText(keys[name]!, { exact: true })).toBeVisible();
   }
 
-  // The quick-paste box footer.
   await page.bringToFront();
   await page.locator('#target').click();
   void panel.evaluate((id) => chrome.runtime.sendMessage({ type: 'e2e-command', command: 'quick-paste', tabId: id }), tabId);
@@ -215,7 +210,6 @@ test('the toolbar icon shows × where copies are not seen, and when a shortcut c
     await expect.poll(() => badge(chromeTab)).toBe('×');
     await panel.waitForTimeout(2500);
     expect(await badge(chromeTab)).toBe('×');
-    // Loading another page clears it.
     await chromePage.goto('https://keys.e2e.test/');
     await expect.poll(() => badge(chromeTab)).toBe('');
     await chromePage.goto('chrome://version');

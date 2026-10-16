@@ -3,7 +3,6 @@ import type { JoinWith } from './join';
 import { normalizeSite } from './exclusions';
 
 export type ThemePref = 'system' | 'light' | 'dark';
-/** default: the computer's own font. Older versions also had 'system', now the same as default. */
 export type FontPref = 'default' | 'mono';
 export type TextSize = 90 | 100 | 115 | 130;
 const TEXT_SIZES: TextSize[] = [90, 100, 115, 130];
@@ -19,9 +18,7 @@ export interface Settings {
   retentionDays: 0 | 30 | 90;
   theme: ThemePref;
   font: FontPref;
-  /** Percent; scales the whole interface. */
   textSize: TextSize;
-  /** Size of the toolbar popup. */
   popupSize: PopupSize;
   /** Also needs the all-sites permission. */
   autoSave: boolean;
@@ -35,7 +32,6 @@ export interface Settings {
   /** The export reminder shows from this time (0 = not scheduled yet). */
   backupRemindAfter: number;
   backupReminder: boolean;
-  /** What goes between clips copied or pasted together. */
   joinWith: JoinWith;
   /** Blurs clip text in lists until pointed at, for screen sharing. This computer only. */
   hidePreviews: boolean;
@@ -106,6 +102,7 @@ export function validSynced(remote: unknown): Partial<Pick<Settings, SyncedKey>>
   const out: Partial<Pick<Settings, SyncedKey>> = {};
   if (r.retentionDays === 0 || r.retentionDays === 30 || r.retentionDays === 90) out.retentionDays = r.retentionDays;
   if (r.theme === 'system' || r.theme === 'light' || r.theme === 'dark') out.theme = r.theme;
+  // A stored 'system' font reads as 'default'.
   if (r.font === 'default' || r.font === 'system' || r.font === 'mono') out.font = r.font === 'mono' ? 'mono' : 'default';
   if (TEXT_SIZES.includes(r.textSize as TextSize)) out.textSize = r.textSize as TextSize;
   if (POPUP_SIZES.includes(r.popupSize as PopupSize)) out.popupSize = r.popupSize as PopupSize;

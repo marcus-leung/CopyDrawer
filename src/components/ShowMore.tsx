@@ -8,7 +8,6 @@ function scrollParent(el: HTMLElement): HTMLElement | null {
   return null;
 }
 
-/** Under a long list: loads the next page when scrolled near, or when pressed. */
 export function ShowMore({ rest, pageSize, onMore }: { rest: number; pageSize: number; onMore: () => void }) {
   const latest = useRef(onMore);
   const watched = useRef<{ io: IntersectionObserver; el: HTMLElement } | null>(null);

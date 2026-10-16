@@ -30,15 +30,12 @@ test('each clip type is recognized, filtered, searched, acted on and quick-paste
 
   for (const t of TYPES) {
     const row = list.getByRole('listitem').filter({ hasText: t.text });
-    // The type shows on the row.
     await expect(row.locator('span.block').last()).toHaveText(new RegExp(`^${t.label}, `));
 
-    // Searching the type's word finds it.
     await search.fill(t.word);
     await expect(list.getByRole('listitem').filter({ hasText: t.text })).toHaveCount(1);
     await search.fill('');
 
-    // The Type filter shows only this type.
     await panel.getByRole('button', { name: 'Filters' }).click();
     await panel.getByLabel('Type').selectOption({ label: t.filter });
     await expect(list.getByRole('listitem')).toHaveCount(1);
@@ -46,7 +43,7 @@ test('each clip type is recognized, filtered, searched, acted on and quick-paste
     await panel.getByRole('button', { name: 'Filters' }).click();
     await expect(list.getByRole('listitem')).toHaveCount(TYPES.length + 2);
 
-    // Its detail: the right action. Plain text has no formatting, so no Paste as.
+    // Plain text has no formatting, so no Paste as.
     await list.getByRole('button', { name: new RegExp(t.text.replace(/[$()+{}[\]]/g, '\\$&').slice(0, 20)) }).click();
     const actions = panel.getByRole('region', { name: 'Smart actions' });
     await expect(actions.getByRole('button', { name: t.action, exact: true })).toBeVisible();
@@ -62,7 +59,6 @@ test('each clip type is recognized, filtered, searched, acted on and quick-paste
   await expect(list.getByRole('listitem').filter({ hasText: 'Pack light' })).not.toContainText(/Text,/);
   await expect(list.getByRole('listitem').filter({ hasText: 'example.com/guide' })).not.toContainText('Link,');
 
-  // Quick paste lists every type and pastes it as text.
   await context.route('https://form.e2e.test/**', (route) => route.fulfill({ contentType: 'text/html', body: FORM }));
   const page = await context.newPage();
   await page.goto('https://form.e2e.test/');
@@ -131,7 +127,6 @@ test('sort: oldest, most used and A–Z, pinned first', async ({ context, extens
   // A pinned clip stays on top in any order.
   await list.getByRole('button', { name: /cherry tart/ }).click();
   await panel.getByRole('button', { name: 'Pin' }).click();
-  // Back keeps the chosen sort.
   await panel.getByRole('button', { name: 'Back' }).click();
   await expect(panel.getByLabel('Sort')).toHaveValue('az');
   await expect.poll(titles).toEqual(['cherry tart', 'apple pie', 'banana bread']);

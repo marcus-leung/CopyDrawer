@@ -1,6 +1,6 @@
 import { ClipDatabase, type Clip, type StoredImage } from '../db';
 import { enforceLimit } from '../clips';
-import { DriveError, ignoreGone, type Drive, type DriveChange, type DriveFile } from './drive';
+import { DriveError, ignoreGone, listAll, type Drive, type DriveChange, type DriveFile } from './drive';
 import { canonical, groupsOf, metaKey, stampAfter, SYNCED_TABLES, type SyncedTable, type SyncMeta } from './meta';
 import {
   decodeRecord,
@@ -63,7 +63,6 @@ export class CopyChangedError extends Error {
   override name = 'CopyChangedError';
 }
 
-/** Sync was turned off while this one ran. */
 export class SyncCancelled extends Error {
   override name = 'SyncCancelled';
 }
@@ -177,13 +176,7 @@ async function pull(ctx: SyncContext, quiet: ClipDatabase): Promise<boolean> {
 /** Compares everything in Drive with everything here: at the first sync, or when the change list can't continue. */
 async function reconcile(ctx: SyncContext, quiet: ClipDatabase): Promise<boolean> {
   const start = await ctx.drive.startPageToken();
-  const files: DriveFile[] = [];
-  let pageToken: string | undefined;
-  do {
-    const page = await ctx.drive.list(pageToken);
-    files.push(...page.files);
-    pageToken = page.nextPageToken;
-  } while (pageToken);
+  const files = await listAll(ctx.drive);
   // Two computers turning sync on at once can each make a marker; the oldest is the copy, as `find` has it.
   const marker = files.filter((f) => f.name === COPY_FILE).sort(byAge)[0];
   if (marker?.id !== ctx.copyFileId) throw new CopyChangedError('The Drive copy was replaced.');
@@ -371,69 +364,7 @@ async function applyRecord(
 ): Promise<boolean> {
   if (table === 'collections' && remote.row) await settleSameKey(quiet, id, remote);
   const key = metaKey(table, id);
-  const result = await quiet.transaction('rw', ALL_TABLES, async () => {
-    const meta = await quiet.syncMeta.get(key);
-    // A row taken off this computer to make room counts as not here.
-    const known = meta?.evicted ? undefined : meta;
-    const stored = (await quiet.table(table).get(id)) as Row | undefined;
-    const local: SyncRecord = {
-      row: stored && toRecordRow(table, stored),
-      t: known?.t ?? {},
-      deletedAt: known?.deletedAt,
-      mergedInto: known?.mergedInto,
-    };
-    const merged = stored || known ? mergeRecords(table, local, remote) : remote;
-
-    if (table === 'clips' && merged.row?.collectionId) {
-      // Its folder was merged into another, or deleted, on a computer that hadn't seen the clip go in.
-      const folder = merged.row.collectionId as string;
-      const gone = !(await quiet.collections.get(folder)) && (await quiet.syncMeta.get(metaKey('collections', folder)));
-      if (gone && gone.mergedInto) merged.row = { ...merged.row, collectionId: gone.mergedInto };
-      else if (gone && gone.deletedAt) merged.row = { ...merged.row, collectionId: undefined, collectionLocked: 0 };
-    }
-
-    let changed = false;
-    // An image is kept only while a clip here shows it; one whose clip went (merged away, deleted) isn't.
-    let notHere = false;
-    if (merged.row) {
-      if (table === 'images') {
-        if (!stored && bytes && (await usedImage(quiet, id))) {
-          await quiet.images.put({ id, blob: bytes });
-          changed = true;
-        } else notHere = !stored;
-      } else if (!stored || canonical(merged.row) !== canonical(local.row)) {
-        await quiet.table(table).put(merged.row);
-        changed = true;
-      }
-    } else if (stored) {
-      await quiet.table(table).delete(id);
-    }
-    // A merge that gave the clip another image (its twin's) leaves the old one to go, unless another clip shows it.
-    const shownBefore = table === 'clips' ? (stored as unknown as Clip | undefined)?.image?.imageId : undefined;
-    const shownNow = (merged.row as unknown as Clip | undefined)?.image?.imageId;
-    if (merged.row && shownBefore && shownBefore !== shownNow && !(await usedImage(quiet, shownBefore))) {
-      await deleteHere(quiet, 'images', shownBefore, stampAfter(meta));
-    }
-
-    // A second file for the same row (two computers made it at once): keep the older, remove the other.
-    const extra = meta?.fileId && meta.fileId !== file.id ? (meta.fileId < file.id ? file.id : meta.fileId) : undefined;
-    const upToDate = sameRecord(merged, remote) && !extra;
-    const rev = (meta?.rev ?? 0) + 1;
-    await quiet.syncMeta.put({
-      key,
-      t: merged.t,
-      ...(merged.deletedAt && { deletedAt: merged.deletedAt }),
-      ...(merged.mergedInto && { mergedInto: merged.mergedInto }),
-      dirty: upToDate || notHere ? 0 : 1,
-      rev,
-      fileId: extra === file.id ? meta!.fileId : file.id,
-      md5: meta?.md5,
-      ...(notHere && { evicted: 1 as const }),
-    });
-    if (!merged.row && stored)
-      await afterRemoval(quiet, table, id, stored, merged.deletedAt ?? stampAfter(meta), merged.mergedInto);
-    return { changed, upToDate, extra, rev, alive: !!merged.row };
-  });
+  const result = await quiet.transaction('rw', ALL_TABLES, () => mergeHere(quiet, table, id, file, remote, bytes));
 
   if (table === 'clips' && result.alive) await settleTwin(quiet, id);
   if (result.extra) await ctx.drive.remove(result.extra).catch((e: unknown) => ignoreGone(e));
@@ -447,6 +378,82 @@ async function applyRecord(
   return result.changed;
 }
 
+/** `applyRecord`'s merge: writes the merged row and its meta. Must run inside a transaction over every table. */
+async function mergeHere(
+  quiet: ClipDatabase,
+  table: SyncedTable,
+  id: string,
+  file: DriveFile,
+  remote: SyncRecord,
+  bytes: Blob | undefined,
+) {
+  const key = metaKey(table, id);
+  const meta = await quiet.syncMeta.get(key);
+  // A row taken off this computer to make room counts as not here.
+  const known = meta?.evicted ? undefined : meta;
+  const stored = (await quiet.table(table).get(id)) as Row | undefined;
+  const local: SyncRecord = {
+    row: stored && toRecordRow(table, stored),
+    t: known?.t ?? {},
+    deletedAt: known?.deletedAt,
+    mergedInto: known?.mergedInto,
+  };
+  const merged = stored || known ? mergeRecords(table, local, remote) : remote;
+
+  if (table === 'clips' && merged.row?.collectionId) merged.row = await followFolder(quiet, merged.row);
+
+  let changed = false;
+  // An image is kept only while a clip here shows it; one whose clip went (merged away, deleted) isn't.
+  let notHere = false;
+  if (merged.row) {
+    if (table === 'images') {
+      if (!stored && bytes && (await usedImage(quiet, id))) {
+        await quiet.images.put({ id, blob: bytes });
+        changed = true;
+      } else notHere = !stored;
+    } else if (!stored || canonical(merged.row) !== canonical(local.row)) {
+      await quiet.table(table).put(merged.row);
+      changed = true;
+    }
+  } else if (stored) {
+    await quiet.table(table).delete(id);
+  }
+  // A merge that gave the clip another image (its twin's) leaves the old one to go, unless another clip shows it.
+  const shownBefore = table === 'clips' ? (stored as unknown as Clip | undefined)?.image?.imageId : undefined;
+  const shownNow = (merged.row as unknown as Clip | undefined)?.image?.imageId;
+  if (merged.row && shownBefore && shownBefore !== shownNow && !(await usedImage(quiet, shownBefore))) {
+    await deleteHere(quiet, 'images', shownBefore, stampAfter(meta));
+  }
+
+  // A second file for the same row (two computers made it at once): keep the older, remove the other.
+  const extra = meta?.fileId && meta.fileId !== file.id ? (meta.fileId < file.id ? file.id : meta.fileId) : undefined;
+  const upToDate = sameRecord(merged, remote) && !extra;
+  const rev = (meta?.rev ?? 0) + 1;
+  await quiet.syncMeta.put({
+    key,
+    t: merged.t,
+    ...(merged.deletedAt && { deletedAt: merged.deletedAt }),
+    ...(merged.mergedInto && { mergedInto: merged.mergedInto }),
+    dirty: upToDate || notHere ? 0 : 1,
+    rev,
+    fileId: extra === file.id ? meta!.fileId : file.id,
+    md5: meta?.md5,
+    ...(notHere && { evicted: 1 as const }),
+  });
+  if (!merged.row && stored)
+    await afterRemoval(quiet, table, id, stored, merged.deletedAt ?? stampAfter(meta), merged.mergedInto);
+  return { changed, upToDate, extra, rev, alive: !!merged.row };
+}
+
+/** A clip's folder was merged into another, or deleted, on a computer that hadn't seen the clip go in. */
+async function followFolder(quiet: ClipDatabase, row: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const folder = row.collectionId as string;
+  const gone = !(await quiet.collections.get(folder)) && (await quiet.syncMeta.get(metaKey('collections', folder)));
+  if (gone && gone.mergedInto) return { ...row, collectionId: gone.mergedInto };
+  if (gone && gone.deletedAt) return { ...row, collectionId: undefined, collectionLocked: 0 };
+  return row;
+}
+
 /**
  * Clips here whose image isn't: it came before any clip here showed it (and so wasn't kept), or a merge
  * gave a clip its twin's image. Fetched from Drive.
@@ -457,7 +464,6 @@ async function fetchMissingImages(ctx: SyncContext, quiet: ClipDatabase) {
   await quiet.clips.each((c) => c.image && !have.has(c.image.imageId) && missing.add(c.image.imageId));
   for (const imageId of missing) {
     const m = await quiet.syncMeta.get(metaKey('images', imageId));
-    // A file this computer knows of is fetched by id; otherwise looked up by name.
     const file = m?.fileId
       ? await ctx.drive.get(m.fileId).catch((e: unknown) => ignoreGone(e))
       : await ctx.drive.find(fileName('images', imageId));
@@ -497,7 +503,6 @@ async function settleTwin(quiet: ClipDatabase, id: string) {
     await quiet.clips.put(merged.row as unknown as Clip);
     await quiet.syncMeta.put({ ...mk, key: metaKey('clips', keep.id), t: merged.t, dirty: 1, rev: (mk?.rev ?? 0) + 1 });
     await deleteHere(quiet, 'clips', drop.id, stampAfter(md));
-    // The merged clip shows one of the two images; the other goes unless another clip shows it.
     const shown = (merged.row as unknown as Clip).image?.imageId;
     for (const imageId of new Set([keep.image?.imageId, drop.image?.imageId])) {
       if (imageId && imageId !== shown && !(await usedImage(quiet, imageId))) {
@@ -584,13 +589,7 @@ async function purge(ctx: SyncContext, quiet: ClipDatabase) {
   const cutoff = Date.now() - TOMBSTONE_DAYS * DAY;
   const old = (f: DriveFile | undefined) => !!f?.appProperties?.del && Number(f.appProperties.del) < cutoff;
   // Listed in full first: deleting while paging could skip files.
-  const candidates: string[] = [];
-  let pageToken: string | undefined;
-  do {
-    const page = await ctx.drive.list(pageToken);
-    for (const f of page.files) if (old(f)) candidates.push(f.id);
-    pageToken = page.nextPageToken;
-  } while (pageToken);
+  const candidates = (await listAll(ctx.drive)).filter(old).map((f) => f.id);
   for (const id of candidates) {
     await checkOn(ctx);
     // Checked again just before: another computer may have brought the row back since the listing.

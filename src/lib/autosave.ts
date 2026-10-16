@@ -1,5 +1,6 @@
-import { getSettings, updateSettings } from './settings';
-import { BUILT_IN_BLOCKED, isBuiltInBlocked } from './exclusions';
+import { getSettings, isPaused, updateSettings } from './settings';
+import { BUILT_IN_BLOCKED, isBuiltInBlocked, notSavedHere } from './exclusions';
+import { hostOf } from './format';
 
 const ALL_SITES = { origins: ['<all_urls>'] };
 const SCRIPT_OPTIONS = {
@@ -27,7 +28,7 @@ export async function hasAllSitesAccess(): Promise<boolean> {
   }
 }
 
-/** Pages that were open before auto-save started: give them the script now, no reload needed. */
+/** Pages that were open before auto-save started get the script without a reload. */
 export async function injectIntoOpenTabs() {
   const tabs = await browser.tabs.query({ url: ['http://*/*', 'https://*/*'] });
   await Promise.all(
@@ -111,4 +112,13 @@ export async function disableAutosave(): Promise<void> {
   // Fails only when the access can't be removed (the test build grants it in the manifest).
   await browser.permissions.remove(ALL_SITES).catch(() => false);
   await browser.runtime.sendMessage({ type: 'autosave-sync' }).catch(() => syncAutosaveRegistration());
+}
+
+/** Whether a copy reported by the auto-save script should be kept; if so, the page's URL. */
+export async function autosaveAllowed(sender: Browser.runtime.MessageSender): Promise<{ url?: string } | null> {
+  const s = await getSettings();
+  if (!s.autoSave || isPaused(s)) return null;
+  const tab = sender.tab;
+  if (notSavedHere({ url: tab?.url, frameUrl: sender.url, incognito: tab?.incognito }, s)) return null;
+  return { url: hostOf(sender.url) ? sender.url : tab?.url };
 }

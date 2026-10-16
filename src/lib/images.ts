@@ -16,7 +16,6 @@ async function sha256Hex(blob: Blob): Promise<string> {
   return Array.from(new Uint8Array(digest).slice(0, 12), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** The duplicate key for an image: a hash of its bytes. */
 export async function imageHash(blob: Blob): Promise<string> {
   return `img:${await sha256Hex(blob)}`;
 }

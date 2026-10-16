@@ -30,7 +30,6 @@ export const typoLimit = (w: string) => (w.length >= 9 ? 2 : w.length >= 5 ? 1 :
 interface Indexed {
   hay: string;
   titleWords: Set<string>;
-  /** Each word of the text and how often it appears. */
   bodyWords: Map<string, number>;
   length: number;
 }

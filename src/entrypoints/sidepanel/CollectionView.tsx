@@ -19,7 +19,7 @@ type Sort = 'newest' | 'used' | 'source';
 const SORTS: Record<Sort, (a: Clip, b: Clip) => number> = {
   newest: (a, b) => b.createdAt - a.createdAt,
   used: (a, b) => b.useCount - a.useCount || b.lastUsedAt - a.lastUsedAt,
-  // By site name ("airbnb.com" before "booking.com"); clips saved by hand last.
+  // '~' sorts after every host, so clips saved by hand come last.
   source: (a, b) => (hostOf(a.source?.url) ?? '~').localeCompare(hostOf(b.source?.url) ?? '~') || b.createdAt - a.createdAt,
 };
 

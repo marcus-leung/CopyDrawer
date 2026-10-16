@@ -2,7 +2,6 @@ import { Button } from '@/components/ui';
 import { modKey } from '@/lib/format';
 import { keyLabel, useShortcuts } from '@/lib/useShortcuts';
 
-/** Home before anything is saved: where collections will appear, and how to save. */
 export function EmptyState({ onGrab, autoSave }: { onGrab: () => void; autoSave: boolean }) {
   const keys = useShortcuts();
   return (

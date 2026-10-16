@@ -55,18 +55,15 @@ test('notices, export and import, inline confirms, accessibility', async ({ cont
   await axe(page, 'clip detail');
   await page.getByRole('button', { name: 'Back' }).click();
 
-  // Settings: export, delete all, import brings everything back.
   await page.getByRole('button', { name: 'Settings' }).click();
   await axe(page, 'settings');
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export' }).click()]);
   const file = await download.path();
-  // A .zip anyone can open: a readable page, tidy JSON for Import.
   expect(download.suggestedFilename()).toMatch(/^copydrawer-export-\d{4}-\d{2}-\d{2}\.zip$/);
   const zip = unzipSync(new Uint8Array(fs.readFileSync(file)));
   expect(Object.keys(zip)).toEqual(expect.arrayContaining(['clips.html', 'clips.json']));
   expect(strFromU8(zip['clips.html']!)).toContain('1Z 999 AA1 01 2345 6784');
   expect(strFromU8(zip['clips.json']!)).toContain('\n  "clips": [');
-  // Delete all asks in place: Esc cancels, then confirm.
   await page.getByRole('button', { name: 'Delete all' }).click();
   const confirmBox = page.getByRole('alertdialog', { name: /Delete all clips, including pinned ones/ });
   await expect(confirmBox).toBeVisible();
@@ -80,10 +77,8 @@ test('notices, export and import, inline confirms, accessibility', async ({ cont
   await page.locator('input[type=file]').setInputFiles(file);
   await expect(page.getByRole('status')).toContainText('Imported 3 clips');
 
-  // Nothing about AI, Pro or features that aren't here yet.
   await expect(page.getByText(/\bAI\b|\bPro\b|waitlist|coming soon/i)).toHaveCount(0);
 
-  // Pausing shows the paused notice; Resume clears it.
   await page.evaluate(async () => {
     const s = (await chrome.storage.local.get('settings')).settings ?? {};
     await chrome.storage.local.set({ settings: { ...s, autoSave: true, pausedUntil: Date.now() + 3_600_000 } });
@@ -94,7 +89,6 @@ test('notices, export and import, inline confirms, accessibility', async ({ cont
   await page.getByRole('button', { name: 'Resume now' }).click();
   await expect(page.getByText('Auto-save is paused')).toHaveCount(0);
 
-  // Dark theme passes too.
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await axe(page, 'home dark');
 });
@@ -155,7 +149,6 @@ test('font and text size: Settings changes every page, and pages open with them'
   await popup.getByLabel('Popup size').selectOption('medium');
   await page.bringToFront();
 
-  // Back to the defaults.
   await page.getByRole('button', { name: 'Settings' }).click();
   await page.getByLabel('Text size').selectOption('100');
   await expect.poll(() => html.evaluate((el) => el.style.zoom)).toBe('');

@@ -1,7 +1,7 @@
 /**
- * Export and import. An export is a .zip: clips.html to read, clips.json (what Import reads),
- * and images/ with the full-size files. Import rebuilds previews, so an older export's .thumbnails/ is ignored.
- * Older exports were a single .json with images inlined as data URLs; Import still reads those.
+ * Export and import. A version 2 export is a .zip: clips.html to read, clips.json (what Import reads),
+ * and images/ with the full-size files. Import rebuilds previews, so any .thumbnails/ in the zip is ignored.
+ * A version 1 export is a single .json with images inlined as data URLs; Import reads both.
  */
 import { strFromU8, strToU8, unzipSync, Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import { db as defaultDb, type Clip, type ClipDatabase, type Collection } from './db';
@@ -21,7 +21,7 @@ export interface ExportedClip extends Omit<Clip, 'image'> {
   image?: Omit<NonNullable<Clip['image']>, 'thumb'> & { thumb?: string; data?: string };
 }
 
-/** Exports write the first; files marked with the second (the app's working name) import too. */
+/** Exports write the first; Import also accepts files marked with the second. */
 const APPS: unknown[] = ['copydrawer', 'clipboard-extension'];
 
 export interface BackupFile {
@@ -45,7 +45,6 @@ export async function exportBackup(db: ClipDatabase = defaultDb): Promise<{ file
   const out: ExportedClip[] = [];
   let n = 0;
   for (const { image, title, text, kind, source, ...rest } of clips) {
-    // Readable fields first.
     const clip: ExportedClip = {
       title,
       text,
@@ -118,7 +117,7 @@ interface ImportResult {
 const MAX_JSON_BYTES = 200 * 1024 * 1024;
 const MAX_ZIP_ENTRIES = MAX_CLIPS + 10;
 
-/** Imports an export: a .zip, or an older .json. */
+/** Imports an export: a version 2 .zip or a version 1 .json. */
 export async function importFile(blob: Blob, db: ClipDatabase = defaultDb): Promise<ImportResult> {
   // The import's images and text can take about twice the file's size once unpacked.
   await ensureSpace(blob.size * 2);

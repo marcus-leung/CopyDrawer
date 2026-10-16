@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui';
+import { Button, Section, Toggle } from '@/components/ui';
 import { InlineConfirm } from '@/components/InlineConfirm';
 import { canSync, requestSetup, turnOffSync, type SyncStatus } from '@/lib/sync/controller';
 import { useDriveSync } from '@/lib/sync/useDriveSync';
 import { safeSend } from '@/lib/safeSend';
-import { Section, Toggle } from './SettingsView';
 
 export const SYNC_STOPPED = 'The Drive copy was deleted or replaced on another computer. Your clips here are safe.';
 

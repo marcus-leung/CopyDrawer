@@ -74,7 +74,6 @@ test('copying on real sites fills collections and a named trip', async ({ contex
   for (const name of ['Research', 'Recipes', 'Code', 'Shopping']) await expect(tiles).toContainText(name);
   await expect(panel.getByText('Sorted 7 new clips today')).toBeVisible();
 
-  // Recent rows show the collection and the site.
   const list = panel.getByRole('list', { name: 'Clips' });
   await expect(list.getByRole('listitem').filter({ hasText: 'Photosynthesis is the process' })).toContainText(
     'Research, from en.wikipedia.org',
@@ -111,7 +110,6 @@ test('collection view: sort, rename, color, delete (cancel and confirm)', async 
   await expect(panel.getByRole('status')).toContainText('Copied');
   await panel.getByLabel('Sort').selectOption('used');
   await expect(inTrip.getByRole('listitem').first()).toContainText('Sunny loft');
-  // "Source" groups by site.
   await panel.getByLabel('Sort').selectOption('source');
   await expect(inTrip.getByRole('listitem').first()).toContainText('Sunny loft'); // airbnb.com sorts first
 
@@ -120,17 +118,14 @@ test('collection view: sort, rename, color, delete (cancel and confirm)', async 
   await panel.getByLabel('Collection name').fill('Lisbon, October');
   await panel.getByText('Sorted here automatically.').click();
   await expect(panel.getByRole('heading', { name: 'Lisbon, October' })).toBeVisible();
-  // Names are capped at 100 characters.
   await panel.getByRole('button', { name: 'Rename' }).click();
   await expect(panel.getByLabel('Collection name')).toHaveAttribute('maxlength', '100');
   await panel.getByLabel('Collection name').press('Escape');
-  // An empty name is ignored.
   await panel.getByRole('button', { name: 'Rename' }).click();
   await panel.getByLabel('Collection name').fill('   ');
   await panel.getByLabel('Collection name').press('Enter');
   await expect(panel.getByRole('heading', { name: 'Lisbon, October' })).toBeVisible();
 
-  // Color: a preset, then any hue from the rainbow bar. It shows on the home tile too.
   const tint = () =>
     panel
       .locator('[style*="--c-tint"]')
@@ -180,7 +175,6 @@ test('moving clips: new collection, none, stays put', async ({ context, extensio
   await list.getByRole('button', { name: /Quarterly budget/ }).click();
   const select = panel.getByRole('combobox', { name: /Collection/ });
   await expect(select.locator('option:checked')).toHaveText('None');
-  // Esc in the name form changes nothing.
   await select.selectOption('__new__');
   await panel.getByLabel('Collection name').press('Escape');
   await expect(panel.getByRole('form', { name: 'New collection' })).toHaveCount(0);
@@ -192,7 +186,6 @@ test('moving clips: new collection, none, stays put', async ({ context, extensio
   await panel.getByRole('button', { name: 'Back' }).click();
   await expect(tiles).toContainText('Work');
 
-  // A collection can also be made from home.
   await panel.getByRole('button', { name: 'New collection' }).click();
   await panel.getByLabel('Collection name').fill('Reading list');
   await panel.getByLabel('Custom color').fill('20');

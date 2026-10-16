@@ -8,7 +8,6 @@ import type { Selection } from '@/lib/useSelection';
 
 const clipsWord = (n: number) => (n === 1 ? '1 clip' : `${n} clips`);
 
-/** What the selection bar does with the picked clips, and what it tells the user. */
 export function usePickActions({
   selection,
   picked,

@@ -69,7 +69,6 @@ export function FilterBar({
   onChange: (f: SearchFilters) => void;
 }) {
   const sort = effectiveSort(query, filters.sort);
-  // Best match is only offered while searching.
   const sorts = SORTS.filter((s) => s.id !== 'best' || query.trim());
   const changed =
     !isDefaultSort(query, filters.sort) || (['kind', 'site', 'date'] as const).some((k) => filters[k] !== NO_FILTERS[k]);
