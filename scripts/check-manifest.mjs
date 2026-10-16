@@ -14,7 +14,13 @@ if (manifest.permissions?.includes('identity') || !manifest.optional_permissions
   process.exit(1);
 }
 console.log('Manifest OK: all-sites access and Google sign-in stay optional.');
-if (!manifest.oauth2?.client_id) console.warn('Note: no oauth2.client_id, so Drive sync is hidden in this build.');
+if (!manifest.oauth2?.client_id) {
+  if (process.argv.includes('--release')) {
+    console.error('No oauth2.client_id: set COPYDRAWER_OAUTH_CLIENT_ID, or the store build ships without Drive sync.');
+    process.exit(1);
+  }
+  console.warn('Note: no oauth2.client_id, so Drive sync is hidden in this build.');
+}
 
 const licenses = fs.readFileSync('.output/chrome-mv3/THIRD_PARTY_LICENSES.txt', 'utf8').split('\n');
 const { dependencies } = JSON.parse(fs.readFileSync('package.json', 'utf8'));

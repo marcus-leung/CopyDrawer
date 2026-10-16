@@ -30,6 +30,8 @@ jobs:
       # The clipboard specs need a display for the system clipboard.
       - run: xvfb-run --auto-servernum pnpm check
       - run: pnpm zip
+        env:
+          COPYDRAWER_OAUTH_CLIENT_ID: ${{ vars.COPYDRAWER_OAUTH_CLIENT_ID }}
       - uses: actions/upload-artifact@v4
         with:
           name: extension-zip

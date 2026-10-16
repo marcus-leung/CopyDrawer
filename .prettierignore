@@ -7,3 +7,5 @@ public
 *.md
 # Liquid templates, which Prettier rewrites into invalid Liquid.
 site/_layouts/
+# Google Search Console checks this file byte for byte.
+site/google*.html
