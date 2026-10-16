@@ -13,7 +13,7 @@ A private clipboard history for Chrome. Everything you copy is kept, sorted into
 
 ## Features
 
-- **Save anything.** Press Alt+Shift+S on a selection, right-click to save an image, Alt+Shift+X to screenshot an area, or paste and drop into the panel. Optional **auto-save** keeps what you copy, including from a site's copy buttons.
+- **Save anything.** Press Alt+Shift+S on a selection, right-click to save an image, Alt+Shift+D (⌥⇧X on a Mac) to screenshot an area, or paste and drop into the panel. Optional **auto-save** keeps what you copy, including from a site's copy buttons.
 - **Never keeps secrets.** Auto-save skips passwords, access keys, private keys and card numbers. It also skips password managers, banks, email, sign-in, government, payment and health sites, plus any site you block.
 - **Sorted for you.** Rules file clips into Research, Links, Code, Shopping, Recipes and Personal. Travel clips become trips named after the place, such as "Lisbon trip". Make your own collections, pick their colors, and drag to file and reorder.
 - **Finds what you meant.** Best-match search forgives typos, matches word starts, and ranks rare words and titles higher. Filter by type, site and date.
