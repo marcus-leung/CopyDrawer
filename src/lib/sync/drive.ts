@@ -76,12 +76,13 @@ export function restDrive(token: TokenSource, base = 'https://www.googleapis.com
     let refreshed = false;
     let refresh = false;
     for (let attempt = 0; ; attempt++) {
+      const auth = `Bearer ${await token(refresh)}`;
       let res: Response;
       try {
         res = await fetch(path.startsWith('http') ? path : base + path, {
           method,
           body,
-          headers: { Authorization: `Bearer ${await token(refresh)}`, ...headers },
+          headers: { Authorization: auth, ...headers },
         });
       } catch (e) {
         throw new DriveError('offline', String(e));
