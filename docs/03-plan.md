@@ -71,7 +71,7 @@ Spending that's optional but worth it later: a designer for the icon and store a
 |---|---|---|
 | Students | r/GetStudying, r/college, r/studytips, Chromebook communities, TikTok/YouTube study creators, Discord study servers | Collections with sources; "Chromebook clipboard history is too short" |
 | Knowledge workers | r/productivity, LinkedIn, Product Hunt, productivity newsletters | Quick paste, Paste as, time saved |
-| Developers / early adopters | Hacker News (Show HN), r/chrome_extensions, r/webdev, GitHub, X | Privacy, minimal permissions, clips never uploaded |
+| Developers / early adopters | Hacker News (Show HN), r/chrome_extensions, r/webdev, GitHub, X | Privacy, minimal permissions, clips never reach us (optional sync goes to your own Drive) |
 | Privacy-minded | r/privacy, privacy newsletters | Local-only, malware context |
 
 ### 3.3 Timeline (relative to public launch week **L**)

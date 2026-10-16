@@ -113,7 +113,7 @@ Limit: 5,000 clips **including pins** (images limited by local storage).
 │  Storage: IndexedDB (Dexie) clips, images, collections · chrome.storage settings │
 │  Logic: rules (type detection, sorting, smart actions, transforms)               │
 └──────────────────────────────────────────────────────────────────────────────────┘
-No server. The only network requests download images the user saves; clips are never uploaded.
+No server. The network requests download images the user saves and, if the user turns on Drive sync, store clips in their own Google Drive app folder. Clips never reach the developer.
 ```
 
 ### 6.1 Data model (IndexedDB)

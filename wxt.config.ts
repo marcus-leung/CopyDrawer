@@ -84,7 +84,7 @@ export default defineConfig({
   manifest: {
     name: 'CopyDrawer – Clipboard History',
     short_name: 'CopyDrawer',
-    description: 'Everything you copy, kept and sorted. Private: stored on your device.',
+    description: 'Everything you copy, kept and sorted. Private on your device, with optional sync to your own Google Drive.',
     permissions: [
       'storage',
       'unlimitedStorage',
