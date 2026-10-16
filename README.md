@@ -71,4 +71,4 @@ docs/                           research, design, plan, design system
 
 ## License
 
-Proprietary, all rights reserved. See [LICENSE](LICENSE). Third-party licenses: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the build ships their full texts as `THIRD_PARTY_LICENSES.txt` (generated in `wxt.config.ts`).
+Copyright (c) 2026 Marcus Leung. Licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-only): you may use, change and share the code, and anything you publish that's built on it must be GPL-3.0 too, with its source. The CopyDrawer name and logo aren't covered: a modified version must use its own. Third-party licenses: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the build ships their full texts as `THIRD_PARTY_LICENSES.txt` (generated in `wxt.config.ts`).

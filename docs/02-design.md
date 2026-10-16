@@ -133,7 +133,7 @@ Settings   { retentionDays, theme, font: 'default'|'system'|'mono', textSize: 90
 ### 6.2 Privacy & security design
 - Local-first; no account.
 - Analytics: none.
-- Closed source (all rights reserved); Chrome's default strict CSP; no remote code; minimal dependencies.
+- Open source (GPL-3.0); Chrome's default strict CSP; no remote code; minimal dependencies.
 - Supply-chain hygiene: 2FA on the store account, signed releases, lockfile and dependency review. Compromised updates are exactly how 2026's attacks happened.
 
 ---
@@ -145,7 +145,7 @@ Settings   { retentionDays, theme, font: 'default'|'system'|'mono', textSize: 90
 | 1 | Audience | ✅ General: students/researchers + knowledge workers |
 | 2 | Name/brand | ✅ CopyDrawer (see [08-branding.md](08-branding.md)) |
 | 3 | UI framework | ✅ React (+ TypeScript, WXT, Tailwind) |
-| 4 | Source model / license | ✅ **Closed source, all rights reserved**; see §8 |
+| 4 | Source model / license | ✅ **Open source, GPL-3.0**; see §8 |
 | 5–14 | Product defaults | ✅ Decided; see §9 |
 | 15 | AI features and paid tier | ✅ Out of scope for now; the app ships without them |
 
@@ -160,7 +160,7 @@ Chrome extension code is shipped as JavaScript that **anyone can download and re
 | **Source-available** (e.g. FSL, BSL) | Code is public, but competing use is banned for ~2 years, after which it becomes MIT/Apache | Transparency + protection from direct clones | Not "open source" by the official definition; fewer contributors |
 | **Closed source** | No public repo | Simplest; maximum legal control | Loses the trust differentiator; code is still inspectable in the store package anyway |
 
-✅ **Decision: closed source, all rights reserved.** The repo stays private; the privacy policy lives in a separate public repo. Bundled libraries' licenses ship in the package as `THIRD_PARTY_LICENSES.txt`. Register the **name as a trademark** later, since licenses don't cover branding.
+✅ **Decision: open source, GPL-3.0 (GPL-3.0-only).** The repo is public, and the privacy policy is published from `site/` in it. Clones must stay open, and as the sole copyright holder we can still relicense later; outside contributions would need a CLA to keep that option. Bundled libraries' licenses ship in the package as `THIRD_PARTY_LICENSES.txt`. Register the **name as a trademark** later, since licenses don't cover branding.
 
 ## 9. Product defaults (decided)
 
