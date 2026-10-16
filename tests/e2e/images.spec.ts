@@ -25,7 +25,6 @@ test('pasting an image saves it with a thumbnail and opens its detail', async ({
   await expect(page.getByText('PNG, 120 × 80')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Download' })).toHaveAttribute('download', 'chart.png');
 
-  // Add a note, see it, then clear it.
   await page.getByRole('button', { name: 'Add a note' }).click();
   const note = page.getByLabel('Note');
   await expect(note).toBeFocused();
@@ -118,7 +117,6 @@ test('drag images in the panel: onto a collection, reorder the strip, and out to
   await page.reload();
   await expect.poll(names).toEqual(['red.png', 'blue.png']);
 
-  // Onto a collection: the image is filed there.
   const tiles = page.getByRole('list', { name: 'Collections' });
   await dragAndDrop(page, strip.getByRole('button', { name: 'blue.png' }), tiles.getByRole('button', { name: /Recipes/ }));
   await expect(page.getByRole('status')).toHaveText('Moved to Recipes');

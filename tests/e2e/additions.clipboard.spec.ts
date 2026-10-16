@@ -12,7 +12,6 @@ test('edit a clip: text, title, cancel, empty text refused', async ({ context, e
   const list = panel.getByRole('list', { name: 'Clips' });
   await list.getByRole('button', { name: /Meet at the cafe/ }).click();
 
-  // Cancel leaves it unchanged (button and Esc).
   await panel.getByRole('button', { name: 'Edit' }).click();
   await panel.getByLabel('Text').fill('changed my mind');
   await panel.getByRole('button', { name: 'Cancel', exact: true }).click();
@@ -22,7 +21,6 @@ test('edit a clip: text, title, cancel, empty text refused', async ({ context, e
   await panel.keyboard.press('Escape');
   await expect(panel.getByRole('heading', { name: 'Meet at the cafe on Friday' })).toBeVisible();
 
-  // Empty text is refused with a message.
   await panel.getByRole('button', { name: 'Edit' }).click();
   await expect(panel.getByText('Edits only change this saved copy, not the page it came from.')).toBeVisible();
   await panel.getByLabel('Text').fill('   ');
@@ -37,7 +35,6 @@ test('edit a clip: text, title, cancel, empty text refused', async ({ context, e
   await expect(panel.getByLabel('Collection').locator('option:checked')).toHaveText('Personal');
   await expect(panel.getByRole('button', { name: 'Open address in Maps' })).toBeVisible();
 
-  // A title of your own; copying gives the edited text.
   await panel.getByRole('button', { name: 'Edit' }).click();
   await panel.getByLabel('Title').fill('Holmes');
   await panel.getByRole('button', { name: 'Save' }).click();

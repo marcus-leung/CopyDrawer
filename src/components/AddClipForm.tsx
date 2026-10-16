@@ -8,7 +8,7 @@ import { modKey } from '@/lib/format';
 import { useObjectUrl } from '@/lib/useObjectUrl';
 import { Button, IconButton } from './ui';
 
-/** Type or paste text or images to save them as clips, right in the panel. Text typed with images is their note. */
+/** Text typed with images is their note. */
 export function AddClipForm({ onSaved, onCancel }: { onSaved: () => void; onCancel: () => void }) {
   const id = useId();
   const [text, setText] = useState('');

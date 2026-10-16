@@ -12,15 +12,12 @@ export interface ClipSource {
 }
 
 interface ClipImage {
-  /** Key into the `images` table holding the full-size file. */
   imageId: string;
   mime: string;
   width: number;
   height: number;
   bytes: number;
-  /** Small WebP preview shown in lists. */
   thumb: Blob;
-  /** Where the image came from on the web, when known. */
   srcUrl?: string;
 }
 
@@ -30,9 +27,8 @@ export interface Clip {
   lastUsedAt: number;
   useCount: number;
   kind: ClipKind;
-  /** Plain-text form. For images: alt text or file name, may be empty. */
+  /** For images: alt text or file name, may be empty. */
   text: string;
-  /** Rich form when copied from a page, used when pasting back. */
   html?: string;
   title: string;
   source?: ClipSource;
@@ -46,9 +42,7 @@ export interface Clip {
   /** Position in the "Images and colors" strip after the user reordered it (higher = earlier). */
   stripRank?: number;
   image?: ClipImage;
-  /** For images: the user's note. */
   note?: string;
-  /** Where the title came from: rules from the text, or the user. */
   titleSource?: 'heuristic' | 'user';
 }
 
@@ -92,7 +86,6 @@ export class ClipDatabase extends Dexie {
       clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId, embeddingModel',
       collections: 'id, &key, order',
     });
-    // Drops the embedding fields; titles the AI model wrote count as rule titles.
     this.version(4)
       .stores({ clips: 'id, createdAt, lastUsedAt, pinned, kind, hash, collectionId' })
       .upgrade((tx) =>

@@ -53,11 +53,6 @@ export function saveTime(): number {
   return lastSave;
 }
 
-/**
- * Saves a clip. An exact duplicate of an existing clip moves that clip to the
- * top instead of creating a new one. Returns the saved clip, or null when the
- * text is empty.
- */
 /** A saved clip with exactly this text (ignoring leading and trailing spaces). Clips that differ in spacing stay separate. */
 export async function findSameText(text: string, db: ClipDatabase = defaultDb): Promise<Clip | undefined> {
   const same = text.trim();
@@ -68,6 +63,10 @@ export async function findSameText(text: string, db: ClipDatabase = defaultDb): 
     .first();
 }
 
+/**
+ * An exact duplicate of an existing clip moves that clip to the top instead of creating a new one.
+ * Returns the saved clip, or null when the text is empty.
+ */
 export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Promise<Clip | null> {
   const text = input.text.replace(/\r\n/g, '\n').slice(0, MAX_TEXT);
   if (!text.trim()) return null;
@@ -112,7 +111,6 @@ export async function saveClip(input: NewClip, db: ClipDatabase = defaultDb): Pr
   return saved;
 }
 
-/** Deletes clips and any image files they own, together. */
 async function removeClips(db: ClipDatabase, clips: Clip[]): Promise<void> {
   await db.transaction('rw', db.clips, db.images, async () => {
     await db.clips.bulkDelete(clips.map((c) => c.id));
@@ -145,7 +143,6 @@ export async function enforceLimit(db: ClipDatabase = defaultDb, max = MAX_CLIPS
   });
 }
 
-/** Newest first, pinned clips on top. */
 export async function listClips(db: ClipDatabase = defaultDb): Promise<Clip[]> {
   const all = await db.clips.orderBy('createdAt').reverse().toArray();
   return [...all.filter((c) => c.pinned === 1), ...all.filter((c) => c.pinned === 0)];
@@ -217,7 +214,7 @@ export async function editClip(id: string, edit: ClipEdit, db: ClipDatabase = de
           ...next,
           text,
           kind,
-          html: undefined, // the formatted copy no longer matches
+          html: undefined, // the formatted copy doesn't match the new text
           hash: hashText(text),
         };
         if (clip.titleSource !== 'user') next = { ...next, title: makeTitle(text, kind), titleSource: 'heuristic' };
@@ -274,7 +271,6 @@ export async function markUsed(id: string, db: ClipDatabase = defaultDb): Promis
     });
 }
 
-/** Unpinned clips older than `days`. 0 means keep forever. */
 function olderThan(days: number, db: ClipDatabase) {
   const cutoff = Date.now() - days * 86_400_000;
   return db.clips

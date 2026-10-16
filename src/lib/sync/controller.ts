@@ -195,7 +195,6 @@ export async function runSync(db: ClipDatabase = defaultDb, drive?: Drive): Prom
   }
 }
 
-/** One sync, with how it went recorded in the status. */
 async function syncAndRecord(db: ClipDatabase, drive?: Drive) {
   const settings = await syncSettingsItem.getValue();
   if (!settings.on || !settings.copyId || !settings.copyFileId) return;

@@ -9,7 +9,6 @@ import { InlineConfirm } from './InlineConfirm';
 const NONE = '\u0000none';
 const field = 'h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-bg px-2 text-[13px] text-ink';
 
-/** Shown while clips are picked: copy them together, or move or delete them all. */
 export function SelectionBar({
   count,
   notShown,

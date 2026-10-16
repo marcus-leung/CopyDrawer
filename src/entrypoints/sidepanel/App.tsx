@@ -1,51 +1,35 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ClipboardPaste, EyeOff, ImagePlus, MoreHorizontal, Plus, SlidersHorizontal } from 'lucide-react';
-import type { Clip } from '@/lib/db';
-import { deleteClip, listClips, markUsed, restoreClip, saveClip } from '@/lib/clips';
-import { storageProblem } from '@/lib/storageGuard';
-import { NO_FILTERS, topSites, type SearchFilters } from '@/lib/search';
-import { copyClipToClipboard, readClipboard, type ClipboardContents } from '@/lib/clipboard';
-import { saveImages } from '@/lib/images';
-import { isPaused, PAUSE_MS, updateSettings } from '@/lib/settings';
+import { ImagePlus } from 'lucide-react';
+import { listClips } from '@/lib/clips';
+import { NO_FILTERS, type SearchFilters } from '@/lib/search';
+import { updateSettings } from '@/lib/settings';
 import { useNowUntil, useSettings } from '@/lib/useSettings';
 import { useAppearance } from '@/lib/useAppearance';
 import { useSearch } from '@/lib/useSearch';
 import { cancelViewRequest, requestView, useOpenViewRequests, type OpenViewRequest, type View } from '@/lib/openView';
-import { modKey } from '@/lib/format';
-import { moveClip, summarizeCollections } from '@/lib/collections';
+import { summarizeCollections } from '@/lib/collections';
 import { db } from '@/lib/db';
-import { CollectionTile } from '@/components/CollectionTile';
-import { NewCollectionForm } from '@/components/NewCollectionForm';
-import { AddClipForm } from '@/components/AddClipForm';
-import { ImageStrip } from '@/components/ImageStrip';
-import { ClipRow } from '@/components/ClipRow';
 import { SelectionBar } from '@/components/SelectionBar';
 import { useListPicks, useSelection } from '@/lib/useSelection';
-import { Button, IconButton, SearchField } from '@/components/ui';
-import { Notice } from '@/components/Notice';
-import { ExpandButton, ExpandContext } from '@/components/ExpandButton';
+import { ExpandContext } from '@/components/ExpandButton';
 import { Toast, type ToastState } from '@/components/Toast';
 import { ClipDetail } from './ClipDetail';
 import { SettingsView } from './SettingsView';
 import { CollectionView } from './CollectionView';
-import { FilterBar } from './FilterBar';
+import { HomeView } from './HomeView';
 import { Onboarding } from './Onboarding';
-import { EmptyState } from './EmptyState';
 import { usePanelInput } from './usePanelInput';
-import { useFolderReorder } from './useFolderReorder';
 import { usePickActions } from './usePickActions';
-import { HomeNotice } from './HomeNotice';
+import { useClipActions } from './useClipActions';
 import { usePaged } from '@/lib/usePaged';
 import { safeSend } from '@/lib/safeSend';
-import { ShowMore } from '@/components/ShowMore';
-import { keyLabel, useShortcuts } from '@/lib/useShortcuts';
+import { useShortcuts } from '@/lib/useShortcuts';
 
 /** The same app runs in the side panel and in the toolbar popup. */
 export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   useAppearance();
   const settings = useSettings();
-  const hidePreviews = settings?.hidePreviews ?? false;
   const now = useNowUntil(settings?.pausedUntil ?? 0);
   const [view, setView] = useState<View>(() => {
     // "Open" from the in-page card when no panel could open: a tab with ?clip=<id>.
@@ -75,8 +59,6 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
     () => (clips && collections ? summarizeCollections(collections, clips, now) : undefined),
     [clips, collections, now],
   );
-  // Every collection a clip is in has clips, so the (non-empty) summaries cover them all.
-  const collectionsById = useMemo(() => new Map(summaries?.map((s) => [s.collection.id, s.collection])), [summaries]);
 
   const keys = useShortcuts();
   const notify = useCallback((message: string, onUndo?: () => void) => setToast({ id: Date.now(), message, onUndo }), []);
@@ -102,40 +84,7 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
       });
   }, [windowId, view, query, filters, notify]);
 
-  const copy = useCallback(
-    async (clip: Clip) => {
-      try {
-        await copyClipToClipboard(clip);
-        void markUsed(clip.id).catch(() => {});
-        notify(clip.kind === 'image' ? 'Image copied. Paste it anywhere.' : 'Copied. Paste it anywhere.');
-      } catch {
-        notify("Couldn't copy. Click the panel and try again.");
-      }
-    },
-    [notify],
-  );
-
-  const remove = useCallback(
-    async (id: string) => {
-      let removed;
-      try {
-        removed = await deleteClip(id);
-      } catch (e) {
-        notify(storageProblem(e, 'deleted')?.title ?? "Couldn't delete that. Try again.");
-        return;
-      }
-      setView((v) => (v.name === 'detail' && v.from ? v.from : { name: 'home' }));
-      if (removed) notify('Clip deleted', () => void restoreClip(removed));
-    },
-    [notify],
-  );
-
-  const {
-    shown: shownFolders,
-    gridRef: folderGrid,
-    grid: folderGridDrag,
-    tile: folderTile,
-  } = useFolderReorder(summaries, notify);
+  const { copy, remove, saveContents, saveFromClipboard } = useClipActions({ notify, setView });
 
   const clipsById = useMemo(() => new Map(clips?.map((c) => [c.id, c])), [clips]);
   const exists = useCallback((id: string) => clipsById.has(id), [clipsById]);
@@ -151,51 +100,13 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
     notify,
   });
 
-  /** Saves whatever came in from a paste, drop or the clipboard. */
-  const saveContents = useCallback(
-    async (contents: ClipboardContents & { images?: File[] }) => {
-      const images = contents.images?.length ? contents.images : contents.image ? [contents.image] : [];
-      if (images.length) {
-        const { saved, error } = await saveImages(images);
-        notify(error ?? (saved === 1 ? 'Image saved' : `${saved} images saved`));
-        return;
-      }
-      try {
-        const clip = await saveClip({ text: contents.text, html: contents.html });
-        notify(clip ? 'Saved' : 'Nothing to save');
-      } catch (e) {
-        notify(storageProblem(e)?.title ?? "Couldn't save that.");
-      }
-    },
-    [notify],
-  );
-
-  const saveFromClipboard = useCallback(async () => {
-    try {
-      const contents = await readClipboard();
-      if (!contents.text.trim() && !contents.image) {
-        notify('Your clipboard is empty');
-        return;
-      }
-      await saveContents(contents);
-    } catch {
-      notify(`Chrome blocked reading the clipboard. Paste here with ${modKey('V')} instead.`);
-    }
-  }, [notify, saveContents]);
-
   const dragging = usePanelInput(useCallback((c) => void saveContents(c), [saveContents]));
 
-  const { searching, filtering, results: current } = useSearch(query, filters, clips);
+  const { searching, filtering, results } = useSearch(query, filters, clips);
   // Stays open while you change filters, even back to "Any".
   const showFilters = filtersOpen || filtering || query.trim() !== '';
-  const visible = searching ? (current ?? []) : (clips ?? []);
+  const visible = searching ? (results ?? []) : (clips ?? []);
   const paged = usePaged(visible, `${query}\n${JSON.stringify(filters)}`);
-  const sites = useMemo(() => topSites(clips ?? []), [clips]);
-  const paused = settings ? isPaused(settings, now) : false;
-  const sortedToday = useMemo(() => {
-    const midnight = new Date(now).setHours(0, 0, 0, 0);
-    return (clips ?? []).filter((c) => c.collectionId && c.createdAt >= midnight).length;
-  }, [clips, now]);
 
   const shownIds = useMemo(() => paged.shown.map((c) => c.id), [paged.shown]);
   const homePick = useListPicks(selection, shownIds, view.name === 'home');
@@ -264,206 +175,35 @@ export function App({ surface = 'panel' }: { surface?: 'panel' | 'popup' }) {
   }
 
   return shell(
-    <>
-      <header className="flex items-start justify-between px-[18px] pt-5 pb-3">
-        <div className="min-w-0">
-          <h1 className="font-display text-[26px] leading-tight font-extrabold">Your clips</h1>
-          {sortedToday > 0 && (
-            <p className="mt-0.5 text-[13px] text-text-2">
-              Sorted {sortedToday} new {sortedToday === 1 ? 'clip' : 'clips'} today
-            </p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <ExpandButton className="bg-surface" />
-          <IconButton
-            label="Hide previews"
-            aria-pressed={hidePreviews}
-            className={hidePreviews ? 'bg-accent! text-on-accent!' : 'bg-surface'}
-            onClick={() => void updateSettings({ hidePreviews: !hidePreviews })}
-          >
-            <EyeOff size={19} aria-hidden />
-          </IconButton>
-          <IconButton label="Add a clip" aria-expanded={adding} className="bg-surface" onClick={() => setAdding(!adding)}>
-            <Plus size={20} aria-hidden />
-          </IconButton>
-          <IconButton label="Settings" className="bg-surface" onClick={() => setView({ name: 'settings' })}>
-            <MoreHorizontal size={20} aria-hidden />
-          </IconButton>
-        </div>
-      </header>
-
-      {adding && (
-        <div className="px-[18px] pb-3">
-          <AddClipForm
-            onCancel={() => setAdding(false)}
-            onSaved={() => {
-              setAdding(false);
-              notify('Saved');
-            }}
-          />
-        </div>
-      )}
-
-      <div className="px-[18px] pb-3">
-        <div className="flex items-center gap-2">
-          <SearchField
-            className="min-w-0 flex-1"
-            label="Search your clips"
-            placeholder="Search your clips"
-            // Chrome focuses the popup's first button otherwise, showing a focus ring nobody asked for.
-            autoFocus={surface === 'popup'}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {clips && clips.length > 0 && (
-            <IconButton
-              label="Filters"
-              aria-expanded={showFilters}
-              className={showFilters ? 'bg-accent! text-on-accent!' : 'bg-surface'}
-              onClick={() => {
-                if (showFilters) setFilters(NO_FILTERS);
-                setFiltersOpen(!showFilters);
-              }}
-            >
-              <SlidersHorizontal size={18} aria-hidden />
-            </IconButton>
-          )}
-        </div>
-        {showFilters && clips && clips.length > 0 && (
-          <div className="mt-3 border-b border-line pb-3">
-            <FilterBar filters={filters} sites={sites} query={query} onChange={setFilters} />
-          </div>
-        )}
-      </div>
-
-      {settings && clips && (
-        <HomeNotice
-          settings={settings}
-          now={now}
-          count={clips.length}
-          onOpenSettings={() => setView({ name: 'settings' })}
-          notify={notify}
-        />
-      )}
-
-      <main className="min-h-0 flex-1 overflow-y-auto px-[18px]">
-        {clips === undefined ? null : clips.length === 0 ? (
-          <EmptyState onGrab={saveFromClipboard} autoSave={!!settings?.autoSave} />
-        ) : searching && current === null ? null : visible.length === 0 ? (
-          <p className="py-10 text-center text-sm text-text-3">
-            {query.trim() ? `No clips match “${query.trim()}”.` : 'No clips match these filters.'}
-          </p>
-        ) : (
-          <>
-            {!searching && summaries && (
-              <section aria-labelledby="collections-title" className="pb-4">
-                <div className="flex items-center justify-between pb-2">
-                  <h2 id="collections-title" className="font-display text-[17px] font-semibold">
-                    Collections
-                  </h2>
-                  <button
-                    type="button"
-                    aria-expanded={creating}
-                    aria-label="New collection"
-                    onClick={() => setCreating(!creating)}
-                    className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-full px-2 text-[13px] font-semibold text-text-2 hover:bg-surface"
-                  >
-                    <Plus size={14} aria-hidden />
-                    New
-                  </button>
-                </div>
-                {creating && (
-                  <div className="pb-2.5">
-                    <NewCollectionForm
-                      onCancel={() => setCreating(false)}
-                      onCreated={(c) => {
-                        setCreating(false);
-                        notify(`Created ${c.name}`);
-                      }}
-                    />
-                  </div>
-                )}
-                <ul ref={folderGrid} className="relative grid grid-cols-2 gap-2.5" aria-label="Collections" {...folderGridDrag}>
-                  {(shownFolders ?? summaries).map((s) => (
-                    <CollectionTile
-                      key={s.collection.id}
-                      summary={s}
-                      onOpen={() => setView({ name: 'collection', id: s.collection.id })}
-                      onDropClip={(clipId) => {
-                        void moveClip(clipId, s.collection.id).then(() => notify(`Moved to ${s.collection.name}`));
-                      }}
-                      reorder={folderTile(s.collection.id)}
-                    />
-                  ))}
-                </ul>
-              </section>
-            )}
-            {!searching && (
-              <ImageStrip
-                clips={clips}
-                onOpen={(c) => setView({ name: 'detail', id: c.id })}
-                selection={selection}
-                onSeeAll={() => {
-                  setFilters({ ...NO_FILTERS, kind: 'image' });
-                  setFiltersOpen(true);
-                }}
-              />
-            )}
-            {!searching && settings && !settings.dismissedTips.includes('quick-paste') && clips.length <= 3 && (
-              <div className="pb-4">
-                <Notice
-                  tone="info"
-                  title="Try pasting it back"
-                  body={`Click into any text box and press ${keyLabel(keys, 'quick-paste')} to pick from your clips.`}
-                  action={{
-                    label: 'Got it',
-                    onClick: () => void updateSettings({ dismissedTips: [...settings.dismissedTips, 'quick-paste'] }),
-                  }}
-                />
-              </div>
-            )}
-            {!searching && summaries && summaries.length > 0 && (
-              <h2 className="font-display text-[17px] font-semibold">Recent</h2>
-            )}
-            {searching && (
-              <p className="pb-1 text-[13px] text-text-2" aria-live="polite">
-                {visible.length} {visible.length === 1 ? 'clip matches' : 'clips match'}
-              </p>
-            )}
-            <ul aria-label="Clips">
-              {paged.shown.map((clip) => (
-                <ClipRow
-                  key={clip.id}
-                  clip={clip}
-                  collection={clip.collectionId ? collectionsById.get(clip.collectionId) : undefined}
-                  onOpen={(c) => setView({ name: 'detail', id: c.id })}
-                  onCopy={copy}
-                  pick={homePick(clip.id)}
-                />
-              ))}
-            </ul>
-            <ShowMore rest={paged.rest} pageSize={paged.pageSize} onMore={paged.more} />
-          </>
-        )}
-      </main>
-
-      <footer
-        className={`${picking ? 'hidden' : 'flex'} items-center justify-between gap-3 border-t border-line px-[18px] pt-2.5 pb-4`}
-      >
-        <span className="text-[13px] text-text-2">Private: stored and sorted on this device</span>
-        {settings?.autoSave && !paused ? (
-          <Button variant="outline" size="sm" onClick={() => void updateSettings({ pausedUntil: Date.now() + PAUSE_MS })}>
-            Pause
-          </Button>
-        ) : (
-          <Button size="sm" onClick={saveFromClipboard}>
-            <ClipboardPaste size={16} aria-hidden />
-            Grab clipboard
-          </Button>
-        )}
-      </footer>
-    </>,
+    <HomeView
+      surface={surface}
+      settings={settings}
+      now={now}
+      clips={clips}
+      summaries={summaries}
+      keys={keys}
+      selection={selection}
+      pick={homePick}
+      picking={picking}
+      query={query}
+      setQuery={setQuery}
+      filters={filters}
+      setFilters={setFilters}
+      showFilters={showFilters}
+      setFiltersOpen={setFiltersOpen}
+      searching={searching}
+      results={results}
+      visible={visible}
+      paged={paged}
+      adding={adding}
+      setAdding={setAdding}
+      creating={creating}
+      setCreating={setCreating}
+      setView={setView}
+      onCopy={copy}
+      onGrab={saveFromClipboard}
+      notify={notify}
+    />,
   );
 }
 

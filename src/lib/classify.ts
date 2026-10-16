@@ -1,6 +1,4 @@
-/**
- * Rule-based sorting into collections. Fast, offline, deterministic.
- */
+/** Rule-based sorting into collections. */
 import type { Clip } from './db';
 import { hostOf } from './format';
 import { findAddress, findTracking } from './actions';

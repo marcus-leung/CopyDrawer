@@ -8,7 +8,8 @@ const HOOKED = Symbol.for('copydrawer.clipboardHook');
 /**
  * Runs in the page's own JavaScript world, where copy buttons call `navigator.clipboard.writeText` and `write`.
  * Those fire no copy event, so this reports each successful write instead. The extension's side only accepts a
- * report right after a click or key press, so a page can't add clips any more than it could by copying itself.
+ * report right after a trusted click (pressing Enter or Space on a focused button fires one too), so a page
+ * can't add clips any more than it could by copying itself.
  */
 export function hookClipboardWrites(win: Window & typeof globalThis) {
   const proto = win.Clipboard?.prototype as (Clipboard & { [HOOKED]?: true }) | undefined;

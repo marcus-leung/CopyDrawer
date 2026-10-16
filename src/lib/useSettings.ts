@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getSettings, settingsItem, type Settings } from './settings';
 
-/** Live settings: re-renders when they change anywhere in the extension. */
 export function useSettings(): Settings | null {
   const [settings, setSettings] = useState<Settings | null>(null);
   useEffect(() => {

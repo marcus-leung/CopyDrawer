@@ -170,7 +170,7 @@ export function readSelection(): { text: string; html: string } {
 
 /**
  * Fetches an image from the page's own context (helps with same-site and CORS-enabled images), as a data URL.
- * Stops reading past `maxBytes`. Only `types` count as an image. Runs in the page: no outside helpers.
+ * Stops reading past `maxBytes`. Only `types` count as an image.
  */
 export async function fetchImageInPage(
   url: string,

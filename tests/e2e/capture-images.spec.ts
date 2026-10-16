@@ -7,7 +7,6 @@ const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>Photo page
 test('right-click "Save image" and "Screenshot an area" save images with a page toast', async ({ context, extensionId }) => {
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
-  // Make a real 40x30 PNG in the browser to serve as the page's image.
   const PNG = Buffer.from(
     await panel.evaluate(async () => {
       const canvas = new OffscreenCanvas(40, 30);
@@ -60,7 +59,6 @@ test('right-click "Save image" and "Screenshot an area" save images with a page 
       tabId,
     );
 
-  // Undo on the card removes the clip it just saved.
   await page.bringToFront();
   await card.getByRole('button', { name: 'Undo' }).click();
   await expect(list.getByRole('listitem')).toHaveCount(0);
@@ -80,7 +78,6 @@ test('right-click "Save image" and "Screenshot an area" save images with a page 
   await expect(card.getByRole('button', { name: 'Undo' })).toHaveCount(0);
   await expect(list.getByRole('listitem')).toHaveCount(1);
 
-  // Screenshot: start the tool, then drag on the page.
   await page.bringToFront();
   const done = panel.evaluate((id) => chrome.runtime.sendMessage({ type: 'e2e-menu', action: 'screenshot', tabId: id }), tabId);
   await page.locator('#__clipboard_ext_shot__').waitFor({ state: 'attached' });

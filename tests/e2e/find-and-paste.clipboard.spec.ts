@@ -32,7 +32,6 @@ test('search: words, typos, filters, empty results', async ({ context, extension
   await expect(list.getByRole('listitem')).toHaveCount(4);
   const search = panel.getByRole('searchbox', { name: 'Search your clips' });
 
-  // Words: collections hide while searching; the count is announced.
   await search.fill('garlic');
   await expect(list.getByRole('listitem')).toHaveCount(1);
   await expect(panel.getByText('1 clip matches')).toBeVisible();
@@ -43,7 +42,6 @@ test('search: words, typos, filters, empty results', async ({ context, extension
   await expect(list.getByRole('listitem')).toHaveCount(1);
   await expect(list).toContainText('Photosynthesis');
 
-  // Filters: type, site, date. The site list comes from your clips.
   await search.fill('');
   await expect(panel.getByRole('group', { name: 'Filters' })).toHaveCount(0);
   await panel.getByRole('button', { name: 'Filters' }).click();
@@ -60,7 +58,6 @@ test('search: words, typos, filters, empty results', async ({ context, extension
   await panel.getByLabel('Type').selectOption('any');
   await panel.getByLabel('Date').selectOption('any');
 
-  // Closing the filters and clearing the search brings the home screen back.
   await search.fill('');
   await panel.getByRole('button', { name: 'Filters' }).click();
   await expect(panel.getByRole('group', { name: 'Filters' })).toHaveCount(0);
@@ -76,7 +73,6 @@ test('search forgives typos', async ({ context, extensionId }) => {
   const list = panel.getByRole('list', { name: 'Clips' });
   await expect(list.getByRole('listitem')).toHaveCount(1);
   await expect(list).toContainText('Photosynthesis');
-  // Nothing at all matches.
   await panel.getByRole('searchbox', { name: 'Search your clips' }).fill('zzqx');
   await expect(panel.getByText('No clips match “zzqx”.')).toBeVisible();
 });
@@ -164,28 +160,25 @@ test('quick paste into text, email, textarea (replacing a selection), contentedi
   const { page, open } = await setupQuickPaste(context, extensionId, ['Alex Morgan', 'alex.morgan@example.com', 'the Q3 report']);
   const box = page.getByRole('dialog', { name: 'Quick paste' });
 
-  // Most recent first; Enter pastes the highlighted one.
   await page.locator('#name').click();
   await open();
   await expect(page.getByRole('option').first()).toContainText('the Q3 report');
   await page.keyboard.type('alex m');
   await expect(page.getByRole('option')).toHaveCount(2);
-  await page.keyboard.press('ArrowDown'); // second match
-  await page.keyboard.press('ArrowUp'); // back to the first
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowUp');
   await page.keyboard.press('Enter');
   // Both match "alex m"; the newer one (the email) is first.
   await expect(page.locator('#name')).toHaveValue('alex.morgan@example.com');
   await expect(box).toHaveCount(0);
   await expect(page.locator('#name')).toBeFocused();
 
-  // Email field.
   await page.locator('#email').click();
   await open();
   await page.keyboard.type('example.com');
   await page.keyboard.press('Enter');
   await expect(page.locator('#email')).toHaveValue('alex.morgan@example.com');
 
-  // Textarea: replaces the selected word.
   await page.locator('#notes').evaluate((el: HTMLTextAreaElement) => {
     el.focus();
     const start = el.value.indexOf('PLACEHOLDER');
@@ -199,7 +192,6 @@ test('quick paste into text, email, textarea (replacing a selection), contentedi
   await page.keyboard.press('ControlOrMeta+Z');
   await expect(page.locator('#notes')).toHaveValue('Dear team, PLACEHOLDER thanks.');
 
-  // Contenteditable, by mouse.
   await page.locator('#ce').click();
   await page.keyboard.press('End');
   await open();
@@ -243,7 +235,6 @@ test('quick paste: Esc, click outside, no matches, page shortcuts, opening twice
   await open();
   await page.keyboard.type('zzz');
   await expect(box).toContainText('No clips match');
-  // Keys typed in the box don't reach the page's own handlers.
   expect(Number(await page.locator('#keys').textContent())).toBe(keysBefore);
   await page.keyboard.press('Escape');
   await expect(box).toHaveCount(0);
@@ -265,7 +256,6 @@ test('quick paste: Esc, click outside, no matches, page shortcuts, opening twice
   await page.keyboard.press('Enter');
   await expect(page.locator('#name')).toHaveValue('the Q3 report');
 
-  // Pasting counts as a use.
   await expect.poll(async () => (await readClips(panel)).find((c) => c.text === 'the Q3 report')?.useCount).toBe(1);
 });
 
@@ -285,7 +275,6 @@ test('quick paste with no text field (or inside a frame) copies instead and says
     .toBe('Alex Morgan');
   await page.bringToFront();
 
-  // A read-only field isn't changed: it copies instead.
   await page.locator('#locked').focus();
   await open();
   await page.keyboard.press('Enter');
@@ -410,7 +399,6 @@ test('quick paste follows the theme chosen in Settings, not only the system', as
   await boxBg().toBe('rgb(36, 24, 25)');
   await page.keyboard.press('Escape');
 
-  // Font and text size from Settings too.
   await panel.evaluate(async () => {
     const { settings } = await chrome.storage.local.get('settings');
     await chrome.storage.local.set({ settings: { ...(settings ?? {}), font: 'mono', textSize: 115 } });

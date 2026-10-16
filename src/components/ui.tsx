@@ -66,3 +66,57 @@ export function SearchField({ label, className = '', ...props }: InputHTMLAttrib
     </label>
   );
 }
+
+export function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section aria-labelledby={id}>
+      <h2 id={id} className="mb-2 text-[13px] font-semibold text-text-3">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+export function Row({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex min-h-11 items-center justify-between text-sm">
+      <span>{label}</span>
+      {value}
+    </div>
+  );
+}
+
+export function Toggle({
+  id,
+  label,
+  hint,
+  checked,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  hint?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (on: boolean) => void;
+}) {
+  return (
+    <div className="flex min-h-11 items-center justify-between gap-3 py-1">
+      <label htmlFor={id} className="text-sm">
+        {label}
+        {hint && <span className="mt-0.5 block text-xs leading-[17px] text-text-3">{hint}</span>}
+      </label>
+      <input
+        id={id}
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+        className="size-5 shrink-0 cursor-pointer accent-[var(--accent)]"
+      />
+    </div>
+  );
+}

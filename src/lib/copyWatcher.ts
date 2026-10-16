@@ -2,13 +2,13 @@ import { extensionAlive, safeSend } from './safeSend';
 import { MAX_HTML, MAX_TEXT } from './limits';
 import { CLIPBOARD_WRITE_EVENT } from './clipboardHook';
 
+const CLICK_WINDOW_MS = 2000;
+
 /**
  * Sends what's copied or cut in `win` (text, or a selected image), and what the page's copy buttons write,
  * to the background. Stops listening once the extension is reloaded or updated, since
- * this copy of the script can no longer reach it. Returns a function that stops it.
+ * this copy of the script can't reach it after that. Returns a function that stops it.
  */
-const CLICK_WINDOW_MS = 2000;
-
 export function watchCopies(win: Window): () => void {
   const stop = () => {
     win.removeEventListener('copy', onCopy);
@@ -50,7 +50,6 @@ export function watchCopies(win: Window): () => void {
     if (!extensionAlive()) return stop();
     // The element actually copied from, also inside web components (where `target` is only their outer element).
     const target = event.composedPath()[0] ?? null;
-    // Never read password fields.
     if (target instanceof HTMLInputElement && target.type === 'password') return;
 
     // Pages that customize copying put their data on clipboardData; read it

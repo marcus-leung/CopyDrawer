@@ -8,7 +8,6 @@ test('paste into the panel, find it, copy it, delete and undo', async ({ context
 
   await expect(page.getByRole('heading', { name: 'Save something to start' })).toBeVisible();
 
-  // Simulate pasting text into the panel.
   const paste = async (text: string) =>
     page.evaluate((t) => {
       const data = new DataTransfer();
@@ -22,16 +21,13 @@ test('paste into the panel, find it, copy it, delete and undo', async ({ context
   await expect(list.getByRole('listitem')).toHaveCount(2);
   await expect(list).toContainText('airbnb.com/rooms/48213377');
 
-  // Search filters the list.
   await page.getByRole('searchbox', { name: 'Search your clips' }).fill('garlic');
   await expect(list.getByRole('listitem')).toHaveCount(1);
 
-  // Copy puts the text on the clipboard.
   await list.getByRole('button', { name: 'Copy' }).click();
   await expect(page.getByRole('status')).toContainText('Copied');
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('Lemon garlic pasta, ingredients');
 
-  // Open, delete, undo.
   await list.getByRole('button', { name: /Lemon garlic pasta/ }).click();
   await page.getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByRole('status')).toContainText('Clip deleted');
@@ -46,17 +42,14 @@ test('add a clip by hand: type or paste, save, cancel, empty refused', async ({ 
   const form = page.getByRole('form', { name: 'Add a clip' });
   const box = form.getByLabel('New clip');
 
-  // Esc cancels without saving.
   await add.click();
   await expect(box).toBeFocused();
-  // It opens above the search bar.
   const search = page.getByRole('searchbox', { name: 'Search your clips' });
   expect((await form.boundingBox())!.y).toBeLessThan((await search.boundingBox())!.y);
   await box.fill('never mind');
   await box.press('Escape');
   await expect(form).toHaveCount(0);
 
-  // Empty text is refused.
   await add.click();
   await form.getByRole('button', { name: 'Save' }).click();
   await expect(form.getByRole('alert')).toHaveText('Type or paste something to save.');

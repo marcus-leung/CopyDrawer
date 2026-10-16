@@ -3,7 +3,6 @@ import { markUsed } from '@/lib/clips';
 
 const chip = 'h-8 cursor-pointer rounded-full border border-line-strong bg-bg px-3 text-[13px] font-semibold text-ink';
 
-/** Paste as, for clips with formatting: keep it, or copy plain text. */
 export function PasteAs({
   clip,
   onCopyOriginal,

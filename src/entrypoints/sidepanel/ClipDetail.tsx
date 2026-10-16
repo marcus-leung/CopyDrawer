@@ -210,7 +210,6 @@ function MoveTo({ clip }: { clip: Clip }) {
   );
 }
 
-/** Edit the saved copy's title and text, or an image's note. */
 function EditClip({ clip, onDone }: { clip: Clip; onDone: (saved: boolean) => void }) {
   const [title, setTitle] = useState(clip.title);
   const [text, setText] = useState(clip.text);

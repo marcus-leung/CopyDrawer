@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
-// See https://wxt.dev/api/config.html
 // E2E=1 builds a test copy with all-sites access pre-granted, so auto-save can be tested.
 const e2e = process.env.E2E === '1';
 /** The Chrome Extension OAuth client for Drive sync. Without it, the build hides sync. */

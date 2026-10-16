@@ -24,7 +24,6 @@ const KIND_ICON: Record<Exclude<ClipKind, 'image' | 'color'>, typeof Type> = {
   number: Hash,
 };
 
-/** While picking, any click picks; otherwise ⌘/Ctrl- or Shift-click does. */
 export const isPickClick = (pick: RowPick | undefined, e: React.MouseEvent): pick is RowPick =>
   !!pick && (pick.selecting || e.metaKey || e.ctrlKey || e.shiftKey);
 
@@ -98,7 +97,6 @@ export function ClipRow({
   );
 }
 
-/** The checkbox that picks a clip; shows its number once picked. Hidden until hover or focus, then always while picking. */
 export function PickBox({ title, pick, className = '' }: { title: string; pick: RowPick; className?: string }) {
   const picked = pick.number > 0;
   return (

@@ -24,13 +24,11 @@ test('clips sort into collections and trips; moving a clip keeps it there', asyn
   await expect(page.getByText('Sorted 3 new clips today')).toBeVisible();
   await expect(page.getByRole('list', { name: 'Clips' })).toContainText('Recipes, saved by hand');
 
-  // Open the trip.
   await tiles.getByRole('button', { name: /Lisbon trip/ }).click();
   await expect(page.getByRole('heading', { name: 'Lisbon trip' })).toBeVisible();
   const inTrip = page.getByRole('list', { name: 'Clips in Lisbon trip' });
   await expect(inTrip.getByRole('listitem')).toHaveCount(2);
 
-  // Move the hotel into a new collection from its detail page, named right there.
   await inTrip.getByRole('button', { name: /Hotel in Chiado/ }).click();
   const select = page.getByRole('combobox', { name: /Collection/ });
   await select.selectOption('__new__');
@@ -44,11 +42,9 @@ test('clips sort into collections and trips; moving a clip keeps it there', asyn
   await expect(form).toHaveCount(0);
   await expect(select.locator('option:checked')).toHaveText('Places to stay');
 
-  // Back goes to the trip, which now has one clip.
   await page.getByRole('button', { name: 'Back' }).click();
   await expect(inTrip.getByRole('listitem')).toHaveCount(1);
 
-  // Rename the trip.
   await page.getByRole('button', { name: 'Rename' }).click();
   await page.getByLabel('Collection name').fill('Lisbon in October');
   await page.getByLabel('Collection name').press('Enter');

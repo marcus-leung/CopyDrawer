@@ -5,7 +5,7 @@ import { keyLabel, useShortcuts } from '@/lib/useShortcuts';
 import { COLORS } from '@/lib/collections';
 import { Button } from '@/components/ui';
 
-/** First-run setup in 3 steps. Opens in a tab after install. */
+/** Opens in a tab after install. */
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(1);
   const [autoSave, setAutoSave] = useState<boolean | null>(null);
@@ -162,7 +162,6 @@ function Shortcut({ title, hint, keys }: { title: string; hint?: string; keys: s
   );
 }
 
-/** Three folder tiles, as on the home screen. */
 function FolderArt() {
   const tiles = [
     { name: 'Research', c: COLORS.blue! },

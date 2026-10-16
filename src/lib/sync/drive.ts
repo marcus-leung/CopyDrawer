@@ -171,6 +171,18 @@ export function ignoreGone(e: unknown): undefined {
   throw e;
 }
 
+/** Every file in the app folder, across all pages. */
+export async function listAll(drive: Drive): Promise<DriveFile[]> {
+  const files: DriveFile[] = [];
+  let pageToken: string | undefined;
+  do {
+    const page = await drive.list(pageToken);
+    files.push(...page.files);
+    pageToken = page.nextPageToken;
+  } while (pageToken);
+  return files;
+}
+
 async function driveError(res: Response): Promise<DriveError> {
   const body = (await res.json().catch(() => ({}))) as {
     error?: { message?: string; errors?: { reason?: string; location?: string }[] };

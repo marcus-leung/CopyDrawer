@@ -22,7 +22,6 @@ function countLine(count: number, newCount: number): string {
   return newCount ? `${base}, ${newCount} new` : base;
 }
 
-/** Folder tile: an accent tab over a tinted body. */
 export function CollectionTile({
   summary,
   onOpen,
@@ -31,9 +30,8 @@ export function CollectionTile({
 }: {
   summary: CollectionSummary;
   onOpen: () => void;
-  /** A clip row was dropped on this tile. */
   onDropClip?: (clipId: string) => void;
-  /** Dragging folders to reorder them. Where it lands, and the drop, are worked out by the grid. */
+  /** Where it lands, and the drop, are worked out by the grid. */
   reorder?: { dragging: boolean; onStart: () => void; onEnd: () => void };
 }) {
   const { collection, count, newCount } = summary;

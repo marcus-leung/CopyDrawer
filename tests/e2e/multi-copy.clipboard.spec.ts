@@ -44,7 +44,6 @@ test('pick clips in order, copy them joined, change the separator, ranges, pick 
   await bar(panel).getByRole('button', { name: 'Copy all' }).click();
   await expect(panel.getByRole('status')).toContainText('Copied 2 clips. Paste anywhere.');
   await expect.poll(() => clipboardText(panel)).toBe('Charlie\nAlpha');
-  // Copying counts as a use of each clip.
   await expect.poll(async () => (await readClips(panel)).filter((c) => c.useCount === 1).length).toBe(2);
 
   await bar(panel).getByRole('button', { name: 'More for picked clips' }).click();
@@ -59,7 +58,6 @@ test('pick clips in order, copy them joined, change the separator, ranges, pick 
     )
     .toBe('blank');
 
-  // Unpicking renumbers; Esc clears.
   await pick(panel, 'Charlie').click();
   await expect(pick(panel, 'Alpha')).toHaveText('1');
   await panel.keyboard.press('Escape');

@@ -31,7 +31,6 @@ test('smart actions, images and colors strip, toolbar popup expands to the panel
   await panel.getByRole('button', { name: 'Got it' }).click();
   await expect(panel.getByText('Try pasting it back')).toHaveCount(0);
 
-  // Tracking number: note + actions. It also lands in Shopping.
   await list.getByRole('button', { name: /1Z 999/ }).click();
   await expect(panel.getByText('Looks like a UPS tracking number')).toBeVisible();
   await expect(panel.getByLabel('Collection').locator('option:checked')).toHaveText('Shopping');
@@ -43,7 +42,6 @@ test('smart actions, images and colors strip, toolbar popup expands to the panel
     .toContain('ups.com/track?tracknum=1Z999AA10123456784');
   await panel.getByRole('button', { name: 'Back' }).click();
 
-  // Color: swatch and formats.
   await panel.getByRole('list', { name: 'Images and colors' }).getByRole('button').click();
   await expect(panel.getByText('Looks like a color')).toBeVisible();
   await panel.getByRole('button', { name: 'Copy RGB' }).click();
@@ -71,7 +69,6 @@ test('smart actions, images and colors strip, toolbar popup expands to the panel
   await popup2.getByRole('button', { name: 'Open in side panel' }).click();
   await panel.bringToFront();
   await expect(panel.getByRole('heading', { name: '1Z 999 AA1 01 2345 6784' })).toBeVisible();
-  // The side panel itself has no expand button.
   await expect(panel.getByRole('button', { name: 'Open in side panel' })).toHaveCount(0);
 });
 

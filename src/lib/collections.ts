@@ -34,7 +34,6 @@ export const PRESET_COLORS = COLOR_ORDER;
 
 export const MAX_COLLECTION_NAME = 100;
 
-/** Trims a collection name and keeps it within the limit. */
 export function cleanName(name: string): string {
   return name.trim().slice(0, MAX_COLLECTION_NAME).trim();
 }
@@ -69,7 +68,6 @@ export function colorOf(collection: Pick<Collection, 'color'> | undefined): Coll
   return COLORS[color] ?? COLORS.grey!;
 }
 
-/** The order for a new collection: after every existing one. */
 export async function nextOrder(db: ClipDatabase = defaultDb): Promise<number> {
   const last = await db.collections.orderBy('order').last();
   return last ? last.order + 1 : 0;
