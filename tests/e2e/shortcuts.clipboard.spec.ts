@@ -125,7 +125,7 @@ test('the extension shortcuts are bound, and each one does its job', async ({ co
   const commands = await panel.evaluate(() => chrome.commands.getAll());
   const key = (name: string) => commands.find((c) => c.name === name)?.shortcut;
   expect(key('save-selection')).toMatch(/^(Alt\+Shift\+|⌥⇧)S$/);
-  expect(key('screenshot-area')).toMatch(/^(Alt\+Shift\+|⌥⇧)X$/);
+  expect(key('screenshot-area')).toBe(process.platform === 'darwin' ? '⌥⇧X' : 'Alt+Shift+D');
   expect(key('quick-paste')).toMatch(/^(Alt\+Shift\+|⌥⇧)V$/);
   const press = (command: string) =>
     panel.evaluate((m) => chrome.runtime.sendMessage({ type: 'e2e-command', ...m }), { command, tabId });

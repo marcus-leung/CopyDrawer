@@ -1,4 +1,4 @@
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /** Pastes text into the side panel, as if the user pressed Ctrl+V on it. */
 export async function pasteIntoPanel(page: Page, ...texts: string[]) {
@@ -40,6 +40,8 @@ export function readClips(page: Page) {
  * Playwright's mouse-driven dragTo sometimes misses HTML drag-and-drop when the machine is busy.
  */
 export async function dragAndDrop(page: Page, source: Locator, target: Locator) {
+  // Tiles still sliding from a previous drag are drawn away from their slots, so measuring one then can miss.
+  await expect.poll(() => page.evaluate(() => document.getAnimations().length)).toBe(0);
   const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
   await source.dispatchEvent('dragstart', { dataTransfer });
   for (const type of ['dragenter', 'dragover', 'drop']) await dragOver(target, dataTransfer, type);

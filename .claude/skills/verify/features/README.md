@@ -28,7 +28,7 @@ This directory is the maintained source for verifying the user-facing behavior o
 - [Auto-save copies](./autosave.md): copying on a web page saves a clip, with password fields and blocked sites skipped.
 - [Popup](./popup.md): the toolbar popup is the full app and can hand off to the side panel.
 - [Add and find clips](./add-and-find.md): pasting into the panel, search, filters, copy back, delete and undo.
-- [Copy shortcuts](./copy-shortcuts.md): copy/cut keys, menu Copy, Alt+Shift+S/V/X, and pasting back.
+- [Copy shortcuts](./copy-shortcuts.md): copy/cut keys, menu Copy, Alt+Shift+S/V/D (⌥⇧X for the screenshot on a Mac), and pasting back.
 - [Export](./export.md): the .zip export: clips.html reads well, clips.json and images import back.
 - [Folders order](./folders.md): folders stay where the user put them and reorder by dragging, with a live preview.
 - [Copy several at once](./multi-copy.md): pick clips, copy them joined in pick order, move or delete them; Tab-pick in quick paste.

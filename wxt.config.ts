@@ -113,7 +113,8 @@ export default defineConfig({
         description: 'Save the selected text',
       },
       'screenshot-area': {
-        suggested_key: { default: 'Alt+Shift+X' },
+        // Chrome on Windows and Linux keeps Alt+Shift+X for itself, and leaves it unbound.
+        suggested_key: { default: 'Alt+Shift+D', mac: 'Alt+Shift+X' },
         description: 'Screenshot an area of the page',
       },
       'quick-paste': {

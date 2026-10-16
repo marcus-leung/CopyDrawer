@@ -169,7 +169,7 @@ Chrome extension code is shipped as JavaScript that **anyone can download and re
 | 5 | History limit | ✅ 5,000 clips, **pins count toward the limit** (lists draw 100 at a time; see `pnpm bench`) |
 | 6 | Retention | ✅ Keep until limit (oldest unpinned dropped first); optional auto-delete after 30/90 days, confirmed in place with the number of clips it deletes |
 | 7 | Auto-capture default | ✅ **Opt-in**, strongly offered in onboarding (see §3) |
-| 8 | Keyboard shortcuts | ✅ Alt+Shift+V (quick paste), Alt+Shift+S (save selection), Alt+Shift+X (screenshot). **All configurable** (in-app link to `chrome://extensions/shortcuts`) |
+| 8 | Keyboard shortcuts | ✅ Alt+Shift+V (quick paste), Alt+Shift+S (save selection), Alt+Shift+D (screenshot; ⌥⇧X on a Mac, since Chrome on Windows and Linux keeps Alt+Shift+X). **All configurable** (in-app link to `chrome://extensions/shortcuts`) |
 | 9 | Main surface | ✅ Side panel + quick-paste box |
 | 10 | Passwords/keys handling | ✅ **Out of scope for MVP** (no detection/masking). Only the seed site exclusions from §3 |
 | 11 | Analytics | ✅ None |
