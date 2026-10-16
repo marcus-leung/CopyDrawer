@@ -48,7 +48,7 @@ Spending that's optional but worth it later: a designer for the icon and store a
 - [x] Single-purpose statement: "Save, organize, and paste things you copy"
 - [x] A justification for each permission ([07-store-listing.md](07-store-listing.md) §3)
 - [ ] Data-usage disclosure form (certify Limited Use)
-- [ ] Assets: 128px icon, 3–5 screenshots at 1280×800, 440×280 promo tile, 30–60 s demo video (YouTube); icon done, rest open
+- [ ] Assets: 128px icon, 3–5 screenshots at 1280×800, 440×280 promo tile, 30–60 s demo video (YouTube); icon, screenshots and promo tile done ([assets/store](../assets/store)), video open
 - [x] Store copy with keywords: "clipboard manager", "clipboard history", "copy paste"
 - [ ] Unlisted beta listing first (tests the review process early and gets testers on real installs)
 - [x] Support email: leungmarcus89@gmail.com (in the privacy policy)
