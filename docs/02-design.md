@@ -52,7 +52,7 @@ Problem: auto-capturing copies on every site needs `<all_urls>` content scripts 
 
 Why: a lighter install warning, a likely smoother first review, and a trust story ("we only read pages if you turn it on"), while most users still end up with auto-capture through onboarding. The production build must not list `<all_urls>` in `host_permissions`; `pnpm check` checks this before every push.
 
-Always excluded (hardcoded + user list): `chrome://` pages, the Web Store, and a built-in list of password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites (cheap safety net). Auto-save also skips text that looks like a password, access key, private key or card number (`src/lib/secrets.ts`). Only trusted copy events (made by the user, not dispatched by the page) are saved, plus copy-button writes (`navigator.clipboard`) reported right after a user click or key press; a copied image is fetched from inside the page, never with the extension's all-sites access.
+Always excluded (hardcoded + user list): `chrome://` pages, the Web Store, and a built-in list of password-manager, bank, government, sign-in, email, payment, tax, credit, payroll, insurance and health sites (cheap safety net). Auto-save also skips text that looks like a password, access key, private key or card number (`src/lib/secrets.ts`). Only trusted copy events (made by the user, not dispatched by the page) are saved, plus copy-button writes (`navigator.clipboard`) reported within 2 seconds of a real click (a key press on a focused button counts); a copied image is fetched from inside the page, never with the extension's all-sites access.
 
 ---
 

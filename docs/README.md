@@ -1,6 +1,8 @@
 # Project docs
 
-We follow **Research → Design → Plan → Build**.
+Start with [ARCHITECTURE.md](ARCHITECTURE.md): how the extension works today (auto-save, secret detection, full-disk recovery, search, Drive sync, quick paste, testing).
+
+The numbered docs are the record of how it was planned: **Research → Design → Plan → Build**.
 
 | # | Doc | Contents | Status |
 |---|---|---|---|
