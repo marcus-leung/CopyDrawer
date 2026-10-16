@@ -2,7 +2,7 @@
 
 _Process: Research → Design → **Plan** → Build. Inputs: [02-design.md](02-design.md) (features, architecture, decisions), [05-ui-design-system.md](05-ui-design-system.md) (UI), [04-design-resources.md](04-design-resources.md) (approved libraries)._
 
-Assumptions: solo developer, ~20 h/week, AI coding help. Chrome only. English. Closed source, all rights reserved.
+Assumptions: solo developer, ~20 h/week, AI coding help. Chrome only. English. Open source, GPL-3.0.
 
 ---
 

@@ -4,7 +4,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "GPL-3.0-only",
   "scripts": {
     "dev": "wxt",
     "build": "wxt build",
