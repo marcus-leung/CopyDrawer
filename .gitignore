@@ -12,3 +12,6 @@ bench-results.jsonl
 .env
 .env.*
 .claude/worktrees/
+
+# Private deploy notes; the repo is public.
+private/
