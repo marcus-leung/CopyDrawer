@@ -43,12 +43,12 @@ This is the manifest `description` in `wxt.config.ts`; the store shows it as the
 > • Hide previews with one click while you share your screen.
 > • Your clips are never wiped: if your disk fills up, CopyDrawer stops saving and tells you, so nothing already saved is lost. Export everything anytime.
 
-**Screenshots (1280×800, 5):** `assets/store/screenshot-1.png` to `-5.png`, the real side panel (light theme) docked next to a sample page, with a tomato caption. Regenerate with `E2E=1 pnpm exec wxt build && node scripts/make-store-art.mjs`:
-1. Home with collections and recent clips ("Everything you copy, kept and sorted").
-2. Search with filters ("Find it in seconds").
-3. Quick paste over a web form ("Paste anywhere with Alt+Shift+V").
-4. Clip detail with smart actions (tracking number or event) ("One click to the next step").
-5. A trip collection ("Plans sort themselves").
+**Screenshots (1280×800, 5):** `assets/store/screenshot-1.png` to `-5.png`. Each has a tomato headline band over a drawn browser window holding a made-up `.example` site and the real side panel (light theme). The sample data is a Kyoto trip. Regenerate with `E2E=1 pnpm exec wxt build && node scripts/make-store-art.mjs`:
+1. Home with collections, images and colors ("Everything you copy, kept and sorted").
+2. Quick paste in two frames: the box open on a notes page, then the clip typed into the note, with the Windows and Mac shortcuts ("Paste from your history, right where you type").
+3. Search with a typo and the filters open ("Find it in seconds").
+4. Clip detail with flight and calendar actions ("One click to the next step").
+5. Two computers sharing clips through Google Drive ("On all your computers").
 
 **Small promo tile (440×280):** `assets/store/promo-440x280.png`, cream D + "Everything you copy, kept and sorted." on tomato.
 
@@ -105,7 +105,9 @@ Sync needs a Google OAuth client tied to the store item's extension ID. Do this 
 
 - [x] Screenshots and promo tile.
 - [ ] Trademark check ([08-branding.md](08-branding.md) §4).
-- [ ] Developer account ($5 one-time, non-trader).
-- [ ] Drive sync setup (§5), and `pnpm test:drive` passes.
-- [ ] Two-computer sync checked by hand in Chrome with a signed-in build.
-- [ ] Upload the zip.
+- [x] Developer account ($5 one-time, non-trader).
+- [x] Drive sync setup (§5), and `pnpm test:drive` passes.
+- [x] Sync checked by hand in Chrome with a signed-in build: sign-in, restoring onto a fresh install, turning off with the Drive copy deleted, and signing in again after access was revoked.
+- [x] Upload the zip (1.0.1) and submit for review (17 October 2026).
+- [ ] Google Auth Platform app published (Audience shows "In production"), so anyone can sign in for sync.
+- [ ] After approval: install from the store, check sync, and add the store link to the README and the site.

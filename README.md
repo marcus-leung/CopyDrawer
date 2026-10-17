@@ -7,7 +7,7 @@ A private clipboard history for Chrome. Everything you copy is kept, sorted into
 
 [Website](https://marcus-leung.github.io/CopyDrawer/) · [Privacy policy](https://marcus-leung.github.io/CopyDrawer/privacy) · [How it works](docs/ARCHITECTURE.md)
 
-> **Status:** v1.0, ready for Chrome Web Store review.
+> **Status:** v1.0.1, submitted to the Chrome Web Store and in review (October 2026).
 
 ![CopyDrawer side panel](assets/store/screenshot-1.png)
 
@@ -15,9 +15,9 @@ A private clipboard history for Chrome. Everything you copy is kept, sorted into
 
 - **Save anything.** Press Alt+Shift+S on a selection, right-click to save an image, Alt+Shift+D (⌥⇧X on a Mac) to screenshot an area, or paste and drop into the panel. Optional **auto-save** keeps what you copy, including from a site's copy buttons.
 - **Never keeps secrets.** Auto-save skips passwords, access keys, private keys and card numbers. It also skips password managers, banks, email, sign-in, government, payment and health sites, plus any site you block.
-- **Sorted for you.** Rules file clips into Research, Links, Code, Shopping, Recipes and Personal. Travel clips become trips named after the place, such as "Lisbon trip". Make your own collections, pick their colors, and drag to file and reorder.
+- **Sorted for you.** Rules file clips into Research, Links, Code, Shopping, Recipes and Personal. Travel clips become trips named after the place, such as "Kyoto trip". Make your own collections, pick their colors, and drag to file and reorder.
 - **Finds what you meant.** Best-match search forgives typos, matches word starts, and ranks rare words and titles higher. Filter by type, site and date.
-- **Pastes back fast.** Alt+Shift+V opens a quick-paste box in any text field. The toolbar popup is the full app.
+- **Pastes back fast.** Alt+Shift+V (⌥⇧V on a Mac) in any text box opens your clip history right there. Pick one and it is typed in for you. The toolbar popup is the full app.
 - **Copies several at once.** Pick clips in order and copy them as one item. Formatting and images survive in Google Docs, Gmail and Notion.
 - **Smart actions.** Track a package, check a flight, add a date to your calendar, open an address in Maps, convert a color, tidy JSON, or strip tracking from a link.
 - **Your data, your copy.** Export to a .zip you can read in any browser, and import it back. Auto-delete after 30 or 90 days if you like.
@@ -59,7 +59,9 @@ To load a production build by hand, run `pnpm build`. Then open `chrome://extens
 | `pnpm test:e2e` | End-to-end tests with the real extension in Chromium (Playwright), including accessibility checks (axe). Specs that read the system clipboard are named `*.clipboard.spec.ts` and run last, one at a time. |
 | `pnpm bench` | Measures panel open, search, quick paste and saving at 2,000–20,000 clips (about 5 minutes). Results go to `bench-results.jsonl`. |
 | `node scripts/disk-full-test.mjs` | macOS only, by hand, after `E2E=1 pnpm exec wxt build`. Runs Chrome on a small RAM disk, fills it, and checks that no clips are lost (about 3 minutes). |
-| `pnpm zip` | Store-ready zip in `.output/` |
+| `pnpm test:drive` | Runs the Drive client and two-computer sync against real Google Drive. Needs an access token with the `drive.appdata` scope in `DRIVE_TOKEN`; see [docs/07-store-listing.md](docs/07-store-listing.md) §5. Not part of `pnpm check`. |
+| `node scripts/make-store-art.mjs` | After `E2E=1 pnpm exec wxt build`. Regenerates the store screenshots and promo art in `assets/store/` from the real extension. |
+| `pnpm zip` | Store-ready zip in `.output/`. Fails without `COPYDRAWER_OAUTH_CLIENT_ID`, so a store build always includes sync. |
 
 ## Project layout
 
