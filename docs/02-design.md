@@ -200,7 +200,7 @@ People research trips and hangouts by copying stays, flights, places and dates a
 
 | Feature | What it does | Release |
 |---|---|---|
-| Trip collection | Clips about one destination group into a trip ("Lisbon trip") as one simple list | MVP |
+| Trip collection | Clips about one destination group into a trip ("Kyoto trip") as one simple list | MVP |
 | Calendar and Maps | A date in a clip → one tap adds it to the calendar (.ics); an address → opens in Google Maps (link, no embedded map). Prices stay in their original currency symbol; no conversion | MVP |
 
 Cut to keep it simple: stay comparison table, day-by-day planner, budget totals, vote/hangout modes, shared plans. Revisit only if users ask.

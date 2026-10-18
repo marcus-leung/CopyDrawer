@@ -16,12 +16,12 @@ const SITES: Record<string, { title: string; text: string }> = {
     text: 'Photosynthesis is the process by which green plants use sunlight to synthesize foods from carbon dioxide and water.',
   },
   'https://www.airbnb.com/rooms/48213377': {
-    title: 'Loft in Alfama',
-    text: 'Sunny loft in Alfama, Lisbon. €96 a night, sleeps 2.',
+    title: 'Loft in Gion',
+    text: 'Sunny loft in Gion, Kyoto. ¥15,000 a night, sleeps 2.',
   },
-  'https://www.booking.com/hotel/pt/chiado.html': {
-    title: 'Chiado Studio',
-    text: 'Chiado studio in Lisbon, €84 per night, free cancellation.',
+  'https://www.booking.com/hotel/jp/higashiyama.html': {
+    title: 'Higashiyama Studio',
+    text: 'Higashiyama studio in Kyoto, ¥12,000 per night, free cancellation.',
   },
   'https://mail.example.com/inbox': { title: 'Inbox', text: 'Flight TP 1355, departure 07:40, check-in opens at 05:40.' },
   'https://cooking.nytimes.com/recipes/1': {
@@ -70,7 +70,7 @@ test('copying on real sites fills collections and a named trip', async ({ contex
   const tiles = panel.getByRole('list', { name: 'Collections' });
   await expect(tiles.getByRole('button')).toHaveCount(5);
   // The trip has the two stays and the city-less flight.
-  await expect(tiles.getByRole('button', { name: /Lisbon trip/ })).toHaveText(/Lisbon trip\s*3 clips, 3 new/);
+  await expect(tiles.getByRole('button', { name: /Kyoto trip/ })).toHaveText(/Kyoto trip\s*3 clips, 3 new/);
   for (const name of ['Research', 'Recipes', 'Code', 'Shopping']) await expect(tiles).toContainText(name);
   await expect(panel.getByText('Sorted 7 new clips today')).toBeVisible();
 
@@ -79,7 +79,7 @@ test('copying on real sites fills collections and a named trip', async ({ contex
     'Research, from en.wikipedia.org',
   );
   await expect(list.getByRole('listitem').filter({ hasText: 'Flight TP 1355' })).toContainText(
-    'Lisbon trip, from mail.example.com',
+    'Kyoto trip, from mail.example.com',
   );
 });
 
@@ -90,7 +90,7 @@ test('collection view: sort, rename, color, delete (cancel and confirm)', async 
   await enableAutosave(panel);
   for (const url of [
     'https://www.airbnb.com/rooms/48213377',
-    'https://www.booking.com/hotel/pt/chiado.html',
+    'https://www.booking.com/hotel/jp/higashiyama.html',
     'https://mail.example.com/inbox',
   ]) {
     await copyFrom(context, url);
@@ -98,9 +98,9 @@ test('collection view: sort, rename, color, delete (cancel and confirm)', async 
   await panel.bringToFront();
   await panel
     .getByRole('list', { name: 'Collections' })
-    .getByRole('button', { name: /Lisbon trip/ })
+    .getByRole('button', { name: /Kyoto trip/ })
     .click();
-  const inTrip = panel.getByRole('list', { name: 'Clips in Lisbon trip' });
+  const inTrip = panel.getByRole('list', { name: 'Clips in Kyoto trip' });
   await expect(inTrip.getByRole('listitem')).toHaveCount(3);
   await expect(panel.getByText('Sorted here automatically.')).toBeVisible();
 
@@ -115,16 +115,16 @@ test('collection view: sort, rename, color, delete (cancel and confirm)', async 
 
   // Rename by typing and clicking away (blur saves).
   await panel.getByRole('button', { name: 'Rename' }).click();
-  await panel.getByLabel('Collection name').fill('Lisbon, October');
+  await panel.getByLabel('Collection name').fill('Kyoto, November');
   await panel.getByText('Sorted here automatically.').click();
-  await expect(panel.getByRole('heading', { name: 'Lisbon, October' })).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'Kyoto, November' })).toBeVisible();
   await panel.getByRole('button', { name: 'Rename' }).click();
   await expect(panel.getByLabel('Collection name')).toHaveAttribute('maxlength', '100');
   await panel.getByLabel('Collection name').press('Escape');
   await panel.getByRole('button', { name: 'Rename' }).click();
   await panel.getByLabel('Collection name').fill('   ');
   await panel.getByLabel('Collection name').press('Enter');
-  await expect(panel.getByRole('heading', { name: 'Lisbon, October' })).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'Kyoto, November' })).toBeVisible();
 
   const tint = () =>
     panel
@@ -146,7 +146,7 @@ test('collection view: sort, rename, color, delete (cancel and confirm)', async 
   await expect(ask).toContainText('Its clips stay in your history');
   await ask.getByRole('button', { name: 'Cancel' }).click();
   await expect(ask).toHaveCount(0);
-  await expect(panel.getByRole('heading', { name: 'Lisbon, October' })).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'Kyoto, November' })).toBeVisible();
   await panel.getByRole('button', { name: 'Back to home' }).click();
   await expect(panel.locator('[aria-label="Collections"] [style*="--c-tint"]').first()).toHaveAttribute(
     'style',
@@ -154,7 +154,7 @@ test('collection view: sort, rename, color, delete (cancel and confirm)', async 
   );
   await panel
     .getByRole('list', { name: 'Collections' })
-    .getByRole('button', { name: /Lisbon, October/ })
+    .getByRole('button', { name: /Kyoto, November/ })
     .click();
   await panel.getByRole('button', { name: 'Delete collection' }).click();
   await ask.getByRole('button', { name: 'Delete collection' }).click();

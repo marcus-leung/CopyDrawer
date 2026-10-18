@@ -48,7 +48,7 @@ export interface Clip {
 
 export interface Collection {
   id: string;
-  /** Stable key for auto collections: "cat:research", "trip:lisbon". Manual ones: "manual:<id>". */
+  /** Stable key for auto collections: "cat:research", "trip:kyoto". Manual ones: "manual:<id>". */
   key: string;
   name: string;
   color: string;

@@ -41,9 +41,9 @@ describe('colors', () => {
 
 describe('findDate', () => {
   it('reads common formats and picks the next occurrence', () => {
-    const fado = findDate('Fado on Sat 18 Oct, 9 PM at Rua de São João da Praça 94, Lisbon.', NOW)!;
-    expect(fado.start).toEqual(new Date(2026, 9, 18, 21, 0));
-    expect(fado.label).toBe('Sat 18 Oct, 9 PM');
+    const show = findDate('Flamenco on Sat 18 Oct, 9 PM at Calle de Alcalá 42, Madrid.', NOW)!;
+    expect(show.start).toEqual(new Date(2026, 9, 18, 21, 0));
+    expect(show.label).toBe('Sat 18 Oct, 9 PM');
     expect(findDate('Flight Tue 14 Oct, 07:40', NOW)!.start).toEqual(new Date(2026, 9, 14, 7, 40));
     expect(findDate('Party on March 3rd at 7:30pm', NOW)!.start).toEqual(new Date(2027, 2, 3, 19, 30));
     const allDay = findDate('Due 2026-11-02', NOW)!;
@@ -53,17 +53,17 @@ describe('findDate', () => {
 
   it('makes a calendar file', () => {
     const date = findDate('Sat 18 Oct, 9 PM', NOW)!;
-    const ics = makeIcs({ title: 'Fado show', date, location: 'Rua de São João da Praça 94, Lisbon' }, NOW);
+    const ics = makeIcs({ title: 'Flamenco show', date, location: 'Calle de Alcalá 42, Madrid' }, NOW);
     expect(ics).toContain('DTSTART:20261018T210000');
     expect(ics).toContain('DTEND:20261018T220000');
-    expect(ics).toContain('LOCATION:Rua de São João da Praça 94\\, Lisbon');
+    expect(ics).toContain('LOCATION:Calle de Alcalá 42\\, Madrid');
   });
 });
 
 describe('places, parcels and flights', () => {
   it('finds addresses', () => {
     expect(findAddress('Send it to 221B Baker Street, London NW1 6XE please')).toBe('221B Baker Street, London NW1 6XE');
-    expect(findAddress('Fado at Rua de São João da Praça 94, Lisbon. Tickets €35')).toBe('Rua de São João da Praça 94, Lisbon');
+    expect(findAddress('Flamenco at Calle de Alcalá 42, Madrid. Tickets €35')).toBe('Calle de Alcalá 42, Madrid');
     expect(findAddress('Meet at Torstraße 1, Berlin')).toBe('Torstraße 1, Berlin');
     expect(findAddress('I have 3 cats')).toBeNull();
   });
@@ -72,7 +72,7 @@ describe('places, parcels and flights', () => {
     expect(findTracking('1Z 999 AA1 01 2345 6784')).toMatchObject({ carrier: 'UPS', number: '1Z999AA10123456784' });
     expect(findTracking('9400 1000 0000 0000 0000 00')?.carrier).toBe('USPS');
     expect(findTracking('Call me at 415 555 0100')).toBeNull();
-    expect(findFlight('Flight TP 1355 to Lisbon')).toBe('TP 1355');
+    expect(findFlight('Flight JL 44 to Tokyo')).toBe('JL 44');
     expect(findFlight('UA90')).toBe('UA 90');
     expect(findFlight('Room B2 12')).toBeNull();
   });
@@ -81,8 +81,8 @@ describe('places, parcels and flights', () => {
     const ups = detectActions({ kind: 'text', text: '1Z 999 AA1 01 2345 6784' }, NOW);
     expect(ups.note).toBe('Looks like a UPS tracking number');
     expect(ups.actions.map((a) => a.label)).toEqual(['Track package', 'Copy without spaces']);
-    const fado = detectActions({ kind: 'text', text: 'Fado on Sat 18 Oct, 9 PM at Rua de São João da Praça 94, Lisbon.' }, NOW);
-    expect(fado.actions.map((a) => a.label)).toEqual(['Add Sat 18 Oct, 9 PM to calendar', 'Open address in Maps']);
+    const show = detectActions({ kind: 'text', text: 'Flamenco on Sat 18 Oct, 9 PM at Calle de Alcalá 42, Madrid.' }, NOW);
+    expect(show.actions.map((a) => a.label)).toEqual(['Add Sat 18 Oct, 9 PM to calendar', 'Open address in Maps']);
     expect(detectActions({ kind: 'json', text: '{"a":1,"b":[2,3]}' }, NOW).actions[0]).toMatchObject({
       text: '{\n  "a": 1,\n  "b": [\n    2,\n    3\n  ]\n}',
     });

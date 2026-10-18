@@ -19,7 +19,7 @@ This is the manifest `description` in `wxt.config.ts`; the store shows it as the
 >
 > **Saved, sorted, found**
 > • Save text, links, images and screenshots: shortcut, right-click, drag and drop, or automatically when you copy (optional), copy buttons included.
-> • Collections fill themselves: Research, Shopping, Recipes, Code… and trips named after the place ("Lisbon trip"). Make your own, pick any color, and drag them into the order you like.
+> • Collections fill themselves: Research, Shopping, Recipes, Code… and trips named after the place ("Kyoto trip"). Make your own, pick any color, and drag them into the order you like.
 > • Drag images to reorder them, file them in a collection, or drop them straight onto a page.
 > • Search that finds the best match first, forgives typos, and filters by type, site and date.
 >

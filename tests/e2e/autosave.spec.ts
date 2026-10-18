@@ -3,8 +3,8 @@ import type { AddressInfo } from 'node:net';
 import { readClips } from './helpers';
 import { test, expect } from './fixtures';
 
-const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>Lisbon guide</title></head><body>
-<p id="tip">Belém Tower opens at 10:00.</p>
+const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>Kyoto guide</title></head><body>
+<p id="tip">Kinkaku-ji opens at 9:00.</p>
 <input id="pw" type="password" value="hunter2-secret">
 <iframe id="editor" srcdoc="<p id='draft'>Draft typed in an editor frame</p>"></iframe>
 </body></html>`;
@@ -73,7 +73,7 @@ test('auto-save keeps what you copy, skips passwords, pauses and blocks', async 
   await expect(list.getByRole('listitem').filter({ hasText: 'Draft typed in an editor frame' })).toContainText(
     /from guide\.e2e\.test/i,
   );
-  await expect(list).toContainText('Belém Tower opens at 10:00.');
+  await expect(list).toContainText('Kinkaku-ji opens at 9:00.');
   await expect(list).toContainText(/from guide\.e2e\.test/i);
   await expect(panel.getByText('hunter2-secret')).toHaveCount(0);
 
@@ -143,7 +143,7 @@ test('granting site access turns auto-save on, and tabs already open save withou
   await panel.bringToFront();
   const list = panel.getByRole('list', { name: 'Clips' });
   await expect(list.getByRole('listitem')).toHaveCount(1);
-  await expect(list).toContainText('Belém Tower opens at 10:00.');
+  await expect(list).toContainText('Kinkaku-ji opens at 9:00.');
 
   // Taking the access away in Chrome turns auto-save off, so the panel stops claiming it saves.
   await expect(panel.getByRole('button', { name: 'Pause' })).toBeVisible();
@@ -190,7 +190,7 @@ test('auto-save ignores copy events the page fakes, and never fetches their imag
   // A real copy on the same page still saves.
   await page.locator('#tip').selectText();
   await page.keyboard.press('ControlOrMeta+C');
-  await expect.poll(async () => (await readClips(panel)).map((c) => c.text)).toEqual(['Belém Tower opens at 10:00.']);
+  await expect.poll(async () => (await readClips(panel)).map((c) => c.text)).toEqual(['Kinkaku-ji opens at 9:00.']);
   expect(intranetHits).toEqual([]);
 });
 
@@ -216,7 +216,7 @@ test('tabs already open keep auto-saving after the extension updates', async ({ 
   await page.bringToFront();
   await page.locator('#tip').selectText();
   await page.keyboard.press('ControlOrMeta+C');
-  await expect.poll(async () => (await readClips(panel)).map((c) => c.text)).toEqual(['Belém Tower opens at 10:00.']);
+  await expect.poll(async () => (await readClips(panel)).map((c) => c.text)).toEqual(['Kinkaku-ji opens at 9:00.']);
 });
 
 // Real servers: Playwright's route() skips CORS, so it can't show what a CDN without CORS headers does.
