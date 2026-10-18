@@ -15,3 +15,6 @@ bench-results.jsonl
 
 # Private deploy notes; the repo is public.
 private/
+
+# Throwaway scripts run from the repo root.
+*.tmp.mjs

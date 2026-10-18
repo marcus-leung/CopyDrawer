@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Check, CircleCheck, Clipboard, ClipboardPaste, Lock, Search, TriangleAlert } from 'lucide-react';
+import {
+  ArrowLeftRight,
+  Check,
+  ChevronLeft,
+  CircleCheck,
+  Clipboard,
+  ClipboardPaste,
+  Lock,
+  Search,
+  TriangleAlert,
+} from 'lucide-react';
 import { enableAutosave } from '@/lib/autosave';
 import { keyLabel, useShortcuts } from '@/lib/useShortcuts';
 import { NOT_SET, suggestedShortcut, type CommandName } from '@/lib/shortcuts';
 import { canSync } from '@/lib/sync/controller';
 import { startSync, useDriveSync } from '@/lib/sync/useDriveSync';
-import { COLORS } from '@/lib/collections';
+import { collectionVars } from '@/components/CollectionTile';
 import { Button } from '@/components/ui';
 
 type StepId = 'welcome' | 'autosave' | 'shortcuts' | 'sync' | 'howto';
@@ -35,6 +45,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const moved = useRef(false);
   const step = steps[at]!;
   const next = () => (at + 1 < steps.length ? setAt(at + 1) : setFinished(true));
+  const back = () => (finished ? setFinished(false) : setAt(Math.max(0, at - 1)));
 
   // A new step moves focus to its heading, so a screen reader reads the step from the top.
   useEffect(() => {
@@ -56,8 +67,8 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="flex min-h-full justify-center overflow-y-auto bg-bg px-6 text-ink">
-      <main className="flex min-h-full w-full max-w-[600px] flex-col py-12">
-        <p className="mb-10 flex items-center gap-3 font-display text-[24px] font-extrabold">
+      <main className="flex min-h-full w-full max-w-[600px] flex-col py-10">
+        <p className="mb-8 flex items-center gap-3 font-display text-[24px] font-extrabold">
           <img src="/icon/128.png" alt="" className="size-11" />
           <span>
             Copy<span className="text-accent">Drawer</span>
@@ -65,6 +76,16 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         </p>
 
         <section aria-labelledby="ob-title" className="flex-1">
+          {(finished || at > 0) && (
+            <button
+              type="button"
+              className="mb-3 -ml-1 flex cursor-pointer items-center gap-1 rounded-full py-1 pr-3 pl-1 text-[15px] font-semibold text-text-2 hover:text-ink"
+              onClick={back}
+            >
+              <ChevronLeft size={20} aria-hidden />
+              Back
+            </button>
+          )}
           {finished ? (
             <Done title={title} openPanel={openPanel} />
           ) : step === 'welcome' ? (
@@ -214,7 +235,8 @@ function SyncStep({ title, next }: StepProps) {
   const settingUp = !!sync?.settingUp;
   return (
     <>
-      {title('Your clips on all your computers')}
+      <SyncArt />
+      <div className="mt-8">{title('Your clips on all your computers')}</div>
       <Lead>Turn on sync and your clips, images and collections follow you to every computer where you use Chrome.</Lead>
       <ul className="mt-6 flex flex-col gap-3.5 text-[16px] leading-6">
         {[
@@ -342,7 +364,7 @@ function Done({ title, openPanel }: { title: (text: string) => ReactNode; openPa
 /** One segment per step. Finished steps can be revisited; later ones open in order. */
 function StepBar({ steps, at, go }: { steps: StepId[]; at: number; go: (i: number) => void }) {
   return (
-    <nav aria-label="Setup steps" className="mt-12">
+    <nav aria-label="Setup steps" className="mt-10">
       <p className="sr-only" aria-live="polite">
         Step {at + 1} of {steps.length}: {LABELS[steps[at]!]}
       </p>
@@ -384,23 +406,59 @@ function StepBar({ steps, at, go }: { steps: StepId[]; at: number; go: (i: numbe
 
 function FolderArt() {
   const tiles = [
-    { name: 'Research', c: COLORS.blue! },
-    { name: 'Kyoto trip', c: COLORS.mustard! },
-    { name: 'Recipes', c: COLORS.pink! },
+    { name: 'Research', color: 'blue' },
+    { name: 'Kyoto trip', color: 'mustard' },
+    { name: 'Recipes', color: 'pink' },
   ];
   return (
     <div className="flex items-end gap-3" aria-hidden>
-      {tiles.map(({ name, c }) => (
-        <div key={name} className="flex-1">
-          <div className="h-3 w-12 rounded-t-lg" style={{ background: c.accent }} />
-          <div
-            className="rounded-tr-xl rounded-b-xl border-t-[3px] px-3 pt-2.5 pb-9 text-[16px] font-semibold"
-            style={{ background: c.tint, borderColor: c.accent, color: c.text }}
-          >
+      {tiles.map(({ name, color }) => (
+        <div key={name} className="flex-1" style={collectionVars(color)}>
+          <div className="h-3 w-12 rounded-t-lg bg-[var(--c-accent)] dark:bg-[var(--c-accent-d)]" />
+          <div className="rounded-tr-xl rounded-b-xl border-t-[3px] border-[var(--c-accent)] bg-[var(--c-tint)] px-3 pt-2.5 pb-9 text-[16px] font-semibold text-[var(--c-text)] dark:border-[var(--c-accent-d)] dark:bg-[var(--c-tint-d)] dark:text-ink">
             {name}
           </div>
         </div>
       ))}
     </div>
+  );
+}
+
+/** CopyDrawer and Google Drive side by side, the same height as the Welcome step's folders. */
+function SyncArt() {
+  const tile = 'grid size-[72px] place-items-center rounded-2xl bg-surface';
+  return (
+    <div className="flex items-start gap-4">
+      <figure className="flex flex-col items-center gap-2">
+        <span className={tile}>
+          <img src="/icon/128.png" alt="" className="size-10" />
+        </span>
+        <figcaption className="text-[13px] font-semibold text-text-2">CopyDrawer</figcaption>
+      </figure>
+      <ArrowLeftRight size={28} className="mt-[22px] shrink-0 text-text-3" aria-hidden />
+      <figure className="flex flex-col items-center gap-2">
+        <span className={tile}>
+          <DriveLogo />
+        </span>
+        <figcaption className="text-[13px] font-semibold text-text-2">Your Google Drive</figcaption>
+      </figure>
+    </div>
+  );
+}
+
+/** Google Drive's product icon, unmodified. */
+function DriveLogo() {
+  return (
+    <svg viewBox="0 0 87.3 78" className="h-9 w-auto" role="img" aria-label="Google Drive">
+      <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
+      <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47" />
+      <path
+        d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z"
+        fill="#ea4335"
+      />
+      <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d" />
+      <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc" />
+      <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
+    </svg>
   );
 }
