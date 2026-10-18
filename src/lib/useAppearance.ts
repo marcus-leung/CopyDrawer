@@ -3,7 +3,7 @@ import { FONT_STACKS, getSettings, settingsItem, validSynced, type Settings } fr
 
 type Appearance = Pick<Settings, 'theme' | 'font' | 'textSize' | 'popupSize' | 'hidePreviews'>;
 
-const DEFAULT: Appearance = { theme: 'system', font: 'default', textSize: 100, popupSize: 'medium', hidePreviews: false };
+const DEFAULT: Appearance = { theme: 'light', font: 'default', textSize: 100, popupSize: 'medium', hidePreviews: false };
 
 /** Theme, font and size are synced between computers; Hide previews is this computer's only. */
 const appearanceOf = (s: unknown): Appearance => ({

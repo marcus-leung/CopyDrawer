@@ -74,6 +74,28 @@ test('onboarding: five steps with a step bar, sync turned on, then the panel', a
   }
 });
 
+test('onboarding: a shortcut Chrome left unset shows its default keys, and the how-to never says "press Not set"', async ({
+  context,
+  extensionId,
+}) => {
+  await context.addInitScript(() => {
+    const real = chrome.commands?.getAll?.bind(chrome.commands);
+    if (real) chrome.commands.getAll = async () => (await real()).map((c) => ({ ...c, shortcut: '' }));
+  });
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html?onboarding=1`);
+  await page.getByRole('button', { name: 'Get started' }).click();
+  await page.getByRole('button', { name: /Not now/ }).click();
+  await expect(page.getByText(/Chrome didn't set (⌥⇧S|Alt\+Shift\+S)\. Another extension may already use it\./)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Set it in Chrome' })).toHaveCount(2);
+  await axe(page, 'shortcuts not set');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Skip for now' }).click();
+  await expect(page.getByRole('heading', { name: 'How to use it' })).toBeVisible();
+  await expect(page.getByText('right-click a selection or an image and choose Save')).toBeVisible();
+  await expect(page.getByRole('main')).not.toContainText('Not set');
+});
+
 test('notices, export and import, inline confirms, accessibility', async ({ context, extensionId }) => {
   const page = await context.newPage();
   await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
@@ -129,6 +151,15 @@ test('notices, export and import, inline confirms, accessibility', async ({ cont
 
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await axe(page, 'home dark');
+});
+
+test('a fresh install is light, even when the computer is in dark mode', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.emulateMedia({ colorScheme: 'dark' });
+  for (const url of ['sidepanel.html?onboarding=1', 'sidepanel.html', 'popup.html']) {
+    await page.goto(`chrome-extension://${extensionId}/${url}`);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  }
 });
 
 test('dark mode applies before the first paint (no white flash)', async ({ context, extensionId }) => {
