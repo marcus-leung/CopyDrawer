@@ -38,6 +38,10 @@ test('onboarding: five steps with a step bar, sync turned on, then the panel', a
 
     await expect(current).toHaveText('Auto-save');
     await axe(page, 'auto-save step');
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(current).toHaveText('Welcome');
+    await expect(page.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Get started' }).click();
     // The e2e build already has all-sites access, so turning on auto-save goes straight through.
     await page.getByRole('button', { name: 'Turn on auto-save' }).click();
 
@@ -52,6 +56,7 @@ test('onboarding: five steps with a step bar, sync turned on, then the panel', a
     await page.getByRole('button', { name: 'Next' }).click();
 
     await expect(current).toHaveText('Sync');
+    await expect(page.getByRole('img', { name: 'Google Drive' })).toBeVisible();
     await axe(page, 'sync step');
     await page.getByRole('button', { name: 'Turn on sync' }).click();
     await expect(page.getByText('Sync is on')).toBeVisible();
@@ -66,6 +71,9 @@ test('onboarding: five steps with a step bar, sync turned on, then the panel', a
 
     await expect(page.getByRole('heading', { name: "You're all set" })).toBeVisible();
     await expect(bar).toHaveCount(0);
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'How to use it' })).toBeVisible();
+    await page.getByRole('button', { name: 'Finish' }).click();
     await page.getByRole('button', { name: 'Open the side panel' }).click();
     await expect(page.getByRole('heading', { name: 'Your clips' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Copy anything to start' })).toBeVisible();
@@ -151,6 +159,28 @@ test('notices, export and import, inline confirms, accessibility', async ({ cont
 
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await axe(page, 'home dark');
+});
+
+test('onboarding is readable in dark mode', async ({ context, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await page.evaluate(async () => {
+    const { settings } = await chrome.storage.local.get('settings');
+    await chrome.storage.local.set({ settings: { ...(settings ?? {}), theme: 'dark' } });
+  });
+  await page.goto(`chrome-extension://${extensionId}/sidepanel.html?onboarding=1`);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await axe(page, 'dark welcome');
+  await page.getByRole('button', { name: 'Get started' }).click();
+  await axe(page, 'dark auto-save');
+  await page.getByRole('button', { name: /Not now/ }).click();
+  await axe(page, 'dark shortcuts');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await axe(page, 'dark sync');
+  await page.getByRole('button', { name: 'Skip for now' }).click();
+  await axe(page, 'dark how-to');
+  await page.getByRole('button', { name: 'Finish' }).click();
+  await axe(page, 'dark done');
 });
 
 test('a fresh install is light, even when the computer is in dark mode', async ({ context, extensionId }) => {
