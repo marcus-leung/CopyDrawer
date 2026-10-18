@@ -267,16 +267,21 @@ function SyncStep({ title, next }: StepProps) {
 
 function HowTo({ title, next }: StepProps) {
   const keys = useShortcuts();
+  const save = keyLabel(keys, 'save-selection');
+  const paste = keyLabel(keys, 'quick-paste');
+  // A shortcut Chrome left unset gets the other way to do it, not "press Not set".
   const rows = [
     {
       icon: Clipboard,
       name: 'Save',
-      text: (
-        <>
-          Copy as usual, press <kbd className="text-[14px]!">{keyLabel(keys, 'save-selection')}</kbd> on a selection, or
-          right-click an image.
-        </>
-      ),
+      text:
+        save === NOT_SET ? (
+          'Copy as usual, or right-click a selection or an image and choose Save.'
+        ) : (
+          <>
+            Copy as usual, press <kbd className="text-[14px]!">{save}</kbd> on a selection, or right-click an image.
+          </>
+        ),
     },
     {
       icon: Search,
@@ -286,12 +291,14 @@ function HowTo({ title, next }: StepProps) {
     {
       icon: ClipboardPaste,
       name: 'Paste',
-      text: (
-        <>
-          Press <kbd className="text-[14px]!">{keyLabel(keys, 'quick-paste')}</kbd> in any text box and pick a clip. It's typed in
-          for you.
-        </>
-      ),
+      text:
+        paste === NOT_SET ? (
+          'Set a quick-paste shortcut in Chrome, then press it in any text box and pick a clip. It’s typed in for you.'
+        ) : (
+          <>
+            Press <kbd className="text-[14px]!">{paste}</kbd> in any text box and pick a clip. It's typed in for you.
+          </>
+        ),
     },
   ];
   return (

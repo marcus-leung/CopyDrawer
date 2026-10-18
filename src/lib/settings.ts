@@ -39,7 +39,7 @@ export interface Settings {
 
 const DEFAULT_SETTINGS: Settings = {
   retentionDays: 0,
-  theme: 'system',
+  theme: 'light',
   font: 'default',
   textSize: 100,
   popupSize: 'medium',
