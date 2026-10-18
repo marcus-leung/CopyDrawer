@@ -64,6 +64,7 @@ describe('places, parcels and flights', () => {
   it('finds addresses', () => {
     expect(findAddress('Send it to 221B Baker Street, London NW1 6XE please')).toBe('221B Baker Street, London NW1 6XE');
     expect(findAddress('Flamenco at Calle de Alcalá 42, Madrid. Tickets €35')).toBe('Calle de Alcalá 42, Madrid');
+    expect(findAddress('Fado at Rua de São João da Praça 94, Porto. Tickets €35')).toBe('Rua de São João da Praça 94, Porto');
     expect(findAddress('Meet at Torstraße 1, Berlin')).toBe('Torstraße 1, Berlin');
     expect(findAddress('I have 3 cats')).toBeNull();
   });

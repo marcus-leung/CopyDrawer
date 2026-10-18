@@ -37,6 +37,7 @@ test('onboarding: five steps with a step bar, sync turned on, then the panel', a
     await page.getByRole('button', { name: 'Get started' }).click();
 
     await expect(current).toHaveText('Auto-save');
+    await expect(page.getByRole('heading', { name: 'Save everything you copy, automatically' })).toBeFocused();
     await axe(page, 'auto-save step');
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await expect(current).toHaveText('Welcome');
@@ -52,7 +53,10 @@ test('onboarding: five steps with a step bar, sync turned on, then the panel', a
     await bar.getByRole('button', { name: 'Back to Welcome' }).click();
     await expect(current).toHaveText('Welcome');
     await page.getByRole('button', { name: 'Get started' }).click();
-    await page.getByRole('button', { name: /Not now/ }).click();
+    // Back on a step already done, it says so instead of asking again.
+    await expect(page.getByRole('status')).toHaveText('Auto-save is on');
+    await expect(page.getByRole('button', { name: 'Turn on auto-save' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Next' }).click();
     await page.getByRole('button', { name: 'Next' }).click();
 
     await expect(current).toHaveText('Sync');
@@ -100,7 +104,7 @@ test('onboarding: a shortcut Chrome left unset shows its default keys, and the h
   await page.getByRole('button', { name: 'Next' }).click();
   await page.getByRole('button', { name: 'Skip for now' }).click();
   await expect(page.getByRole('heading', { name: 'How to use it' })).toBeVisible();
-  await expect(page.getByText('right-click a selection or an image and choose Save')).toBeVisible();
+  await expect(page.getByText('right-click and choose Save selection or Save image')).toBeVisible();
   await expect(page.getByRole('main')).not.toContainText('Not set');
 });
 

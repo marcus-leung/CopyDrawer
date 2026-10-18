@@ -50,6 +50,23 @@ const storedImageSizes = (page: Page) =>
       }),
   );
 
+/** How many changes in this browser's database are still waiting to go up to Drive. */
+const unsent = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<number>((resolve, reject) => {
+        const req = indexedDB.open('clipboard');
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          const count = req.result.transaction('syncMeta').objectStore('syncMeta').index('dirty').count(1);
+          count.onsuccess = () => {
+            req.result.close();
+            resolve(count.result);
+          };
+        };
+      }),
+  );
+
 const syncNow = (page: Page) => page.getByRole('button', { name: 'Sync now' }).click();
 const synced = (page: Page) => expect(page.getByText(/^Last synced/)).toBeVisible();
 
@@ -108,7 +125,8 @@ test('two computers share their clips through a Drive copy', async ({ context, e
     await form.getByRole('button', { name: 'Save' }).click();
     await a.getByRole('button', { name: 'Settings' }).click();
     await syncNow(a);
-    await synced(a);
+    // "Last synced" may still be on screen from before, so wait until A has nothing left to send.
+    await expect.poll(() => unsent(a)).toBe(0);
     await syncNow(b);
     await expect.poll(() => storedImageSizes(b)).toEqual([sent]);
 

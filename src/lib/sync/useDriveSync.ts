@@ -1,13 +1,5 @@
 import { useEffect, useState } from 'react';
-import { safeSend } from '../safeSend';
-import {
-  requestSetup,
-  setupPendingItem,
-  syncSettingsItem,
-  syncStatusItem,
-  type SyncSettings,
-  type SyncStatus,
-} from './controller';
+import { setupPendingItem, syncSettingsItem, syncStatusItem, type SyncSettings, type SyncStatus } from './controller';
 
 interface DriveSyncState {
   settings: SyncSettings;
@@ -33,18 +25,4 @@ export function useDriveSync(): DriveSyncState | null {
     };
   }, []);
   return state;
-}
-
-/**
- * Turns sync on, or signs in again. The background does the rest, since a popup closes when Chrome asks for
- * permission or Google's sign-in window opens. False if the person refused the sign-in permission.
- */
-export async function startSync(): Promise<boolean> {
-  await requestSetup(true);
-  if (!__E2E__ && !(await browser.permissions.request({ permissions: ['identity'] }))) {
-    await requestSetup(false);
-    return false;
-  }
-  void safeSend({ type: 'sync-setup' });
-  return true;
 }
