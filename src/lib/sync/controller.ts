@@ -1,5 +1,6 @@
 import { storage } from '#imports';
 import { db as defaultDb, type ClipDatabase } from '../db';
+import { safeSend } from '../safeSend';
 import { StoragePausedError, whenStateKnown, writesPaused } from '../storageGuard';
 import { DriveError, ignoreGone, restDrive, type Drive, type TokenSource } from './drive';
 import {
@@ -149,6 +150,21 @@ async function eraseDriveCopy(drive: Drive, copyFileId?: string) {
 
 /** The panel asks for setup before the sign-in permission prompt; the background then signs in and joins (`finishSetup`). */
 export const requestSetup = (asked: boolean) => setupPendingItem.setValue(asked);
+
+/**
+ * Turns sync on, or signs in again, from a click. The background does the rest, since a popup closes when Chrome
+ * asks for permission or Google's sign-in window opens. False if the sign-in permission wasn't given.
+ */
+export async function startSync(): Promise<boolean> {
+  await requestSetup(true);
+  const granted = __E2E__ || (await browser.permissions.request({ permissions: ['identity'] }).catch(() => false));
+  if (!granted) {
+    await requestSetup(false);
+    return false;
+  }
+  void safeSend({ type: 'sync-setup' });
+  return true;
+}
 
 /**
  * Signs in and turns sync on, or back on, if the panel asked for it. Runs in the background, which outlives
