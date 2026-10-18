@@ -111,14 +111,14 @@ export function classifyByRules(clip: Pick<Clip, 'kind' | 'text' | 'title' | 'so
   if (fromDomain('code')) return 'code';
   if (fromDomain('research')) return 'research';
   if (clip.kind === 'link') return 'links';
-  // Plans in a known destination ("Fado at … Lisbon. Tickets €35") belong with the trip.
+  // Plans in a known destination ("Nishiki Market, Kyoto: tamagoyaki ¥300") belong with the trip.
   if (clip.kind !== 'image' && (RE.price.test(text) || RE.travelWords.test(text)) && detectDestination(text)) return 'travel';
   if (clip.kind !== 'image' && (RE.email.test(text) || findAddress(text) !== null) && text.length < 300) return 'personal';
   if (clip.kind !== 'image' && RE.phone.test(text) && text.length < 120) return 'personal';
   return undefined;
 }
 
-/** A small gazetteer of popular destinations used to name trips ("Lisbon trip"). */
+/** A small gazetteer of popular destinations used to name trips ("Kyoto trip"). */
 // prettier-ignore
 const CITIES = [
   'Amsterdam', 'Athens', 'Auckland', 'Austin', 'Bali', 'Bangkok', 'Barcelona', 'Beijing', 'Berlin', 'Bogotá', 'Boston',
@@ -128,10 +128,18 @@ const CITIES = [
   'Milan', 'Montreal', 'Munich', 'Nairobi', 'Naples', 'New Orleans', 'New York', 'Nice', 'Osaka', 'Oslo', 'Paris', 'Porto',
   'Prague', 'Reykjavik', 'Rio de Janeiro', 'Rome', 'San Diego', 'San Francisco', 'Santorini', 'São Paulo', 'Seattle', 'Seoul',
   'Seville', 'Shanghai', 'Singapore', 'Stockholm', 'Sydney', 'Taipei', 'Tokyo', 'Toronto', 'Tulum', 'Vancouver', 'Venice',
-  'Vienna', 'Warsaw', 'Washington', 'Zurich', 'Sintra', 'Belém', 'Alfama', 'Chiado',
+  'Vienna', 'Warsaw', 'Washington', 'Zurich', 'Sintra', 'Belém', 'Alfama', 'Chiado', 'Gion', 'Arashiyama', 'Higashiyama',
 ];
 /** Neighborhoods and day-trip spots that belong to a bigger destination. */
-const PARENT: Record<string, string> = { Sintra: 'Lisbon', Belém: 'Lisbon', Alfama: 'Lisbon', Chiado: 'Lisbon' };
+const PARENT: Record<string, string> = {
+  Sintra: 'Lisbon',
+  Belém: 'Lisbon',
+  Alfama: 'Lisbon',
+  Chiado: 'Lisbon',
+  Gion: 'Kyoto',
+  Arashiyama: 'Kyoto',
+  Higashiyama: 'Kyoto',
+};
 
 // Case-sensitive (cities are proper nouns: "Nice" the city, not "a nice day"), Unicode-aware edges.
 const CITY_PATTERNS = CITIES.map(

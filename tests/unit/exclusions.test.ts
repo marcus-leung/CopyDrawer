@@ -5,7 +5,7 @@ describe('blocked sites', () => {
   it('never auto-saves on non-web pages', () => {
     expect(isBlocked('chrome://settings', [])).toBe(true);
     expect(isBlocked(undefined, [])).toBe(true);
-    expect(isBlocked('https://en.wikipedia.org/wiki/Lisbon', [])).toBe(false);
+    expect(isBlocked('https://en.wikipedia.org/wiki/Kyoto', [])).toBe(false);
   });
 
   it('blocks built-in sites and their subdomains', () => {

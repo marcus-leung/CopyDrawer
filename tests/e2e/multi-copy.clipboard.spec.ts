@@ -129,16 +129,16 @@ test('formatting and images: rich copy keeps both in order, plain text leaves im
 test('move and delete picked clips, with undo', async ({ context, extensionId }) => {
   const panel = await openPanel(context, extensionId);
   await expect(panel.getByRole('heading', { name: 'Your clips' })).toBeVisible();
-  await seedClips(panel, ['Hotel Lisboa'], { id: 'trip', name: 'Lisbon trip' });
-  await seedClips(panel, ['Flight TP 1351', 'Museum tickets', 'Pastel de nata']);
+  await seedClips(panel, ['Hotel Gion'], { id: 'trip', name: 'Kyoto trip' });
+  await seedClips(panel, ['Flight TP 1351', 'Museum tickets', 'Matcha mochi']);
   await panel.reload();
   await expect(clips(panel).getByRole('listitem')).toHaveCount(4);
 
   await pick(panel, 'Flight TP 1351').click({ force: true });
   await pick(panel, 'Museum tickets').click();
   await bar(panel).getByRole('button', { name: 'More for picked clips' }).click();
-  await bar(panel).getByLabel('Move to').selectOption('Lisbon trip');
-  await expect(panel.getByRole('status')).toContainText('Moved 2 clips to Lisbon trip');
+  await bar(panel).getByLabel('Move to').selectOption('Kyoto trip');
+  await expect(panel.getByRole('status')).toContainText('Moved 2 clips to Kyoto trip');
   await expect(bar(panel)).toHaveCount(0);
   await expect
     .poll(async () =>
@@ -147,10 +147,10 @@ test('move and delete picked clips, with undo', async ({ context, extensionId })
         .map((c) => c.text)
         .sort(),
     )
-    .toEqual(['Flight TP 1351', 'Hotel Lisboa', 'Museum tickets']);
+    .toEqual(['Flight TP 1351', 'Hotel Gion', 'Museum tickets']);
 
-  await pick(panel, 'Pastel de nata').click({ force: true });
-  await pick(panel, 'Hotel Lisboa').click();
+  await pick(panel, 'Matcha mochi').click({ force: true });
+  await pick(panel, 'Hotel Gion').click();
   await bar(panel).getByRole('button', { name: 'More for picked clips' }).click();
   await bar(panel).getByRole('button', { name: 'Delete 2' }).click();
   await expect(panel.getByRole('status')).toContainText('2 clips deleted');

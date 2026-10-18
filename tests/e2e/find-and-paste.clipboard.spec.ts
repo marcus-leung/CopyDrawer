@@ -25,7 +25,7 @@ test('search: words, typos, filters, empty results', async ({ context, extension
     panel,
     'Photosynthesis is how plants turn sunlight into energy',
     'Lemon garlic pasta for dinner',
-    'https://www.booking.com/hotel/pt/chiado.html',
+    'https://www.booking.com/hotel/jp/gion.html',
     '#2457C5',
   );
   const list = panel.getByRole('list', { name: 'Clips' });

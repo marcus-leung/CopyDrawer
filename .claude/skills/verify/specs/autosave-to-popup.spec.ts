@@ -3,7 +3,7 @@ import { readClips } from '../../../../tests/e2e/helpers';
 import { capture } from './evidence';
 
 const FEATURE = 'autosave';
-const TEXT = 'Verify run: Belém Tower opens at 10:00.';
+const TEXT = 'Verify run: Kinkaku-ji opens at 9:00.';
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>Verify page</title></head>
 <body><p id="tip">${TEXT}</p></body></html>`;
 

@@ -111,11 +111,11 @@ Results come in two groups. Clips with every word come first, newest first. The 
 
 ## Collections and named trips
 
-New clips sort themselves into Research, Links, Code, Shopping, Recipes, Personal, and trips named after the place, such as "Lisbon trip". [classify.ts](../src/lib/classify.ts) uses rules only, with no network and no model, so the same clip always lands in the same place.
+New clips sort themselves into Research, Links, Code, Shopping, Recipes, Personal, and trips named after the place, such as "Kyoto trip". [classify.ts](../src/lib/classify.ts) uses rules only, with no network and no model, so the same clip always lands in the same place.
 
 Rules run in a fixed order, and the first match wins. Code and JSON go to Code. Travel, Recipes and Shopping come next, by the source site or by word patterns, and Shopping also takes parcel tracking numbers. Then come code sites, research sites, and plain links. Short texts with an email address, a street address or a phone number go to Personal.
 
-Trips are the hard part. `detectDestination` counts mentions of 83 places, case-sensitive so "Nice" the city doesn't match "a nice day". Neighborhoods count toward their city, so Sintra and Alfama add to Lisbon. A travel clip that names no city ("check-in 15:00") joins the trip with the newest clip from the last 14 days ([collections.ts](../src/lib/collections.ts)).
+Trips are the hard part. `detectDestination` counts mentions of 86 places, case-sensitive so "Nice" the city doesn't match "a nice day". Neighborhoods count toward their city, so Gion and Arashiyama add to Kyoto. A travel clip that names no city ("check-in 15:00") joins the trip with the newest clip from the last 14 days ([collections.ts](../src/lib/collections.ts)).
 
 Rules never move a clip you placed yourself. Moving one sets `collectionLocked`, which `autoAssign` respects.
 

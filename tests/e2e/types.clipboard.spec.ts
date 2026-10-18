@@ -6,7 +6,7 @@ const TYPES = [
   { text: '#2457C5', label: 'Color', filter: 'Colors', word: 'colour', action: 'Copy RGB', copies: 'rgb(36, 87, 197)' },
   { text: 'jane@example.com', label: 'Email', filter: 'Emails', word: 'email', action: 'Write an email' },
   { text: '+1 (415) 555-0134', label: 'Phone number', filter: 'Phone numbers', word: 'phone', action: 'Call' },
-  { text: '{"city":"Lisbon","days":4}', label: 'JSON', filter: 'JSON', word: 'json', action: 'Copy tidy' },
+  { text: '{"city":"Kyoto","days":4}', label: 'JSON', filter: 'JSON', word: 'json', action: 'Copy tidy' },
   {
     text: '1600 Amphitheatre Parkway, Mountain View, CA 94043',
     label: 'Address',

@@ -247,7 +247,7 @@ const STREET_TYPES =
 const STREET_FIRST =
   'Rua|Calle|Carrer|Via|Viale|Avenida|Av\\.|Avenue|Rue|Boulevard|Bd|Praça|Largo|Travessa|Plaza|Paseo|Piazza|Corso|Straße|Strasse|Str\\.|Weg|Platz|Gasse|Ulica|ul\\.';
 
-/** Finds a street address: "221B Baker Street, London NW1 6XE" or "Rua de São João 94, Lisbon". */
+/** Finds a street address: "221B Baker Street, London NW1 6XE" or "Calle de Alcalá 42, Madrid". */
 export function findAddress(text: string): string | null {
   // ", London NW1 6XE": capitalized words and postcodes after a comma.
   const word = "[\\p{Lu}\\d][\\p{L}\\d'-]*";

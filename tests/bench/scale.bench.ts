@@ -39,7 +39,7 @@ for (const size of SIZES) {
         const rand = () => (s = (s * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
         const pick = <T>(xs: T[]) => xs[Math.floor(rand() * xs.length)]!;
         const WORDS =
-          'the a meeting notes lisbon trip budget report draft quarterly plan design review email address street avenue invoice order shipping tracking recipe flour sugar butter oven chicken pasta lemon apple banana train flight hotel booking checkin research paper study results method data chart table summary todo call friend family weekend market price discount coupon code function return const value array object string number error fix bug deploy server client'.split(
+          'the a meeting notes kyoto trip budget report draft quarterly plan design review email address street avenue invoice order shipping tracking recipe flour sugar butter oven chicken pasta lemon apple banana train flight hotel booking checkin research paper study results method data chart table summary todo call friend family weekend market price discount coupon code function return const value array object string number error fix bug deploy server client'.split(
             ' ',
           );
         const sentence = (n: number) => Array.from({ length: n }, () => pick(WORDS)).join(' ');

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Button, Section, Toggle } from '@/components/ui';
 import { InlineConfirm } from '@/components/InlineConfirm';
-import { canSync, requestSetup, turnOffSync, type SyncStatus } from '@/lib/sync/controller';
-import { useDriveSync } from '@/lib/sync/useDriveSync';
+import { canSync, turnOffSync, type SyncStatus } from '@/lib/sync/controller';
+import { startSync, useDriveSync } from '@/lib/sync/useDriveSync';
 import { safeSend } from '@/lib/safeSend';
 
 export const SYNC_STOPPED = 'The Drive copy was deleted or replaced on another computer. Your clips here are safe.';
@@ -47,18 +47,8 @@ export function DriveSync({ notify }: { notify: (message: string) => void }) {
   if (!sync || !canSync()) return null;
   const { settings, status, settingUp } = sync;
 
-  /**
-   * Turning sync on, Sync again after it stopped, and signing in again. The background does the rest, since
-   * the popup closes when Chrome asks for permission or Google's sign-in window opens.
-   */
   async function start() {
-    await requestSetup(true);
-    if (!__E2E__ && !(await browser.permissions.request({ permissions: ['identity'] }))) {
-      await requestSetup(false);
-      notify('Sync needs permission to sign in to Google');
-      return;
-    }
-    void safeSend({ type: 'sync-setup' });
+    if (!(await startSync())) notify('Sync needs permission to sign in to Google');
   }
 
   async function turnOff() {

@@ -4,6 +4,7 @@ import { strFromU8, unzipSync } from 'fflate';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
 import { pasteIntoPanel } from './helpers';
+import { startFakeDrive, TOKEN } from './fakeDriveServer';
 
 async function axe(page: Page, label: string) {
   // Check the settled UI, not a toast halfway through fading in.
@@ -17,23 +18,60 @@ async function axe(page: Page, label: string) {
   ).toEqual([]);
 }
 
-test('onboarding: three steps, then the panel', async ({ context, extensionId }) => {
-  const page = await context.newPage();
-  await page.goto(`chrome-extension://${extensionId}/sidepanel.html?onboarding=1`);
-  await expect(page.getByText('Step 1 of 3')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Everything you copy, kept and sorted' })).toBeVisible();
-  await axe(page, 'welcome');
-  await page.getByRole('button', { name: 'Get started' }).click();
-  // The e2e build already has all-sites access, so turning on auto-save goes straight through.
-  await page.getByRole('button', { name: 'Turn on auto-save' }).click();
-  await expect(page.getByText('Step 3 of 3')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Two shortcuts to know' })).toBeVisible();
-  await axe(page, 'shortcuts step');
-  await page.getByRole('button', { name: 'Finish' }).click();
-  await expect(page.getByRole('heading', { name: "You're all set" })).toBeVisible();
-  await page.getByRole('button', { name: 'Open the side panel' }).click();
-  await expect(page.getByRole('heading', { name: 'Your clips' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Copy anything to start' })).toBeVisible();
+test('onboarding: five steps with a step bar, sync turned on, then the panel', async ({ context, extensionId }) => {
+  const fake = await startFakeDrive();
+  try {
+    const [worker] = context.serviceWorkers();
+    await worker!.evaluate(([base, token]) => chrome.storage.session.set({ e2eDriveBase: base, e2eDriveToken: token }), [
+      fake.url,
+      TOKEN,
+    ] as const);
+    const page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/sidepanel.html?onboarding=1`);
+    const bar = page.getByRole('navigation', { name: 'Setup steps' });
+    const current = bar.locator('[aria-current="step"]');
+    await expect(bar.getByRole('listitem')).toHaveText(['Welcome', 'Auto-save', 'Shortcuts', 'Sync', 'How to use']);
+    await expect(current).toHaveText('Welcome');
+    await expect(page.getByRole('heading', { name: 'Everything you copy, kept and sorted' })).toBeVisible();
+    await axe(page, 'welcome');
+    await page.getByRole('button', { name: 'Get started' }).click();
+
+    await expect(current).toHaveText('Auto-save');
+    await axe(page, 'auto-save step');
+    // The e2e build already has all-sites access, so turning on auto-save goes straight through.
+    await page.getByRole('button', { name: 'Turn on auto-save' }).click();
+
+    await expect(current).toHaveText('Shortcuts');
+    await expect(page.getByRole('heading', { name: 'Two shortcuts to know' })).toBeVisible();
+    await axe(page, 'shortcuts step');
+    // A finished step can be revisited from the bar.
+    await bar.getByRole('button', { name: 'Back to Welcome' }).click();
+    await expect(current).toHaveText('Welcome');
+    await page.getByRole('button', { name: 'Get started' }).click();
+    await page.getByRole('button', { name: /Not now/ }).click();
+    await page.getByRole('button', { name: 'Next' }).click();
+
+    await expect(current).toHaveText('Sync');
+    await axe(page, 'sync step');
+    await page.getByRole('button', { name: 'Turn on sync' }).click();
+    await expect(page.getByText('Sync is on')).toBeVisible();
+    expect(fake.drive.byName('copy')).toBeTruthy();
+    await page.getByRole('button', { name: 'Next' }).click();
+
+    await expect(current).toHaveText('How to use');
+    for (const name of ['Save', 'Find', 'Paste'])
+      await expect(page.getByRole('listitem').filter({ hasText: name }).first()).toBeVisible();
+    await axe(page, 'how-to step');
+    await page.getByRole('button', { name: 'Finish' }).click();
+
+    await expect(page.getByRole('heading', { name: "You're all set" })).toBeVisible();
+    await expect(bar).toHaveCount(0);
+    await page.getByRole('button', { name: 'Open the side panel' }).click();
+    await expect(page.getByRole('heading', { name: 'Your clips' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Copy anything to start' })).toBeVisible();
+  } finally {
+    await fake.close();
+  }
 });
 
 test('notices, export and import, inline confirms, accessibility', async ({ context, extensionId }) => {

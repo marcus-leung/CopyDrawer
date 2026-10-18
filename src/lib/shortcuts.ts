@@ -12,3 +12,31 @@ export async function getShortcuts(): Promise<Shortcuts> {
   }
   return out;
 }
+
+const MAC_KEYS: [string, string][] = [
+  ['MacCtrl', '⌃'],
+  ['Alt', '⌥'],
+  ['Shift', '⇧'],
+  ['Command', '⌘'],
+  ['Ctrl', '⌘'],
+];
+
+/** A manifest key spec ("Alt+Shift+S") written as Chrome shows it: "⌥⇧S" on a Mac, unchanged elsewhere. */
+export function formatShortcut(spec: string, mac: boolean): string {
+  if (!mac) return spec;
+  const parts = spec.split('+');
+  const key = parts.pop()!;
+  return (
+    MAC_KEYS.filter(([name]) => parts.includes(name))
+      .map(([, sign]) => sign)
+      .join('') + key
+  );
+}
+
+/** The keys the manifest suggests for a command on this platform, which Chrome binds unless they're taken. */
+export function suggestedShortcut(name: CommandName, platform = navigator.platform): string {
+  const mac = /^Mac/.test(platform);
+  const suggested = browser.runtime.getManifest().commands?.[name]?.suggested_key;
+  const spec = typeof suggested === 'string' ? suggested : (mac && suggested?.mac) || suggested?.default;
+  return spec ? formatShortcut(spec, mac) : '';
+}

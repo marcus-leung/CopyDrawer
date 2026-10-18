@@ -5,7 +5,7 @@ const on = { autoSave: true, blockedSites: ['news.example.com'], saveInIncognito
 
 describe('copiesHidden: where the toolbar icon shows ×', () => {
   it('marks pages where auto-save is on but copies are not seen', () => {
-    expect(copiesHidden({ url: 'https://en.wikipedia.org/wiki/Lisbon' }, on)).toBe(false);
+    expect(copiesHidden({ url: 'https://en.wikipedia.org/wiki/Kyoto' }, on)).toBe(false);
     expect(copiesHidden({ url: undefined }, on)).toBe(true); // chrome:// and extension pages hide their address
     expect(copiesHidden({ url: 'https://news.example.com/today' }, on)).toBe(true);
     expect(copiesHidden({ url: 'https://www.chase.com/' }, on)).toBe(true);
