@@ -65,7 +65,7 @@ This is the manifest `description` in `wxt.config.ts`; the store shows it as the
 
   Then tick all three certifications: not sold or transferred to third parties, not used for purposes unrelated to the single purpose, not used for creditworthiness or lending.
 - **Remote code:** No, I am not using remote code. All code is in the package. The only network requests are downloads of images the user chose to save, and, when the user turns on sync, Google Drive API calls that store and read their clips in their own Drive app folder.
-- **Privacy policy URL:** https://marcus-leung.github.io/CopyDrawer/privacy, published by GitHub Pages from `site/` in this repo (`site/privacy.md` is the policy). A push to `main` that changes `site/` republishes it.
+- **Privacy policy URL:** https://marculuslabs.com/apps/copydrawer/privacy, published by the Marculus Labs website. Change the policy there, not in this repo.
 
 ## 3. Permission justifications
 
@@ -93,8 +93,8 @@ Sync needs a Google OAuth client tied to the store item's extension ID. Do this 
 
 1. **Store item.** In the Chrome Web Store developer dashboard, create a new item and upload any build of the zip. Save it as a draft; don't submit. Note the item ID. Under Package, choose View public key and copy the key (the text between the BEGIN and END lines, as one line).
 2. **Cloud project.** In the [Google Cloud console](https://console.cloud.google.com/), create a project named CopyDrawer. Under APIs & Services → Library, enable the Google Drive API.
-3. **Domain.** In [Search Console](https://search.google.com/search-console), add the URL-prefix property `https://marcus-leung.github.io/CopyDrawer/` and choose HTML file verification. Put the file Google gives you in `site/`, push to `main`, and press Verify.
-4. **Consent screen.** Under Google Auth Platform (OAuth consent screen): User type External. App name CopyDrawer, your support email, the 120×120 logo from `assets/brand/icon.svg`, home page `https://marcus-leung.github.io/CopyDrawer/`, privacy policy `https://marcus-leung.github.io/CopyDrawer/privacy`, authorized domain `marcus-leung.github.io`. Under Data access, add only `https://www.googleapis.com/auth/drive.appdata`. Under Audience, choose Publish app. `drive.appdata` is a non-sensitive scope, so Google checks only the branding; check the console's verification status after publishing.
+3. **Domain.** In [Search Console](https://search.google.com/search-console), add the Domain property `marculuslabs.com` and verify it with the DNS `TXT` record Google gives you, added in Cloudflare.
+4. **Consent screen.** Under Google Auth Platform (OAuth consent screen): User type External. App name CopyDrawer, your support email, the 120×120 logo from `assets/brand/icon.svg`, home page `https://marculuslabs.com/apps/copydrawer`, privacy policy `https://marculuslabs.com/apps/copydrawer/privacy`, authorized domain `marculuslabs.com`. Under Data access, add only `https://www.googleapis.com/auth/drive.appdata`. Under Audience, choose Publish app. `drive.appdata` is a non-sensitive scope, so Google checks only the branding; check the console's verification status after publishing.
 5. **OAuth client.** Under Clients, create a client of type Chrome Extension with the item ID. Copy the client ID.
 6. **Repo variable.** In the GitHub repo, Settings → Secrets and variables → Actions → Variables, add `COPYDRAWER_OAUTH_CLIENT_ID`. It isn't a secret: it ships in the manifest.
 7. **Local builds that can sign in.** Build with `COPYDRAWER_OAUTH_CLIENT_ID=<client id> COPYDRAWER_EXTENSION_KEY=<public key> pnpm build` and load `.output/chrome-mv3` unpacked. The key gives the local build the store's extension ID. `pnpm check` and `pnpm zip` fail if the key would ship.

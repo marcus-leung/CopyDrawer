@@ -81,7 +81,7 @@ USD per year, 2026. Cloudflare sells at cost, so renewals cost the same as the f
 
 Prices kept for reference.
 
-**Decision:** no domain and no business email. Contact is hello@marculuslabs.com. The privacy policy is hosted free on GitHub Pages at https://marcus-leung.github.io/CopyDrawer/privacy, from `site/` in this repo.
+**Decision:** no CopyDrawer domain. CopyDrawer's website is https://marculuslabs.com/apps/copydrawer on the Marculus Labs site, with the privacy policy at https://marculuslabs.com/apps/copydrawer/privacy. Contact is hello@marculuslabs.com.
 
 ## 6. Logo and colour
 

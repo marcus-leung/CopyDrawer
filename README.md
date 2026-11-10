@@ -5,7 +5,7 @@
 
 A private clipboard history for Chrome. Everything you copy is kept, sorted into collections, and ready to paste again. Your clips stay on your computer unless you turn on Google Drive sync.
 
-[Website](https://marcus-leung.github.io/CopyDrawer/) · [Privacy policy](https://marcus-leung.github.io/CopyDrawer/privacy) · [How it works](docs/ARCHITECTURE.md)
+[Website](https://marculuslabs.com/apps/copydrawer) · [Privacy policy](https://marculuslabs.com/apps/copydrawer/privacy) · [How it works](docs/ARCHITECTURE.md)
 
 > **Status:** v1.0.1, submitted to the Chrome Web Store and in review (October 2026).
 
@@ -76,7 +76,6 @@ src/lib/sync/                   Drive sync: change tracking, Drive client, merge
 src/components/                 UI building blocks (design system in docs/05)
 tests/unit, tests/e2e           Vitest and Playwright tests
 tests/bench                     scale benchmark (pnpm bench)
-site/                           website and privacy policy, published by GitHub Pages
 docs/                           research, design, plans, architecture
 ```
 
@@ -97,6 +96,6 @@ Bug reports and ideas are welcome as [issues](https://github.com/marcus-leung/Co
 
 ## License
 
-Copyright (c) 2026 Marcus Leung. Licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-only). You may use, change and share the code, and anything you publish that's built on it must be GPL-3.0 too, with its source. The CopyDrawer name and logo aren't covered: a modified version must use its own.
+Copyright (c) 2026 Marculus Labs. Licensed under the [GNU General Public License v3.0](LICENSE) (GPL-3.0-only). You may use, change and share the code, and anything you publish that's built on it must be GPL-3.0 too, with its source. The CopyDrawer name and logo aren't covered: a modified version must use its own.
 
 Third-party licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The build ships their full texts as `THIRD_PARTY_LICENSES.txt`, generated in `wxt.config.ts`.

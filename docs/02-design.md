@@ -160,7 +160,7 @@ Chrome extension code is shipped as JavaScript that **anyone can download and re
 | **Source-available** (e.g. FSL, BSL) | Code is public, but competing use is banned for ~2 years, after which it becomes MIT/Apache | Transparency + protection from direct clones | Not "open source" by the official definition; fewer contributors |
 | **Closed source** | No public repo | Simplest; maximum legal control | Loses the trust differentiator; code is still inspectable in the store package anyway |
 
-✅ **Decision: open source, GPL-3.0 (GPL-3.0-only).** The repo is public, and the privacy policy is published from `site/` in it. Clones must stay open, and as the sole copyright holder we can still relicense later; outside contributions would need a CLA to keep that option. Bundled libraries' licenses ship in the package as `THIRD_PARTY_LICENSES.txt`. Register the **name as a trademark** later, since licenses don't cover branding.
+✅ **Decision: open source, GPL-3.0 (GPL-3.0-only).** The repo is public. The privacy policy is published on the Marculus Labs website. Clones must stay open, and as the sole copyright holder we can still relicense later; outside contributions would need a CLA to keep that option. Bundled libraries' licenses ship in the package as `THIRD_PARTY_LICENSES.txt`. Register the **name as a trademark** later, since licenses don't cover branding.
 
 ## 9. Product defaults (decided)
 
