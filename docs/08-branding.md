@@ -91,8 +91,7 @@ Prices kept for reference.
 
 | File | Use |
 |---|---|
-| `icon.svg` | The icon: cream D on a tomato tile. Extension icon from 32 px up, favicon, store, avatars |
-| `icon-small.svg` | The icon redrawn for 16 px: bigger D, thicker handle. `scripts/make-icons.mjs` uses it for `public/icon/16.png` |
+| `icon.svg` | The icon: cream D on a tomato tile. Extension icon at every size, favicon, store, avatars |
 | `mark.svg` | The D alone in tomato, for places where a tile would be too heavy |
 | `mark-black.svg`, `mark-white.svg` | One-colour D for single-colour printing and photos |
 | `lockup-horizontal.svg`, `lockup-stacked.svg` | Icon + wordmark: "Copy" in ink, "Drawer" in tomato. On cream or white |
@@ -113,8 +112,9 @@ The full app palette is in [05-ui-design-system.md](05-ui-design-system.md) §2.
 
 **Rules**
 - **Clear space:** keep a margin around the icon and lockups at least the height of the handle times two (1/8 of the tile).
-- **Minimum size:** the icon at 16 px (use `icon-small.svg` below 24 px); the horizontal lockup at 120 px wide.
+- **Minimum size:** the icon at 16 px; the horizontal lockup at 120 px wide.
 - **Background:** the tile carries itself on any background. The bare `mark.svg` needs cream, white or a light photo; on dark use `mark-white.svg`.
+- **One logo:** use `icon.svg` at every size. Never make a simplified, redrawn or small-size version.
 - **Don't:** recolour the tile, put the bare tomato D on tomato, stretch or rotate it, add shadows or gradients, set the wordmark in another font, or put live text next to the icon instead of the lockup.
 
 **Store art:** `assets/store/`, made by `node scripts/make-store-art.mjs` after an E2E build: the 440×280 promo tile, the 1400×560 marquee and five 1280×800 screenshots of the real panel.

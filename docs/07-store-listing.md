@@ -54,7 +54,7 @@ This is the manifest `description` in `wxt.config.ts`; the store shows it as the
 
 **Marquee (1400×560, optional):** `assets/store/marquee-1400x560.png`.
 
-**Icon:** `assets/brand/icon.svg` (`icon-small.svg` at 16 px), rendered to `public/icon/*.png` by `node scripts/make-icons.mjs`. Logo rules: [08-branding.md](08-branding.md) §6.
+**Icon:** `assets/brand/icon.svg` at every size, rendered to `public/icon/*.png` by `node scripts/make-icons.mjs`. Logo rules: [08-branding.md](08-branding.md) §6.
 
 ## 2. Privacy tab answers
 
